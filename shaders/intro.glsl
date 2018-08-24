@@ -29,6 +29,8 @@ float fbm(vec2 f) {
   ;
 }
 
+vec4 snoise24(vec2 c) { return texture2D(N, c); }
+
 //float box2(vec2 p, vec2 s) { p = abs(p) - s; return max(p.x, p.y); }
 //float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
 
@@ -75,7 +77,7 @@ mat3 lookat(vec3 o, vec3 at, vec3 up) {
 /*const*/ float Ra = 6380e3;
 // /*const*/ float low = 1e3, hi = 25e2, border = 5e2;
 ///*const*/ float Hr = 8e3, Hm = 12e2;
-float I = 20.;
+float I = 40.;
 
 /*const*/ vec3 C = vec3(0., -R0, 0.);
 /*const*/ vec3 bR = vec3(58e-7, 135e-7, 331e-7);
@@ -84,9 +86,15 @@ float I = 20.;
 
 vec3 sundir;// = normalize(vec3(.5,.7,-1.));
 
+//bool lolnan = false;
+
 vec2 densitiesRM(vec3 p) {
-	float h = max(0., length(p - C) - R0);
+	//float h = max(0., length(p - C) - R0);
+	//if (any(isnan(p))) lolnan = true;
+	float h = length(p - C) - R0;
+	//if (isnan(h)) lolnan = true;
 	vec2 retRM = vec2(exp(-h/8e3), exp(-h/12e2));
+	//if (any(isnan(retRM))) lolnan = true;
 	return retRM;
 }
 
@@ -109,10 +117,12 @@ vec2 scatterDirectImpl(vec3 o, vec3 d, float L, float steps) {
 	return depthRMs * L;
 }
 
+/*
 vec3 Lin(vec3 o, vec3 d, float L) {
 	vec2 depthRMs = scatterDirectImpl(o, d, L, 32.);
 	return exp(- bR * depthRMs.x - bMe * depthRMs.y);
 }
+*/
 
 vec2 totalDepthRM;
 vec3 LiR, LiM;
@@ -150,29 +160,36 @@ float w(vec3 p) {
 	//return length(p) - 1.;
 	//return box(RY(t/8.)*(p-vec3(0., 1., 0.)), vec3(.5));
 
-	float room = max(box(p, vec3(2.)), -box(p-vec3(0., 0., 1.), vec3(1.9)));
-	float windows = box(rep3(p+vec3(.2,t/16.,0.), vec3(1.)), vec3(.1));
-	room = min(room, max(box(p, vec3(2.)), windows));
+	float room = max(box(p, vec3(4.)), -box(p/*-vec3(0., 0., 1.)*/, vec3(3.9)));
+	//float windows = box(rep3(p+vec3(.4,.0,0.), vec3(1.)), vec3(.3, 1., .2));
+	//room = min(room, max(box(p, vec3(2.)), windows));
+	//float windows = box(p-vec3(4., 0., 0.), vec3(1.));
+
+	float windows = box(p-sundir * 5., vec2(mix(.1, 2., t/64.), 5.).xyx);
+	//float windows = box(p-sundir * 5., vec3(mix(.1, 2., t/64.)*2.));
+
+	//float windows = box(p-vec3(0., 1., 0.)* 5., vec3(1.2));
+	//float windows = length(p-sundir * 5.) - 2.;
+	room = max(room, -windows);
 
 	return room;
 }
 
 vec3 wn(vec3 p) {
 	return normalize(vec3(
+	/* gives NaNs a lot
 		w(p + E.yxx),
 		w(p + E.xyx),
-		w(p + E.xxy)) - w(p));
-	/*
-		w(p + E.yxx) - w(p - E.yxx),
+		w(p + E.xxy)) - w(p));*/
+	w(p + E.yxx) - w(p - E.yxx),
 		w(p + E.xyx) - w(p - E.xyx),
 		w(p + E.xxy) - w(p - E.xxy)));
-		*/
 }
 
 float march(vec3 o, vec3 d, float l, float L, int steps) {
 	for (int i = 0; i < steps; ++i) {
 		float d = w(o + d * l);
-		l += d;
+		l += d;//max(.01, d);
 		if (d < .001 * l || l > L) break;
 	}
 	return l;
@@ -182,31 +199,42 @@ void main() {
 	//vec2 uv = gl_FragCoord.xy / RES;
 	vec2 uv = (gl_FragCoord.xy / RES * 2. - 1.); uv.x *= 2. * RES.x / RES.y;
 
-	vec3 O = vec3(0., 1., 5.);// + smoothstep(8., 0., t)*2.);
+	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
+
+	vec3 O = vec3(0., 1.5, 3.8);// + smoothstep(8., 0., t)*2.);
 	vec3 up = E.xzx;
-	vec3 at = vec3(0., 0., 0.);//2.*sin(t/9.), 0.);
+	vec3 at = vec3(0., 1., 0.);//2.*sin(t/9.), 0.);
 	vec3 D = normalize(vec3(uv, -2.));
 	D = lookat(O, at, up) * D;
 
-	sundir = normalize(vec3(.05, .04, .1));//vec3(.5*sin(t/16.),.9 * (1. + sin(t/12.)),-1.*cos(t/16.)));
+	//sundir = normalize(vec3(.05, .04, -.1));
+	//sundir = normalize(vec3(.5*sin(t/16.),.9 * (1. + sin(t/12.)),-1.*cos(t/16.)));
+	//sundir = normalize(vec3(.05, .04 + .0 * .3 * (1. + cos(t/12.)), -.1));
+	//sundir = normalize(vec3(.05*cos(t/17.), .07, -.1*sin(t/18.)));
+	sundir = vec3(0., 1., 0.);
 
 	//gl_FragColor = vec4(mod(scatter(O, D, escape(O, D, Ra), vec3(0.)), 2.), 1.); return;
 
 	const int samples = 16;
 	const int bounces = 4;
-	float seed = t;
+	float seedhash = t;
+	vec2 seed = (gl_FragCoord.xy * vec2(17., 23.) + floor(t*943.)) / textureSize(N,0);
 	vec3 total_color = vec3(0.);
 	for (int s = 0; s < samples; ++s) {
-		seed += 1.;
+		//seed.y += 1./textureSize(N,0).y;
 		vec3 o = O;
 		vec3 d = D;
 
 		vec3 color = vec3(0.);
 		vec3 k = vec3(1.);
-		for (int i = 0; i < bounces; ++i) {
+		for (int b = 0; b < bounces; ++b) {
+			//if (any(isnan(d))) { lolnan = true; break; }
 			float lsky = escape(o, d, Ra);
+			//if (isnan(lsky)) break;
+			//if (isnan(lsky)) lolnan = true;
 			int mat = 0;
 			float l = lsky;
+			//if (isnan(l)) break;
 
 			float pXZ = d.y < -.0001 ? (0. - o.y) / d.y : l;
 			if (pXZ < l) {
@@ -221,6 +249,7 @@ void main() {
 			}
 
 			float ldf = march(o, d, 0., 20., 32);
+			//if (isnan(l)) {lolnan = true; break; }
 			if (ldf < 10. && ldf < l) {
 				l = ldf;
 				mat = 2;
@@ -233,7 +262,11 @@ void main() {
 
 			if (mat == 0) {
 				//emissive = d.y < 0. ? vec3(1., 0., 0.) : vec3(.1);
+				//if (any(isnan(d))) lolnan = true;
+				//if (isnan(l)) lolnan = true;
 				emissive = scatter(o, d, l, vec3(0.));
+				//if (lolnan) { gl_FragColor = vec4(1000., 0., 0., 1.); return; }
+				//emissive = vec3(1.);
 				albedo = vec3(0.);
 				o = o + d * l;
 			} else {
@@ -244,9 +277,12 @@ void main() {
 					//roughness = 0.;
 				} else if (mat == 2) {
 					//emissive = vec3(1.);
-					roughness = .9;
+					roughness = .8;
 					n = wn(o);
+					//if (any(isnan(n))) { lolnan = true; break; }
 					o += n * .01;
+					float ep = -4. + 8. * mod(t/64., 1.);
+					//emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
 				} else if (mat == 3) {
 					n = normalize(o);
 				}
@@ -262,24 +298,36 @@ void main() {
 			k *= fog;
 			color += k * emissive;
 			k *= albedo.rgb;
+			//if (s == 0 && b == 0) { d = sundir; k *= max(0., dot(n, sundir)); continue; }
 			if (all(lessThan(k,vec3(.001))))
-					break;
+				break;
 
 			d = reflect(d, n);
+			//if (any(isnan(d))) { break; }
+			/*
+			seed.x += 1. / textureSize(N,0).x;
+			vec4 rvect = texture2D(N, seed);//snoise24(vec2(seed,.5));
+			d = normalize(mix(d, (rvect.xyz - .5) * 2., roughness));
+			*/
+
 			d = normalize(mix(d, (vec3(
-							hash1(seed += d.x),
-							hash1(seed += d.y),
-							hash1(seed += d.z)) - .5) * 2.,
-						roughness));
+							hash1(seedhash += d.x),
+							hash1(seedhash += d.y),
+							hash1(seedhash += d.z)) - .5) * 2.,
+					roughness));
 
 			d *= sign(dot(n, d));
 			//float s = sign(dot(n, d)); if (s < .0) { gl_FragColor = vec4(1., 0., 0., 1.); return; }
 		}
 
+		//if (lolnan) { gl_FragColor = vec4(0., 1000., 0., 1.); return; }
+
 		total_color += color;
 	}
 
+	//if (lolnan) { gl_FragColor = vec4(0., 0., 1000., 1.); return; }
+
 	total_color /= float(samples);
 
-	gl_FragColor = vec4(total_color /* * smoothstep(0., 4., t)*/, .2);//.4);
+	gl_FragColor = vec4(total_color /* * smoothstep(0., 4., t)*/, mix(.1, 1., step(t,1.)));//.4);
 }
