@@ -13,9 +13,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#define GL_GLEXT_PROTOTYPES
 #endif
 
-#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include "glext.h"
 
