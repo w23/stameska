@@ -37,8 +37,8 @@ $(OBJDIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(COMPILE.cc) -c $< -o $@
 
-$(OBJDIR)/4klang.o32: 4klang.asm /4klang_linux/4klang.inc
-	nasm -f elf32 -I4klang_linux/ 4klang.asm -o $@
+$(OBJDIR)/4klang.o32: 4klang.asm ./4klang_linux/4klang.inc
+	nasm -f elf32 -I./4klang_linux/ 4klang.asm -o $@
 
 TOOL_EXE = $(OBJDIR)/tool/tool
 TOOL_SRCS = \
@@ -78,10 +78,10 @@ clean:
 	rm -f $(DUMP_AUDIO_OBJS) $(DUMP_AUDIO_DEPS) $(DUMP_AUDIO_EXE) audio.raw
 	rm -f $(INTRO).sh $(INTRO).gz $(INTRO).elf $(INTRO) $(INTRO).dbg
 
-run_tool: $(TOOL_EXE) # audio.raw
+run_tool: $(TOOL_EXE) audio.raw
 	$(TOOL_EXE) -w $(WIDTH) -h $(HEIGHT) -m $(MIDIDEV)
 
-debug_tool: $(TOOL_EXE) # audio.raw
+debug_tool: $(TOOL_EXE) audio.raw
 	gdb --args $(TOOL_EXE) -w $(WIDTH) -h $(HEIGHT) -m $(MIDIDEV)
 
 $(INTRO).sh: linux_header $(INTRO).gz

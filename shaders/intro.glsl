@@ -1,9 +1,10 @@
+#version 130
 uniform vec2 RES;
 uniform float t;
 uniform sampler2D N;
 
 //const float INF = 10000.;
-const vec3 E = vec3(0., .001, 1.);
+const vec3 E = vec3(0., .01, 1.);
 const float PI = 3.141593;
 
 float hash1(float v) { return fract(sin(v) * 43758.5453); }
