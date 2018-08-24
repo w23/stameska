@@ -67,7 +67,6 @@ int _fltused = 1;
 #include "glext.h"
 
 #include "4klang.h"
-#define BYTES_PER_TICK (SAMPLES_PER_TICK/SAMPLE_RATE)
 
 #ifdef CAPTURE
 #ifndef CAPTURE_FRAMERATE
@@ -349,7 +348,7 @@ static /*__forceinline*/ void initFb(GLuint fb, GLuint tex1/*, GLuint tex2*/) {
 int itime;
 
 #pragma code_seg(".paint")
-static void paint(GLuint prog, GLuint dst_fb) {
+static void paint(GLuint prog, GLuint dst_fb, int w) {
 	oglBindFramebuffer(GL_FRAMEBUFFER, dst_fb);
 	GLCHECK();
 	oglUseProgram(prog);
@@ -358,9 +357,10 @@ static void paint(GLuint prog, GLuint dst_fb) {
 	glGetError();
 	oglUniform1i(oglGetUniformLocation(prog, "F"), 1);
 	glGetError();
-	oglUniform1f(oglGetUniformLocation(prog, "t"), (float)itime / BYTES_PER_TICK);
+	const float t = (float)itime / (SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
+	oglUniform1f(oglGetUniformLocation(prog, "t"), t);// (float)(itime) / BYTES_PER_TICK);
 	glGetError();
-	oglUniform2f(oglGetUniformLocation(prog, "RES"), XRES, YRES);
+	oglUniform2f(oglGetUniformLocation(prog, "RES"), w, YRES);
 	glGetError();
 #if defined(CAPTURE) && defined(TILED)
 	{
@@ -409,9 +409,11 @@ static __forceinline void introInit() {
 #pragma code_seg(".introPaint")
 static __forceinline void introPaint() {
 	glEnable(GL_BLEND);
-	paint(program[Pass_Main], fb[Pass_Main]);
+	glViewport(0, 0, XRES / 2, YRES);
+	paint(program[Pass_Main], fb[Pass_Main], XRES / 2);
 	glDisable(GL_BLEND);
-	paint(program[Pass_Blit], 0);
+	glViewport(0, 0, XRES, YRES);
+	paint(program[Pass_Blit], 0, XRES);
 }
 
 #ifdef _WIN32

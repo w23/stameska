@@ -9,11 +9,8 @@ const float PI = 3.141593;
 
 float hash1(float v) { return fract(sin(v) * 43758.5453); }
 float hash2(vec2 v) { return hash1(dot(v, vec2(129.47, 37.56))); }
-float hash3(vec3 v) { return hash1(dot(v, vec3(129.47, 37.56, 1.))); }
-float noise1(float v) {
-  float V = floor(v); v = fract(v);
-  return mix(hash1(V), hash1(V+1.), v);
-}
+//float hash3(vec3 v) { return hash1(dot(v, vec3(129.47, 37.56, 1.))); }
+//float noise1(float v) { float V = floor(v); v = fract(v); return mix(hash1(V), hash1(V+1.), v); }
 float noise2(vec2 v) {
   vec2 V = floor(v); v = fract(v);
   return mix(
@@ -34,16 +31,18 @@ vec4 snoise24(vec2 c) { return texture2D(N, c); }
 //float box2(vec2 p, vec2 s) { p = abs(p) - s; return max(p.x, p.y); }
 //float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
 
-float ball(vec3 p, float r) { return length(p) - r; }
+//float ball(vec3 p, float r) { return length(p) - r; }
 vec3 rep3(vec3 p, vec3 r) { return mod(p,r) - r*.5; }
+/*
 vec2 rep2(vec2 p, vec2 r) { return mod(p,r) - r*.5; }
 float ring(vec3 p, float r, float R, float t) {
 	return max(abs(p.y)-t, max(length(p) - R, r - length(p)));
 }
+*/
 //float vmax2(vec2 p) { return max(p.x, p.y); }
 float vmax3(vec3 v) { return max(v.x, max(v.y, v.z)); }
 float box(vec3 p, vec3 s) { return vmax3(abs(p) - s);}
-float tor(vec3 p, vec2 s) { return length(vec2(length(p.xz) - s.x, p.y)) - s.y; }
+//float tor(vec3 p, vec2 s) { return length(vec2(length(p.xz) - s.x, p.y)) - s.y; }
 
 mat3 RX(float a){ float s=sin(a),c=cos(a); return mat3(1.,0.,0.,0.,c,-s,0.,s,c); }
 mat3 RY(float a){	float s=sin(a),c=cos(a); return mat3(c,0.,s,0.,1.,0,-s,0.,c); }
@@ -59,12 +58,14 @@ float raySphere(vec3 o, vec3 d, vec3 c, float r, float L) {
 	return tca - sqrt(r2 - d2);
 }
 
+/*
 float ornd(float a, float b, float r) {
 		vec2 u = max(vec2(r - a,r - b), vec2(0));
 			return max(r, min (a, b)) - length(u);
 }
+*/
 
-float sqr(vec3 p) { return dot(p, p); }
+//float sqr(vec3 p) { return dot(p, p); }
 
 mat3 lookat(vec3 o, vec3 at, vec3 up) {
 	vec3 z = normalize(o - at);
@@ -199,6 +200,9 @@ void main() {
 	//vec2 uv = gl_FragCoord.xy / RES;
 	vec2 uv = (gl_FragCoord.xy / RES * 2. - 1.); uv.x *= 2. * RES.x / RES.y;
 
+	//gl_FragColor = vec4(sin(t), 0., 0., 1.); return;
+	//gl_FragColor = vec4(hash1(uv.x), 0., 0., 1.); return;
+	//gl_FragColor = vec4(uv, 0., 1.); return;
 	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
 
 	vec3 O = vec3(0., 1.5, 3.8);// + smoothstep(8., 0., t)*2.);
@@ -216,9 +220,8 @@ void main() {
 	//gl_FragColor = vec4(mod(scatter(O, D, escape(O, D, Ra), vec3(0.)), 2.), 1.); return;
 
 	const int samples = 16;
-	const int bounces = 4;
 	float seedhash = t;
-	vec2 seed = (gl_FragCoord.xy * vec2(17., 23.) + floor(t*943.)) / textureSize(N,0);
+	//vec2 seed = (gl_FragCoord.xy * vec2(17., 23.) + floor(t*943.)) / textureSize(N,0);
 	vec3 total_color = vec3(0.);
 	for (int s = 0; s < samples; ++s) {
 		//seed.y += 1./textureSize(N,0).y;
@@ -227,7 +230,7 @@ void main() {
 
 		vec3 color = vec3(0.);
 		vec3 k = vec3(1.);
-		for (int b = 0; b < bounces; ++b) {
+		for (int b = 0; b < 4; ++b) {
 			//if (any(isnan(d))) { lolnan = true; break; }
 			float lsky = escape(o, d, Ra);
 			//if (isnan(lsky)) break;
@@ -302,6 +305,8 @@ void main() {
 			if (all(lessThan(k,vec3(.001))))
 				break;
 
+			//gl_FragColor = vec4(n, 1.); return;
+
 			d = reflect(d, n);
 			//if (any(isnan(d))) { break; }
 			/*
@@ -310,10 +315,24 @@ void main() {
 			d = normalize(mix(d, (rvect.xyz - .5) * 2., roughness));
 			*/
 
-			d = normalize(mix(d, (vec3(
+			//gl_FragColor = vec4(d, 1.); return;
+			//gl_FragColor = vec4(hash1(uv.x), 0., 0., 1.); return;
+			//gl_FragColor = vec4(hash1(t), 0., 0., 1.); return;
+	/*		vec3 rvect =
+				vec3(
 							hash1(seedhash += d.x),
 							hash1(seedhash += d.y),
-							hash1(seedhash += d.z)) - .5) * 2.,
+							hash1(seedhash += d.z))
+				;*/
+
+			//gl_FragColor = vec4(rvect + 1., 1.); return;
+
+			d = normalize(mix(d, (
+				vec3(
+							hash1(seedhash += d.x),
+							hash1(seedhash += d.y),
+							hash1(seedhash += d.z))
+							- .5) * 2.,
 					roughness));
 
 			d *= sign(dot(n, d));
