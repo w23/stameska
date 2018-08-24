@@ -188,9 +188,9 @@ vec3 wn(vec3 p) {
 
 float march(vec3 o, vec3 d, float l, float L, int steps) {
 	for (int i = 0; i < steps; ++i) {
-		float d = w(o + d * l);
-		l += d;//max(.01, d);
-		if (d < .001 * l || l > L) break;
+		float dd = w(o + d * l);
+		l += dd;//max(.01, d);
+		if (dd < .001 * l || l > L) break;
 	}
 	return l;
 }
