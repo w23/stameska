@@ -28,6 +28,7 @@ static struct {
 static struct {
 	int paused;
 	int start, end;
+	int set;
 } loop;
 
 static void audioCallback(void *unused, float *samples, int nsamples) {
@@ -42,8 +43,10 @@ static void audioCallback(void *unused, float *samples, int nsamples) {
 		samples[i * 2] = audio.data[audio.pos * 2];
 		samples[i * 2 + 1] = audio.data[audio.pos * 2 + 1];
 		audio.pos = (audio.pos + 1) % audio.samples;
-		if (audio.pos >= loop.end)
-			audio.pos = loop.start;
+
+		if (loop.set == 2)
+			if (audio.pos >= loop.end)
+				audio.pos = loop.start;
 	}
 }
 
@@ -68,7 +71,7 @@ static void paint(ATimeUs ts, float dt) {
 	++fpstat.frames;
 
 	(void)ts; (void)dt;
-	video_paint((audio.pos + (loop.paused * rand() % SAMPLES_PER_TICK)) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
+	video_paint((audio.pos + (loop.paused * rand() % SAMPLES_PER_TICK / 2)) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
 }
 
 const int pattern_length = 64;
@@ -113,6 +116,23 @@ static void key(ATimeUs ts, AKey key, int down) {
 		loop.paused ^= 1;
 		break;
 
+	case AK_Z:
+		switch (loop.set) {
+		case 0:
+			loop.start = ((audio.pos / SAMPLES_PER_TICK) / 64) * SAMPLES_PER_TICK * 64;
+			loop.set = 1;
+			break;
+		case 1:
+			loop.end = (((audio.pos / SAMPLES_PER_TICK) + 63) / 64) * SAMPLES_PER_TICK * 64;
+			loop.set = 2;
+			break;
+		case 2:
+			loop.start = 0;
+			loop.end = audio.samples;
+			loop.set = 0;
+		}
+		break;
+
 	default:
 		MSG("Unknown key %d", key);
 		break;
@@ -124,6 +144,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 	proctable->paint = paint;
 	proctable->key = key;
 
+	loop.set = 0;
 	fpstat.last_print = 0;
 
 	FILE *f = fopen("audio.raw", "rb");

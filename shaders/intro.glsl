@@ -187,13 +187,15 @@ float room(vec3 p) {
 	//return box(RY(t/8.)*(p-vec3(0., 1., 0.)), vec3(.5));
 
 	//float room = max(box(p, vec3(4.5)), -box(p/*-vec3(0., 0., 1.)*/, vec3(4.)));
-	p -= vec3(0., room_size.y-1., 4.);
+	p -= vec3(0., 0./*room_size.y-1.*/, 4.);
 	float room = -box(p, room_size);
 
 	if (t > 768.) {
-		room = max(room, box(p, room_size + 1.));
-		//float windows = length(p-sundir*room_size) - 2.;
-		float windows = box(p-sundir * room_size, vec3(window_size));
+		room = max(room, box(p, room_size + .3));
+		//float windows = box(p-sundir * room_size, vec3(window_size));
+
+		float windows = box(rep3(p - sundir * room_size, vec3(7., 9., 2.)), window_size * vec3(3., 4., .5));
+
 		room = max(room, -windows);
 	}
 
@@ -267,15 +269,15 @@ void main() {
 		float tt = smoothstep(64., 384., t);
 		at = mix(vec3(0., .4, -4.), vec3(0.), tt);
 		O = mix(vec3(0., .4, -3.), vec3(0., 1.5, 3.9), tt);
-	}
-
-	if (t > 512.) {
-		float tt = smoothstep(512., 640., t);
+	} else
+	{
+		float tt = smoothstep(432., 640., t);
 		O = mix(O, vec3(0., -.2, 5.9), tt);
-		float ttrs = smoothstep(608., 768., t);
+	//	float ttrs = smoothstep(608., 768., t);
+		float ttrs = smoothstep(512., 704., t);
 		room_size = mix(room_size, vec3(2.4, 3., 6.), ttrs);
 
-		window_size = mix(1., 5., smoothstep(768., 768.+128., t));
+		window_size = mix(.38, 1., smoothstep(768., 896., t));
 	}
 
 	///if (t > 76
@@ -283,12 +285,14 @@ void main() {
 	//O = vec3(0., 5., 20.);
 
 	//if (t < 512.)
+	/*
 	if (false)
 	{
 		O.x += snoise24(vec2(t/32.)).x-.5;
 		O.x += snoise24(vec2(t/32.)).x-.5;
 		O.y += snoise24(vec2(t/32.+.3)).y-.5;
 	}
+	*/
 
 	D = lookat(O, at, up) * D;
 
@@ -296,7 +300,7 @@ void main() {
 	//sundir = normalize(vec3(.5*sin(t/16.),.9 * (1. + sin(t/12.)),-1.*cos(t/16.)));
 	//sundir = normalize(vec3(.05, .04 + .0 * .3 * (1. + cos(t/12.)), -.1));
 	//sundir = normalize(vec3(.05*cos(t/17.), .07, -.1*sin(t/18.)));
-	sundir = vec3(0., 1., 0.);
+	sundir = normalize(mix(vec3(0., 10., 0.), vec3(-.2, .01, -.3), t/1280.));
 
 	//gl_FragColor = vec4(scatter(O, D, escape(O, D, Ra), vec3(0.)), 1.); return;
 
@@ -320,13 +324,13 @@ void main() {
 			float l = lsky;
 			//if (isnan(l)) break;
 
-			/*
-			float pXZ = d.y < -.0001 ? (0. - o.y) / d.y : l;
+			float pXZ = d.y < -.0001 ? (-1. - o.y) / d.y : l;
 			if (pXZ < l) {
 				l = pXZ;
 				mat = 1;
 			}
 
+/*
 			float lsph = raySphere(o, d, vec3(0., 0., 0.), 1., lsky);
 			if (lsph < l) {
 				l = lsph;
@@ -363,9 +367,14 @@ void main() {
 			} else {
 				o = o + d * l;
 				if (mat == 1) {
-					float puddle = smoothstep(.4, .5, fbm(o.xz*2.));
+					float puddle = smoothstep(.2, .5, fbm(o.xz*4.));
 					roughness = .02 + .2 * puddle;
-					//roughness = 0.;
+
+					/*
+					vec4 t1 = snoise24(o.xz*2.);
+					vec4 t2 = snoise24(o.xz*4. + (t1.xy-.5)*3.);
+					roughness = .01 + .6 * max(0., t2.x-.2);
+					*/
 				} else if (mat == 2) {
 					n = wn(o);
 					o += n * .01;
@@ -387,12 +396,7 @@ void main() {
 							//float n = floor(mod(t/2.+uvn.x*16.,32.)-16.);
 							//float mask = 
 							float pos = mod(-t/2. + uvn.x*64.,64.)-32.;
-							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 8.*uvn.y));
-						} else if (n.y > .9) {
-							vec4 t1 = snoise24(o.xz*8.);
-							vec4 t2 = snoise24(o.xz*4. + (t1.xy-.5)*2.);
-							roughness = .01 + .8 * t2.x;
-							//albedo *= t2.xyz;
+							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 8.*uvn.y)*step(O.x, (-t+734.)/2.));
 						}
 					}
 					//float ep = -4. + 8. * mod(t/64., 1.);
@@ -461,6 +465,7 @@ void main() {
 
 	//gl_FragColor = vec4(total_color /* * smoothstep(0., 4., t)*/, mix(.1, 1., step(t,1.)));//.4);
 	float alpha = .15;
+	alpha = .3;
 	//alpha = 1.;
 	gl_FragColor = vec4(total_color, alpha); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
 	//gl_FragColor = vec4(total_color, 1.);// /* * smoothstep(0., 4., t)*/, mix(.1, 1., step(t,1.)));//.4);
