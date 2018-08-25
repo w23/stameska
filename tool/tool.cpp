@@ -71,7 +71,7 @@ static void paint(ATimeUs ts, float dt) {
 	video_paint((audio.pos + (loop.paused * rand() % SAMPLES_PER_TICK)) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
 }
 
-const int pattern_length = 16;
+const int pattern_length = 64;
 
 static void timeShift(int ticks) {
 	int next_pos = audio.pos + ticks * SAMPLES_PER_TICK;
@@ -86,6 +86,7 @@ static void timeShift(int ticks) {
 
 static void key(ATimeUs ts, AKey key, int down) {
 	(void)ts;
+
 	if (!down)
 		return;
 
@@ -102,10 +103,10 @@ static void key(ATimeUs ts, AKey key, int down) {
 		timeShift(pattern_length);
 		break;
 	case AK_Up:
-		timeShift(8*pattern_length);
+		timeShift(4*pattern_length);
 		break;
 	case AK_Down:
-		timeShift(-8*pattern_length);
+		timeShift(-4*pattern_length);
 		break;
 
 	case AK_Space:
@@ -113,6 +114,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 		break;
 
 	default:
+		MSG("Unknown key %d", key);
 		break;
 	}
 }
