@@ -67,6 +67,7 @@ mat3 RX(float a){ float s=sin(a),c=cos(a); return mat3(1.,0.,0.,0.,c,-s,0.,s,c);
 mat3 RY(float a){	float s=sin(a),c=cos(a); return mat3(c,0.,s,0.,1.,0,-s,0.,c); }
 mat3 RZ(float a){ float s=sin(a),c=cos(a); return mat3(c,s,0.,-s,c,0.,0.,0.,1.); }
 
+/*
 float raySphere(vec3 o, vec3 d, vec3 c, float r, float L) {
 	vec3 l = c - o;
 	float tca = dot(l, d);
@@ -76,13 +77,12 @@ float raySphere(vec3 o, vec3 d, vec3 c, float r, float L) {
 	if (d2 < 0. || d2 > r2) return L;
 	return tca - sqrt(r2 - d2);
 }
-
-/*
-float ornd(float a, float b, float r) {
-		vec2 u = max(vec2(r - a,r - b), vec2(0));
-			return max(r, min (a, b)) - length(u);
-}
 */
+
+float metamin(float a, float b, float r) {
+		vec2 u = max(vec2(r - a,r - b), vec2(0));
+		return max(r, min (a, b)) - length(u);
+}
 
 //float sqr(vec3 p) { return dot(p, p); }
 
@@ -113,9 +113,7 @@ vec2 densitiesRM(vec3 p) {
 	//if (any(isnan(p))) lolnan = true;
 	float h = length(p - C) - R0;
 	//if (isnan(h)) lolnan = true;
-	vec2 retRM = vec2(exp(-h/8e3), exp(-h/12e2));
-	//if (any(isnan(retRM))) lolnan = true;
-	return retRM;
+	return vec2(exp(-h/8e3), exp(-h/12e2));
 }
 
 float escape(vec3 p, vec3 d, float R) {
@@ -144,10 +142,12 @@ vec3 Lin(vec3 o, vec3 d, float L) {
 }
 */
 
-vec2 totalDepthRM;
-vec3 LiR, LiM;
+vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
+	vec2 totalDepthRM = vec2(0.);
+	vec3 LiR, LiM;
+	LiR = LiM = vec3(0.);
 
-void scatterImpl(vec3 o, vec3 d, float L, float steps) {
+	float steps = 8.;
 	L /= steps; d *= L;
 	for (float i = 0.; i < steps; ++i) {
 		vec3 p = o + d * i;
@@ -162,12 +162,6 @@ void scatterImpl(vec3 o, vec3 d, float L, float steps) {
 		LiR += A * dRM.x;
 		LiM += A * dRM.y;
 	}
-}
-
-vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
-	totalDepthRM = vec2(0.);
-	LiR = LiM = vec3(0.);
-	scatterImpl(o, d, L, 8.);
 	float mu = dot(d, sundir);
 
 	return Lo * exp(-bR * totalDepthRM.x - bMe * totalDepthRM.y)
@@ -176,27 +170,12 @@ vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
 			LiM * bMs * .0196 / pow(1.58 - 1.52 * mu, 1.5));
 }
 
-//mat3 brot = RY(t/23.), brotx = RX(sin(t/23.));
-
-float pc = 1.;
-float b1(vec3 p) {
-	return box(p, vec3(1.));
-
-#if 0
-	pc = pModPolar(p.xz, 8.);
-	p.x -= 2.;
-	p.y -= 1.;
-	return box(/*brotx*/p, vec3(.5,2.,.5)/4.);// box(brot*(brotx * p + vec3(0., -2., 0.)), vec3(.5, 2., .5)/4.);
-#endif
-}
-
 float balls(vec3 p) {
 	p.y += .2;
-	return min(length(p-E.zxx*1.5), length(p+E.zxx*1.5)) - .8;
+	return min(length(p-E.zxx*1.5)-.8, length(p+E.zxx*1.5)-.8);//, .4);
 }
 
 float room(vec3 p) {
-	//return length(p) - 1.;
 	//return box(RY(t/8.)*(p-vec3(0., 1., 0.)), vec3(.5));
 
 	//float room = max(box(p, vec3(4.5)), -box(p/*-vec3(0., 0., 1.)*/, vec3(4.)));
@@ -215,8 +194,18 @@ float room(vec3 p) {
 	return room;
 }
 
+mat3 mbxr = RX(t64) * RY(t32);
+float metabox(vec3 p) {
+	return box(mbxr*(p-vec3((t-320.)*3./256.-1.5, 0., 0.)), vec3(.3));
+}
+
 float w(vec3 p) {
-	return min(room(p), balls(p));
+	float bls = balls(p);
+	if (t > 320. && t < 576.) {
+		//bls = metamin(bls, box(p-vec3((t-256./64.)-1.5,1., 0.), vec3(.4)), .4);
+		bls = metamin(bls, metabox(p), .3);
+	}
+	return min(room(p), bls);
 }
 
 vec3 wn(vec3 p) {
@@ -257,12 +246,18 @@ void main() {
 	vec3 at = vec3(0., 0., 0.);//2.*sin(t/9.), 0.);
 	vec3 D = normalize(vec3(uv, -2.));
 
+	if (t < 256.) {
+		float tt = smoothstep(64., 256., t);
+		at = mix(vec3(0., .4, -4.), vec3(0.), tt);
+		O = mix(vec3(0., .4, -3.), vec3(0., 1.5, 3.9), tt);
+	}
+
 	//if (t < 512.)
+	if (false)
 	{
 		O.x += snoise24(vec2(t/32.)).x-.5;
 		O.x += snoise24(vec2(t/32.)).x-.5;
 		O.y += snoise24(vec2(t/32.+.3)).y-.5;
-	//	O.z += snoise24(vec2(t/16.+.7)).z;
 	}
 
 	D = lookat(O, at, up) * D;

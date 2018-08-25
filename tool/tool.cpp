@@ -9,10 +9,10 @@
 #include "aud_io.h"
 
 #ifndef WIDTH
-#define WIDTH 1920
+#define WIDTH 1280
 #endif
 #ifndef HEIGHT
-#define HEIGHT 1080
+#define HEIGHT 720
 #endif
 
 #define MSG(...) aAppDebugPrintf(__VA_ARGS__)
@@ -75,7 +75,7 @@ const int pattern_length = 16;
 
 static void timeShift(int ticks) {
 	int next_pos = audio.pos + ticks * SAMPLES_PER_TICK;
-	const int loop_length = loop.start - loop.end;
+	const int loop_length = loop.end - loop.start;
 	while (next_pos < loop.start)
 		next_pos += loop_length;
 	while (next_pos > loop.end)
