@@ -7,6 +7,11 @@ uniform sampler2D N;
 const vec3 E = vec3(0., .001, 1.);
 const float PI = 3.141593;
 
+float t8 = t/8.;
+float t16 = t/16.;
+float t32 = t/32.;
+float t64 = t/64.;
+
 float hash1(float v) { return fract(sin(v) * 43758.5453); }
 float hash2(vec2 v) { return hash1(dot(v, vec2(129.47, 37.56))); }
 //float hash3(vec3 v) { return hash1(dot(v, vec3(129.47, 37.56, 1.))); }
@@ -26,7 +31,8 @@ float fbm(vec2 f) {
   ;
 }
 
-vec4 snoise24(vec2 c) { return texture2D(N, c); }
+vec4 sN(vec2 c) { return texture2D(N, c); }
+vec4 snoise24(vec2 c) { return texture2D(N, (c+.5)/textureSize(N,0)); }
 
 //float box2(vec2 p, vec2 s) { p = abs(p) - s; return max(p.x, p.y); }
 //float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
@@ -170,8 +176,7 @@ vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
 			LiM * bMs * .0196 / pow(1.58 - 1.52 * mu, 1.5));
 }
 
-mat3 brot = RY(t/23.);
-mat3 brotx = RX(sin(t/23.));
+//mat3 brot = RY(t/23.), brotx = RX(sin(t/23.));
 
 float pc = 1.;
 float b1(vec3 p) {
@@ -185,12 +190,18 @@ float b1(vec3 p) {
 #endif
 }
 
+float balls(vec3 p) {
+	p.y += .2;
+	return min(length(p-E.zxx*1.5), length(p+E.zxx*1.5)) - .8;
+}
+
 float room(vec3 p) {
 	//return length(p) - 1.;
 	//return box(RY(t/8.)*(p-vec3(0., 1., 0.)), vec3(.5));
 
 	//float room = max(box(p, vec3(4.5)), -box(p/*-vec3(0., 0., 1.)*/, vec3(4.)));
-	float room = -box(p, vec3(4.));
+	float room = -box(p-E.xzx*3., vec3(8., 4., 4.));
+	//room = min(p.y + 2., room);
 	//float windows = box(rep3(p+vec3(.4,.0,0.), vec3(1.)), vec3(.3, 1., .2));
 	//room = min(room, max(box(p, vec3(2.)), windows));
 	//float windows = box(p-vec3(4., 0., 0.), vec3(1.));
@@ -205,7 +216,7 @@ float room(vec3 p) {
 }
 
 float w(vec3 p) {
-	return min(room(p), b1(p));
+	return min(room(p), balls(p));
 }
 
 vec3 wn(vec3 p) {
@@ -220,7 +231,7 @@ vec3 wn(vec3 p) {
 }
 
 float march(vec3 o, vec3 d, float l, float L, int steps) {
-	float ww = 1.4;
+	float ww = 1.;
 	//float prev_d = 1;
 	for (int i = 0; i < steps; ++i) {
 		float dd = w(o + d * l);
@@ -240,11 +251,22 @@ void main() {
 	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
 
 	//vec3 O = vec3(1.*sin(t/16.), 1.5, 3.9*cos(t/16.));// + smoothstep(8., 0., t)*2.);
-	vec3 O = vec3(2., 1.5, 3.9);// + smoothstep(8., 0., t)*2.);
+	//vec3 O = vec3(2., 1.5, 3.9);// + smoothstep(8., 0., t)*2.);
+	vec3 O = vec3(0., 1.5, 3.9);
 	vec3 up = E.xzx;
-	vec3 at = vec3(0., 1., 0.);//2.*sin(t/9.), 0.);
+	vec3 at = vec3(0., 0., 0.);//2.*sin(t/9.), 0.);
 	vec3 D = normalize(vec3(uv, -2.));
+
+	//if (t < 512.)
+	{
+		O.x += snoise24(vec2(t/32.)).x-.5;
+		O.x += snoise24(vec2(t/32.)).x-.5;
+		O.y += snoise24(vec2(t/32.+.3)).y-.5;
+	//	O.z += snoise24(vec2(t/16.+.7)).z;
+	}
+
 	D = lookat(O, at, up) * D;
+
 
 	//sundir = normalize(vec3(.05, .04, -.1));
 	//sundir = normalize(vec3(.5*sin(t/16.),.9 * (1. + sin(t/12.)),-1.*cos(t/16.)));
@@ -274,6 +296,7 @@ void main() {
 			float l = lsky;
 			//if (isnan(l)) break;
 
+/*
 			float pXZ = d.y < -.0001 ? (0. - o.y) / d.y : l;
 			if (pXZ < l) {
 				l = pXZ;
@@ -285,11 +308,12 @@ void main() {
 				l = lsph;
 				mat = 3;
 			}
+*/
 
-			float L = 20.;
+			float L = min(l, 20.);
 			float ldf = march(o, d, 0., L, 32);
 			//if (isnan(l)) {lolnan = true; break; }
-			if (ldf < L && ldf < l) {
+			if (ldf < l) {
 				l = ldf;
 				mat = 2;
 			}
@@ -316,18 +340,36 @@ void main() {
 					roughness = .02 + .2 * puddle;
 					//roughness = 0.;
 				} else if (mat == 2) {
-					//emissive = vec3(1.);
-					roughness = .8;
 					n = wn(o);
-					//if (any(isnan(n))) { lolnan = true; break; }
 					o += n * .01;
-					float ep = -4. + 8. * mod(t/64., 1.);
-					if (room(o) > b1(o)) {
-						float n = floor(mod(t/2.,8.));
-						pc += 3.;
-						emissive = vec3(4.*step(n,pc)*step(pc,n+.5));
+					//emissive = vec3(1.);
+					//if (any(isnan(n))) { lolnan = true; break; }
+					//if (room(o) > b1(o)) { // Interesting
+					if (room(o) > balls(o)) {
+						roughness = .04;
+						
+						/*float n = floor(mod(t/2.,8.)); pc += 3.;
+						emissive = vec3(4.*step(n,pc)*step(pc,n+.5));*/
+					} else {
+						roughness = .8;
+						if (o.z < -3.9) {
+							vec2 O = floor(o.xy*4.);
+							vec4 uvn = snoise24(O.yy);
+							//emissive = uvn.xyz;
+
+							//float n = floor(mod(t/2.+uvn.x*16.,32.)-16.);
+							//float mask = 
+							float pos = mod(-t/2. + uvn.x*64.,64.)-32.;
+							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 8.*uvn.y));
+						} else if (o.y < 0.) {
+							vec4 t1 = snoise24(o.xz*8.);
+							vec4 t2 = snoise24(o.xz*4. + (t1.xy-.5)*2.);
+							roughness = .01 + .8 * t2.x;
+							//albedo *= t2.xyz;
+						}
 					}
-					emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
+					//float ep = -4. + 8. * mod(t/64., 1.);
+					//emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
 				} else if (mat == 3) {
 					n = normalize(o);
 				}
