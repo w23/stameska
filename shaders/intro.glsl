@@ -1,7 +1,7 @@
 #version 130
 uniform vec2 RES;
 uniform float t;
-uniform sampler2D N;
+//uniform sampler2D N;
 
 //const float INF = 10000.;
 const vec3 E = vec3(0., .001, 1.);
@@ -31,8 +31,10 @@ float fbm(vec2 f) {
   ;
 }
 
+/*
 vec4 sN(vec2 c) { return texture2D(N, c); }
 vec4 snoise24(vec2 c) { return texture2D(N, (c+.5)/textureSize(N,0)); }
+*/
 
 //float box2(vec2 p, vec2 s) { p = abs(p) - s; return max(p.x, p.y); }
 float box(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
@@ -260,15 +262,15 @@ void main() {
 	if (t < 384.) {
 		float tt = smoothstep(64., 384., t);
 		at = mix(vec3(0., .4, -4.), vec3(0.), tt);
-		O = mix(vec3(0., .4, -3.), vec3(0., 1.5, 3.9), tt);
+		O = mix(vec3(0., .4, -2.), vec3(0., 1.5, 3.9), tt);
 	} else {
 		float tt = smoothstep(432., 640., t);
 		O = mix(O, vec3(0., -.2, 5.9), tt);
 	//	float ttrs = smoothstep(608., 768., t);
 		float ttrs = smoothstep(512., 704., t);
-		room_size = mix(room_size, vec3(2.4, 3., 6.), ttrs);
+		room_size = mix(room_size, vec3(2.2, 3., 6.), ttrs);
 
-		window_size = mix(.38, 1., smoothstep(768., 896., t));
+		window_size = mix(.45, 1., smoothstep(768., 896., t));
 	}
 
 	///if (t > 76
@@ -371,13 +373,13 @@ void main() {
 						roughness = .8;
 						if (n.z > .9) {
 							vec2 O = floor(o.xy*4.);
-							vec4 uvn = snoise24(O.yy*4.);
+							//vec2 uvn = snoise24(O.yy*4.).xy;
 							//emissive = uvn.xyz;
 
 							//float n = floor(mod(t/2.+uvn.x*16.,32.)-16.);
 							//float mask = 
-							float pos = mod(-t/2. + uvn.x*64.,64.)-32.;
-							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 8.*uvn.y)*step(O.x, (-t+734.)/2.));
+							float pos = mod(-t/2. + hash1(O.y)*64.,64.)-32.;
+							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 16.*hash1(O.y+32.))*step(O.x, (-t+718.)/2.));
 						}
 					}
 					//float ep = -4. + 8. * mod(t/64., 1.);
@@ -396,8 +398,7 @@ void main() {
 			color += k * emissive;
 			k *= albedo.rgb;
 			//if (s == 0 && b == 0) { d = sundir; k *= max(0., dot(n, sundir)); continue; }
-			if (all(lessThan(k,vec3(.001))))
-				break;
+			if (all(lessThan(k,vec3(.001)))) break;
 
 			//gl_FragColor = vec4(n, 1.); return;
 

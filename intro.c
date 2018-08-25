@@ -97,9 +97,10 @@ static const char *FFMPEG_CAPTURE_INPUT = "ffmpeg-3.3.3-win64-static\\bin\\ffmpe
 #pragma data_seg(".intro.glsl")
 #include "intro.h"
 
-
+/*
 #define NOISE_SIZE 1024
 static unsigned char noise_bytes[4 * NOISE_SIZE * NOISE_SIZE];
+*/
 
 #ifdef NO_CREATESHADERPROGRAMV
 FUNCLIST_DO(PFNGLCREATESHADERPROC, CreateShader) \
@@ -120,7 +121,8 @@ FUNCLIST_DO(PFNGLLINKPROGRAMPROC, LinkProgram)
   FUNCLIST_DO(PFNGLGENFRAMEBUFFERSPROC, GenFramebuffers) \
   FUNCLIST_DO(PFNGLBINDFRAMEBUFFERPROC, BindFramebuffer) \
   FUNCLIST_DO(PFNGLFRAMEBUFFERTEXTURE2DPROC, FramebufferTexture2D) \
-  FUNCLIST_DO(PFNGLACTIVETEXTUREPROC, ActiveTexture)
+
+  //FUNCLIST_DO(PFNGLACTIVETEXTUREPROC, ActiveTexture) \
 
   //FUNCLIST_DO(PFNGLUNIFORM1FVPROC, Uniform1fv) \
 
@@ -145,7 +147,7 @@ enum {
 };
 
 enum {
-	Tex_Random,
+	//Tex_Random,
 	Tex_Frame,
 	Tex_COUNT
 };
@@ -353,9 +355,9 @@ static void paint(GLuint prog, GLuint dst_fb, int w) {
 	GLCHECK();
 	oglUseProgram(prog);
 	GLCHECK();
-	oglUniform1i(oglGetUniformLocation(prog, "N"), 0);
-	glGetError();
-	oglUniform1i(oglGetUniformLocation(prog, "F"), 1);
+	//oglUniform1i(oglGetUniformLocation(prog, "N"), 0);
+	//glGetError();
+	oglUniform1i(oglGetUniformLocation(prog, "F"), 0);
 	glGetError();
 	const float t = (float)itime / (SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
 	oglUniform1f(oglGetUniformLocation(prog, "t"), t);// (float)(itime) / BYTES_PER_TICK);
@@ -383,19 +385,21 @@ static void paint(GLuint prog, GLuint dst_fb, int w) {
 
 #pragma code_seg(".introInit")
 static __forceinline void introInit() {
+	/*
 	unsigned int seed = 0;
 	for (int i = 0; i < 4 * NOISE_SIZE * NOISE_SIZE; ++i) {
 		seed = 1013904223ul + seed * 1664525ul;
 		noise_bytes[i] = (seed >> 18);
 	}
+	*/
 
 	glGenTextures(Tex_COUNT, texture);
 	GLCHECK();
 	oglGenFramebuffers(Pass_COUNT - 1, fb);
 	GLCHECK();
 
-	initTexture(texture[Tex_Random], NOISE_SIZE, NOISE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, noise_bytes);
-	oglActiveTexture(GL_TEXTURE1);
+	//initTexture(texture[Tex_Random], NOISE_SIZE, NOISE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, noise_bytes);
+	//oglActiveTexture(GL_TEXTURE1);
 	initTexture(texture[Tex_Frame], XRES/2, YRES, GL_RGBA16F, GL_FLOAT, NULL);
 
 	initFb(fb[Pass_Main], texture[Tex_Frame]);
