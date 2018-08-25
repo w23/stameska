@@ -35,7 +35,7 @@ vec4 sN(vec2 c) { return texture2D(N, c); }
 vec4 snoise24(vec2 c) { return texture2D(N, (c+.5)/textureSize(N,0)); }
 
 //float box2(vec2 p, vec2 s) { p = abs(p) - s; return max(p.x, p.y); }
-//float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
+float box(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
 
 //float ball(vec3 p, float r) { return length(p) - r; }
 /*
@@ -61,13 +61,13 @@ float ring(vec3 p, float r, float R, float t) {
 }
 */
 //float vmax2(vec2 p) { return max(p.x, p.y); }
-float vmax3(vec3 v) { return max(v.x, max(v.y, v.z)); }
-float box(vec3 p, vec3 s) { return vmax3(abs(p) - s);}
+//float vmax3(vec3 v) { return max(v.x, max(v.y, v.z)); }
+//float box(vec3 p, vec3 s) { return vmax3(abs(p) - s);}
 //float tor(vec3 p, vec2 s) { return length(vec2(length(p.xz) - s.x, p.y)) - s.y; }
 
 mat3 RX(float a){ float s=sin(a),c=cos(a); return mat3(1.,0.,0.,0.,c,-s,0.,s,c); }
 mat3 RY(float a){	float s=sin(a),c=cos(a); return mat3(c,0.,s,0.,1.,0,-s,0.,c); }
-mat3 RZ(float a){ float s=sin(a),c=cos(a); return mat3(c,s,0.,-s,c,0.,0.,0.,1.); }
+//mat3 RZ(float a){ float s=sin(a),c=cos(a); return mat3(c,s,0.,-s,c,0.,0.,0.,1.); }
 
 /*
 float raySphere(vec3 o, vec3 d, vec3 c, float r, float L) {
@@ -82,8 +82,7 @@ float raySphere(vec3 o, vec3 d, vec3 c, float r, float L) {
 */
 
 float metamin(float a, float b, float r) {
-		vec2 u = max(vec2(r - a,r - b), vec2(0));
-		return max(r, min (a, b)) - length(u);
+		return max(r, min (a, b)) - length(max(vec2(r - a,r - b), vec2(0)));
 }
 
 //float sqr(vec3 p) { return dot(p, p); }
@@ -111,7 +110,7 @@ vec3 sundir;// = normalize(vec3(.5,.7,-1.));
 //bool lolnan = false;
 
 vec2 densitiesRM(vec3 p) {
-	float h = max(0., length(p - C) - R0);
+	float h = max(.1, length(p - C) - R0);
 	//if (any(isnan(p))) lolnan = true;
 	//float h = length(p - C) - R0;
 	//if (isnan(h)) lolnan = true;
@@ -156,11 +155,7 @@ vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
 		vec3 p = o + d * i;
 		vec2 dRM = densitiesRM(p) * L;
 		totalDepthRM += dRM;
-
-		vec2 depthRMsum = totalDepthRM;
-		float l = escape(p, sundir, Ra);
-		depthRMsum += scatterDirectImpl(p, sundir, l, 8.);
-
+		vec2 depthRMsum = totalDepthRM + scatterDirectImpl(p, sundir, escape(p, sundir, Ra), 8.);
 		vec3 A = exp(-bR * depthRMsum.x - bMe * depthRMsum.y);
 		//if (any(isnan(dRM))) { gl_FragColor = vec4(0., 0., 1., 1.); }
 		//if (any(isnan(LiM))) { gl_FragColor = vec4(0., 0., 1., 1.); }
@@ -175,41 +170,38 @@ vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
 			LiM * bMs * .0196 / pow(1.58 - 1.52 * mu, 1.5));
 }
 
+/*
+float fOpIntersectionRound(float a, float b, float r) {
+	vec2 u = max(vec2(r + a,r + b), vec2(0));
+	return min(-r, max (a, b)) + length(u);
+}
+*/
+
 float balls(vec3 p) {
 	p.y += .2;
-	return min(length(p-E.zxx*1.5)-.8, length(p+E.zxx*1.5)-.8);//, .4);
+	return min(length(p-E.zxx*1.4), length(p+E.zxx*1.4))-.8;//, .4);
 }
 
 vec3 room_size = vec3(8., 4., 8.);
 float window_size = 0.;
 
 float room(vec3 p) {
-	//return box(RY(t/8.)*(p-vec3(0., 1., 0.)), vec3(.5));
-
-	//float room = max(box(p, vec3(4.5)), -box(p/*-vec3(0., 0., 1.)*/, vec3(4.)));
-	p -= vec3(0., 0./*room_size.y-1.*/, 4.);
+	p.z -= 4.;
 	float room = -box(p, room_size);
 
 	if (t > 768.) {
+		/*
 		room = max(room, box(p, room_size + .3));
-		//float windows = box(p-sundir * room_size, vec3(window_size));
-
 		float windows = box(rep3(p - sundir * room_size, vec3(7., 9., 2.)), window_size * vec3(3., 4., .5));
-
-		room = max(room, -windows);
+		room = max(max(room, , -windows);
+		*/
+		room = max(
+				max(room,
+					box(p, room_size + .3)),
+				-box(
+					rep3(p - sundir * room_size, vec3(7., 9., 2.)),
+					window_size * vec3(3., 4., .5)));
 	}
-
-	//room = min(p.y + 2., room);
-	//float windows = box(rep3(p+vec3(.4,.0,0.), vec3(1.)), vec3(.3, 1., .2));
-	//room = min(room, max(box(p, vec3(2.)), windows));
-	//float windows = box(p-vec3(4., 0., 0.), vec3(1.));
-
-	//float windows = box(p-sundir * 5., vec2(mix(.1, 2., t/64.), 5.).xyx);
-	//float windows = box(p-sundir * 5., vec3(mix(.1, 2., t/64.)*2.));
-
-	//float windows = box(p-vec3(0., 1., 0.)* 5., vec3(1.2));
-	//float windows = length(p-sundir * 5.) - 2.;
-	//room = max(room, -windows);
 	return room;
 }
 
@@ -233,17 +225,17 @@ vec3 wn(vec3 p) {
 		w(p + E.yxx),
 		w(p + E.xyx),
 		w(p + E.xxy)) - w(p));*/
-	w(p + E.yxx) - w(p - E.yxx),
+		w(p + E.yxx) - w(p - E.yxx),
 		w(p + E.xyx) - w(p - E.xyx),
 		w(p + E.xxy) - w(p - E.xxy)));
 }
 
 float march(vec3 o, vec3 d, float l, float L, int steps) {
-	float ww = 1.;
+	//float ww = 1.;
 	//float prev_d = 1;
 	for (int i = 0; i < steps; ++i) {
 		float dd = w(o + d * l);
-		l += dd * ww;//max(.01, d);
+		l += dd;// * 1.1;//max(.01, d);
 		if (dd < .001 * l || l > L) break;
 	}
 	return l;
@@ -269,8 +261,7 @@ void main() {
 		float tt = smoothstep(64., 384., t);
 		at = mix(vec3(0., .4, -4.), vec3(0.), tt);
 		O = mix(vec3(0., .4, -3.), vec3(0., 1.5, 3.9), tt);
-	} else
-	{
+	} else {
 		float tt = smoothstep(432., 640., t);
 		O = mix(O, vec3(0., -.2, 5.9), tt);
 	//	float ttrs = smoothstep(608., 768., t);
@@ -300,15 +291,15 @@ void main() {
 	//sundir = normalize(vec3(.5*sin(t/16.),.9 * (1. + sin(t/12.)),-1.*cos(t/16.)));
 	//sundir = normalize(vec3(.05, .04 + .0 * .3 * (1. + cos(t/12.)), -.1));
 	//sundir = normalize(vec3(.05*cos(t/17.), .07, -.1*sin(t/18.)));
-	sundir = normalize(mix(vec3(0., 10., 0.), vec3(-.2, .01, -.3), t/1280.));
+	sundir = normalize(mix(vec3(0., 10., 0.), vec3(-.2, .01, -.3), t/1216.));
 
 	//gl_FragColor = vec4(scatter(O, D, escape(O, D, Ra), vec3(0.)), 1.); return;
 
-	const int samples = 16;
+	//const int samples = 16;
 	float seedhash = t;
 	//vec2 seed = (gl_FragCoord.xy * vec2(17., 23.) + floor(t*943.)) / textureSize(N,0);
 	vec3 total_color = vec3(0.);
-	for (int s = 0; s < samples; ++s) {
+	for (int s = 0; s < 16; ++s) {
 		//seed.y += 1./textureSize(N,0).y;
 		vec3 o = O;
 		vec3 d = D;
@@ -317,11 +308,10 @@ void main() {
 		vec3 k = vec3(1.);
 		for (int b = 0; b < 4; ++b) {
 			//if (any(isnan(d))) { lolnan = true; break; }
-			float lsky = escape(o, d, Ra);
+			float l = escape(o, d, Ra);
 			//if (isnan(lsky)) break;
 			//if (isnan(lsky)) lolnan = true;
 			int mat = 0;
-			float l = lsky;
 			//if (isnan(l)) break;
 
 			float pXZ = d.y < -.0001 ? (-1. - o.y) / d.y : l;
@@ -338,7 +328,7 @@ void main() {
 			}
 */
 
-			float L = min(l, 40.);
+			float L = min(l, 20.);
 			float ldf = march(o, d, 0., L, 32);
 			//if (isnan(l)) {lolnan = true; break; }
 			if (ldf < L) {
@@ -356,9 +346,9 @@ void main() {
 				//if (any(isnan(d))) lolnan = true;
 				//if (isnan(l)) lolnan = true;
 				emissive = scatter(o, d, l, vec3(0.));
-				if (any(isnan(emissive))) {
+				if (any(isnan(emissive))) break;
 					//gl_FragColor = vec4(1., 0., 0., 1.);
-				return; }
+				//return; }
 				//if (lolnan) { gl_FragColor = vec4(1000., 0., 0., 1.); return; }
 				//gl_FragColor = vec4(1000., 0., 0., 1.); return;
 				//emissive = vec3(1.);
@@ -367,8 +357,7 @@ void main() {
 			} else {
 				o = o + d * l;
 				if (mat == 1) {
-					float puddle = smoothstep(.2, .5, fbm(o.xz*4.));
-					roughness = .02 + .2 * puddle;
+					roughness = .01 + .6 * smoothstep(.4, .5, fbm(o.xz*2.));
 
 					/*
 					vec4 t1 = snoise24(o.xz*2.);
@@ -378,15 +367,7 @@ void main() {
 				} else if (mat == 2) {
 					n = wn(o);
 					o += n * .01;
-					//emissive = vec3(1.);
-					//if (any(isnan(n))) { lolnan = true; break; }
-					//if (room(o) > b1(o)) { // Interesting
-					if (room(o) > balls(o)) {
-						roughness = .04;
-						
-						/*float n = floor(mod(t/2.,8.)); pc += 3.;
-						emissive = vec3(4.*step(n,pc)*step(pc,n+.5));*/
-					} else {
+					if (balls(o) > room(o)) {
 						roughness = .8;
 						if (n.z > .9) {
 							vec2 O = floor(o.xy*4.);
@@ -401,8 +382,6 @@ void main() {
 					}
 					//float ep = -4. + 8. * mod(t/64., 1.);
 					//emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
-				} else if (mat == 3) {
-					n = normalize(o);
 				}
 			}
 
@@ -461,12 +440,12 @@ void main() {
 
 	//if (lolnan) { gl_FragColor = vec4(0., 0., 1000., 1.); return; }
 
-	total_color /= float(samples);
+	//total_color /= float(samples);
 
 	//gl_FragColor = vec4(total_color /* * smoothstep(0., 4., t)*/, mix(.1, 1., step(t,1.)));//.4);
-	float alpha = .15;
-	alpha = .3;
+	//float alpha = .15;
+	//alpha = .3;
 	//alpha = 1.;
-	gl_FragColor = vec4(total_color, alpha); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
+	gl_FragColor = vec4(total_color/16., .3); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
 	//gl_FragColor = vec4(total_color, 1.);// /* * smoothstep(0., 4., t)*/, mix(.1, 1., step(t,1.)));//.4);
 }
