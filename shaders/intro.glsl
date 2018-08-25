@@ -173,19 +173,24 @@ vec3 scatter(vec3 o, vec3 d, float L, vec3 Lo) {
 mat3 brot = RY(t/23.);
 mat3 brotx = RX(sin(t/23.));
 
-float pc;
+float pc = 1.;
 float b1(vec3 p) {
+	return box(p, vec3(1.));
+
+#if 0
 	pc = pModPolar(p.xz, 8.);
 	p.x -= 2.;
 	p.y -= 1.;
 	return box(/*brotx*/p, vec3(.5,2.,.5)/4.);// box(brot*(brotx * p + vec3(0., -2., 0.)), vec3(.5, 2., .5)/4.);
+#endif
 }
 
 float room(vec3 p) {
 	//return length(p) - 1.;
 	//return box(RY(t/8.)*(p-vec3(0., 1., 0.)), vec3(.5));
 
-	float room = max(box(p, vec3(4.5)), -box(p/*-vec3(0., 0., 1.)*/, vec3(4.)));
+	//float room = max(box(p, vec3(4.5)), -box(p/*-vec3(0., 0., 1.)*/, vec3(4.)));
+	float room = -box(p, vec3(4.));
 	//float windows = box(rep3(p+vec3(.4,.0,0.), vec3(1.)), vec3(.3, 1., .2));
 	//room = min(room, max(box(p, vec3(2.)), windows));
 	//float windows = box(p-vec3(4., 0., 0.), vec3(1.));
@@ -215,9 +220,11 @@ vec3 wn(vec3 p) {
 }
 
 float march(vec3 o, vec3 d, float l, float L, int steps) {
+	float ww = 1.4;
+	//float prev_d = 1;
 	for (int i = 0; i < steps; ++i) {
 		float dd = w(o + d * l);
-		l += dd;//max(.01, d);
+		l += dd * ww;//max(.01, d);
 		if (dd < .001 * l || l > L) break;
 	}
 	return l;
@@ -316,11 +323,11 @@ void main() {
 					o += n * .01;
 					float ep = -4. + 8. * mod(t/64., 1.);
 					if (room(o) > b1(o)) {
-						float n = floor(mod(t,8.));
+						float n = floor(mod(t/2.,8.));
 						pc += 3.;
 						emissive = vec3(4.*step(n,pc)*step(pc,n+.5));
 					}
-					//emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
+					emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
 				} else if (mat == 3) {
 					n = normalize(o);
 				}

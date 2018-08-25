@@ -15,6 +15,10 @@
 #define HEIGHT 1080
 #endif
 
+#define MSG(...) aAppDebugPrintf(__VA_ARGS__)
+
+#include "4klang.h"
+
 static struct {
 	int samples;
 	float *data;
@@ -22,11 +26,17 @@ static struct {
 } audio;
 
 static struct {
+	int paused;
 	int start, end;
 } loop;
 
 static void audioCallback(void *unused, float *samples, int nsamples) {
 	(void)unused;
+	if (loop.paused) {
+		memset(samples, 0, sizeof(*samples) * nsamples * 2);
+		return;
+	}
+
 	for (int i = 0; i < nsamples; ++i) {
 		//samples[i] = audio.data[audio.pos];
 		samples[i * 2] = audio.data[audio.pos * 2];
@@ -42,19 +52,64 @@ static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)w; (void)h;
 }
 
-#define SAMPLES_PER_TICK 5000
+static struct {
+	ATimeUs last_print;
+	int frames;
+} fpstat;
 
 static void paint(ATimeUs ts, float dt) {
+	const ATimeUs last_print_delta = ts - fpstat.last_print;
+	if (last_print_delta > 1000000) {
+		MSG("avg fps: %.1f", fpstat.frames * 1000000.f / last_print_delta);
+		fpstat.frames = 0;
+		fpstat.last_print = ts;
+	}
+
+	++fpstat.frames;
+
 	(void)ts; (void)dt;
-	video_paint((float)audio.pos / SAMPLES_PER_TICK);// ts / 1e6f);
+	video_paint((audio.pos + (loop.paused * rand() % SAMPLES_PER_TICK)) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
+}
+
+const int pattern_length = 16;
+
+static void timeShift(int ticks) {
+	int next_pos = audio.pos + ticks * SAMPLES_PER_TICK;
+	const int loop_length = loop.start - loop.end;
+	while (next_pos < loop.start)
+		next_pos += loop_length;
+	while (next_pos > loop.end)
+		next_pos -= loop_length;
+	audio.pos = next_pos;
+	MSG("pos = %d", next_pos / SAMPLES_PER_TICK);
 }
 
 static void key(ATimeUs ts, AKey key, int down) {
-	(void)ts; (void)down;
+	(void)ts;
+	if (!down)
+		return;
+
 	switch (key) {
 	case AK_Esc:
 		audioClose();
 		aAppTerminate(0);
+		break;
+
+	case AK_Left:
+		timeShift(-pattern_length);
+		break;
+	case AK_Right:
+		timeShift(pattern_length);
+		break;
+	case AK_Up:
+		timeShift(8*pattern_length);
+		break;
+	case AK_Down:
+		timeShift(-8*pattern_length);
+		break;
+
+	case AK_Space:
+		loop.paused ^= 1;
 		break;
 
 	default:
@@ -67,6 +122,8 @@ void attoAppInit(struct AAppProctable *proctable) {
 	proctable->paint = paint;
 	proctable->key = key;
 
+	fpstat.last_print = 0;
+
 	FILE *f = fopen("audio.raw", "rb");
 	fseek(f, 0L, SEEK_END);
 	audio.samples = ftell(f) / (sizeof(float) * 2);
@@ -77,22 +134,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	loop.start = 0;
 	loop.end = audio.samples / SAMPLES_PER_TICK;
-
-	loop.start += 128;
-	loop.start += 128;
-	//loop.start += 192;
-	loop.start += 256;
-	loop.start += 256 - 8;
-	//loop.start += 512 - 64;
-	//loop.start += 160;
-	//loop.start += 192;
-	//loop.start += 384-16;
-	//loop.start -= 32;
-	//loop.start += 256;
-	//loop.start += 512;
-
-	loop.start = 0;
-	loop.end = loop.start + 128;
 
 	loop.start *= SAMPLES_PER_TICK;
 	loop.end *= SAMPLES_PER_TICK;
