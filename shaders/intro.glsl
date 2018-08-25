@@ -14,9 +14,8 @@ float t64 = t/64.;
 
 float hash1(float v) { return fract(sin(v) * 43758.5453); }
 float hash2(vec2 v) { return hash1(dot(v, vec2(129.47, 37.56))); }
-vec3 hash13(float v) {
-	return vec3(hash1(v), hash1(v+17.), hash1(v+32.));
-}
+//float hash3(vec3 v) { return hash1(dot(v, vec3(17.343,129.47, 37.56))); }
+//vec3 hash13(float v) { return vec3(hash1(v), hash1(v+17.), hash1(v+32.)); }
 //float hash3(vec3 v) { return hash1(dot(v, vec3(129.47, 37.56, 1.))); }
 //float noise1(float v) { float V = floor(v); v = fract(v); return mix(hash1(V), hash1(V+1.), v); }
 float noise2(vec2 v) {
@@ -33,6 +32,17 @@ float fbm(vec2 f) {
     //+ .0625 * noise2(f*7.2)
   ;
 }
+/*
+float noise3(vec3 v) {
+  vec3 V = floor(v); v = fract(v);
+  return mix(
+			mix(
+				mix(hash3(V+E.xxx), hash3(V+E.zxx), v.x),
+				mix(hash3(V+E.xzx), hash3(V+E.zzx), v.x), v.y),
+			mix(
+				mix(hash3(V+E.xxz), hash3(V+E.zxz), v.x),
+				mix(hash3(V+E.xzz), hash3(V+E.zzz), v.x), v.y), v.z);
+}*/
 
 /*
 vec4 sN(vec2 c) { return texture2D(N, c); }
@@ -190,6 +200,7 @@ float balls(vec3 p) {
 vec3 room_size = vec3(8., 4., 8.);
 float window_size = 0.;
 
+//bool rough = false;
 float room(vec3 p) {
 	p.z -= 4.;
 	float room = -box(p, room_size);
@@ -207,6 +218,7 @@ float room(vec3 p) {
 					rep3(p - sundir * room_size, vec3(7., 9., 2.)),
 					window_size * vec3(3., 4., .5)));
 	}
+	//if (rough) room -= .05*noise3(p*16.);
 	return room;
 }
 
@@ -387,10 +399,34 @@ void main() {
 					roughness = .01 + .6 * max(0., t2.x-.2);
 					*/
 				} else if (mat == 2) {
+					//rough = true;
 					n = wn(o);
+					//rough = false;
 					o += n * .01;
 					if (balls(o) > room(o)) {
-						roughness = .8;
+					/*
+						n = normalize(n + .5 * (
+									.5*noise3(o*4.)
+									+.25*noise3(o*8.)
+									+.125*noise3(o*16.)
+									- .5));
+									*/
+						roughness = .4;
+						/*
+						roughness = .3 - .1 * smoothstep(.3, .7,
+								fbm(4.*
+									mix(o.xz,o.zy,step(abs(n.y),abs(n.x)))
+								)
+								);
+						*/
+								//hash3(floor(o*4.)));
+						/*fbm(
+									//o.zy*4.));
+								vec2(
+									//dot(vec3(17.343,129.47,37.56).yzx, o*2.),
+									dot(vec3(17.343,129.47,37.56), o*2.))
+								));
+							*/
 						if (n.z > .9) {
 							vec2 O = floor(o.xy*4.);
 							//vec2 uvn = snoise24(O.yy*4.).xy;
@@ -399,7 +435,7 @@ void main() {
 							//float n = floor(mod(t/2.+uvn.x*16.,32.)-16.);
 							//float mask = 
 							float pos = mod(-t/2. + hash1(O.y)*64.,64.)-32.;
-							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 16.*hash1(O.y+32.))*step(O.x, (-t+718.)/2.));
+							emissive = vec3(3. * step(pos, O.x)*step(O.x, pos + 1. + 16.*hash1(O.y+32.))*step(O.x, (-t+718.)/2.));
 						}
 					} else {
 						roughness = .01 + .1 * smoothstep(.4, .5, .5 * (fbm(n.yx*16.) + fbm(n.xz*16.)));
