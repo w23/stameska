@@ -14,6 +14,9 @@ float t64 = t/64.;
 
 float hash1(float v) { return fract(sin(v) * 43758.5453); }
 float hash2(vec2 v) { return hash1(dot(v, vec2(129.47, 37.56))); }
+vec3 hash13(float v) {
+	return vec3(hash1(v), hash1(v+17.), hash1(v+32.));
+}
 //float hash3(vec3 v) { return hash1(dot(v, vec3(129.47, 37.56, 1.))); }
 //float noise1(float v) { float V = floor(v); v = fract(v); return mix(hash1(V), hash1(V+1.), v); }
 float noise2(vec2 v) {
@@ -268,9 +271,26 @@ void main() {
 		O = mix(O, vec3(0., -.2, 5.9), tt);
 	//	float ttrs = smoothstep(608., 768., t);
 		float ttrs = smoothstep(512., 704., t);
-		room_size = mix(room_size, vec3(2.2, 3., 6.), ttrs);
+		room_size = mix(room_size, vec3(2.4, 3., 6.), ttrs);
 
-		window_size = mix(.45, 1., smoothstep(768., 896., t));
+		window_size = mix(.25, 1., smoothstep(768., 832., t));
+
+		if (t > 832.) {
+			float kt1 = smoothstep(864., 992., t);
+			at = mix(vec3(-1.4,-.2,0.), vec3(-1.3,-.5,-.4), kt1);
+			O = mix(vec3(-1.1, .2, 1.2), vec3(-.9,.2,.8), kt1);//mix(hash13(1.)*4., hash13(2.)*6., kt1);
+
+			if (t > 960.) {
+				at = mix(vec3(-1.4,3.2,0.), vec3(-1.4, 0., 0.), smoothstep(1088., 1152.+64., t));
+				O = vec3(1., .1, 6.);
+			}
+
+			/*
+			float kt2 = smoothstep(1024., 1152., t);
+			at = mix(at, vec3(-1.4,-.2,0.), kt2);
+			O = mix(O, vec3(1., .1, 6.), kt2);
+			*/
+		}
 	}
 
 	///if (t > 76
@@ -293,7 +313,7 @@ void main() {
 	//sundir = normalize(vec3(.5*sin(t/16.),.9 * (1. + sin(t/12.)),-1.*cos(t/16.)));
 	//sundir = normalize(vec3(.05, .04 + .0 * .3 * (1. + cos(t/12.)), -.1));
 	//sundir = normalize(vec3(.05*cos(t/17.), .07, -.1*sin(t/18.)));
-	sundir = normalize(mix(vec3(0., 10., 0.), vec3(-.2, .01, -.3), t/1216.));
+	sundir = normalize(mix(vec3(0., 1., 0.), vec3(-.2, .01, -.3), smoothstep(768., 1216., t)));
 
 	//gl_FragColor = vec4(scatter(O, D, escape(O, D, Ra), vec3(0.)), 1.); return;
 
@@ -331,7 +351,7 @@ void main() {
 */
 
 			float L = min(l, 20.);
-			float ldf = march(o, d, 0., L, 32);
+			float ldf = march(o, d, 0., L, 40);
 			//if (isnan(l)) {lolnan = true; break; }
 			if (ldf < L) {
 				l = ldf;
@@ -381,6 +401,8 @@ void main() {
 							float pos = mod(-t/2. + hash1(O.y)*64.,64.)-32.;
 							emissive = vec3(step(pos, O.x)*step(O.x, pos + 1. + 16.*hash1(O.y+32.))*step(O.x, (-t+718.)/2.));
 						}
+					} else {
+						roughness = .01 + .1 * smoothstep(.4, .5, .5 * (fbm(n.yx*16.) + fbm(n.xz*16.)));
 					}
 					//float ep = -4. + 8. * mod(t/64., 1.);
 					//emissive = vec3(10. * step(ep, o.z) * step(o.z, ep + .1));
