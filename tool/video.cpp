@@ -344,8 +344,8 @@ public:
 		h_ = h;
 		GL(glBindTexture(GL_TEXTURE_2D, name_));
 		GL(glTexImage2D(GL_TEXTURE_2D, 0, comp, w, h, 0, GL_RGBA, type, data));
-		GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, data ? GL_REPEAT : GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, data ? GL_REPEAT : GL_CLAMP);
 	}
@@ -678,7 +678,7 @@ void video_init(int W, int H) {
 	//text.init();
 	noise.init();
 	frame.init();
-	frame.upload(w/2, h, GL_RGBA16F, GL_FLOAT, nullptr);
+	frame.upload(640, 480, GL_RGBA16F, GL_FLOAT, nullptr);
 	screen.init(w, h);
 	framebuffer.init().attach(frame).check();
 
