@@ -16,10 +16,10 @@
   <ItemGroup>
     <CustomBuild Include="4klang.asm">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"C:\Program Files\NASM\nasm.exe" -f win32 -i$(ProjectDir)4klang_win32\ "%(Identity)" -o "$(Configuration)\%(Filename).obj"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"C:\Program Files\NASM\nasm.exe" -f win32 -i4klang_win32\ "%(Identity)" -o "$(Configuration)\%(Filename).obj"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"C:\Program Files\NASM\nasm.exe" -f win32 -i$(ProjectDir)4klang_win32\ "%(Identity)" -o "$(Configuration)\%(Filename).obj"</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"C:\Program Files\NASM\nasm.exe" -f win32 -i4klang_win32\ "%(Identity)" -o "$(Configuration)\%(Filename).obj"</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"nasmw.exe" -f win32 -i $(ProjectDir)4klang_win32\ "%(Identity)" -o "$(ProjectDir)$(Configuration)\%(Filename).obj"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"nasmw.exe" -f win32 -i $(ProjectDir)4klang_win32\ "%(Identity)" -o "$(ProjectDir)$(Configuration)\%(Filename).obj"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"nasmw.exe" -f win32 -i $(ProjectDir)4klang_win32\ "%(Identity)" -o "$(ProjectDir)$(Configuration)\%(Filename).obj"</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"nasmw.exe" -f win32 -i $(ProjectDir)4klang_win32\ "%(Identity)" -o "$(ProjectDir)$(Configuration)\%(Filename).obj"</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\%(Filename).obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\%(Filename).obj</Outputs>
     </CustomBuild>
@@ -80,6 +80,10 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -97,6 +101,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
