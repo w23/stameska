@@ -99,7 +99,7 @@ float metamin(float a, float b, float r) {
 		return max(r, min (a, b)) - length(max(vec2(r - a,r - b), vec2(0)));
 }
 
-//float sqr(vec3 p) { return dot(p, p); }
+float sqr(vec3 p) { return dot(p, p); }
 
 /*
 mat3 lookat(vec3 o, vec3 at, vec3 up) {
@@ -136,19 +136,32 @@ float w(vec3 p) {
 		return max(
 			box3(RZ(t/10.)*RY(t/20.)*(p+1.5*E.zxx*sin(t32)), vec3(.9)),
 			box3(RZ(t/17.)*RY(t/23.)*(p-1.5*E.zxx*sin(t32)), vec3(.9)));
+	} else
+	if (sdf_scene == 3) {
+		return length(p) - 1.;
+	} else
+	if (sdf_scene == 4) {
+		float d = 0.;
+		for (int i = 0; i < 4; ++i) {
+			float a = float(i)*4.;
+			vec3 b = p - 1.5*vec3(cos(t16 + a), sin(t8 + a*3.), cos(t32 + a));
+			d += .5 / dot(b,b);
+		}
+		return 1. - d;
 	}
 	return box3(RZ(t/10.)*RY(t/20.)*p, vec3(1.));
 }
 
 vec3 wn(vec3 p) {
 	return normalize(vec3(
-	/* gives NaNs a lot
+	//* gives NaNs a lot
 		w(p + E.yxx),
 		w(p + E.xyx),
-		w(p + E.xxy)) - w(p));*/
+		w(p + E.xxy)) - w(p));
+	/*/
 		w(p + E.yxx) - w(p - E.yxx),
 		w(p + E.xyx) - w(p - E.xyx),
-		w(p + E.xxy) - w(p - E.xxy)));
+		w(p + E.xxy) - w(p - E.xxy)));*/
 }
 
 float pixel_size = 1. / RES.x;
@@ -161,31 +174,36 @@ float march(vec3 o, vec3 d, float l, float L, int steps) {
 	return l;
 }
 
-float circle(vec2 uv) {
+float circle(vec2 uv, float r, float R, float n, float a) {
 	float uvr = length(uv);
-	float a = atan(uv.x, uv.y) / PI - t/32.;
-	return step(.5, uvr) * step(uvr, .6) * step(.5, mod(a * 16., 2.));
+	a += atan(uv.x, uv.y) / PI;
+	return step(r, uvr) * step(uvr, R) * step(.5, mod(a * n, 2.));
 }
 
 vec3 O, D;
 
-vec3 drawSDFScene(int index) {
+vec3 ambient = vec3(.01);
+vec4 drawSDFScene(int index) {
 	sdf_scene = index;
-	float l = march(O, D, 0., 10., 32);
+	float l = march(O, D, 0., 10., 64);
 	if (l < 10.) {
 		vec3 p = O+D*l;
 		vec3 n = wn(p);
+		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
+		//n = wn(sign(p)*floor(p*4.)/4.);
+		n = wn((floor(p*4.)+.5)/4.);
 		vec3 diffuse = vec3(.9, .3, .1);
-		vec3 ld = normalize(vec3(1.));
-		return diffuse * max(0., dot(n, ld));
+		vec3 ld = -D;//normalize(vec3(1.));
+		return vec4(ambient + diffuse * max(0., dot(n, ld)), 1.);
 	}
-	return vec3(0.);
+	return vec4(0.);
 }
 
 void main() {
 	//vec2 uv = gl_FragCoord.xy / RES;
 	vec2 uv = (gl_FragCoord.xy / RES * 2. - 1.); uv.x *= RES.x / RES.y;
 
+	//gl_FragColor = vec4(mod(gl_FragCoord.x, 2.)); return;
 	//gl_FragColor = vec4(1., 0., 0., 1.); return;
 	//gl_FragColor = vec4(hash1(uv.x), 0., 0., 1.); return;
 	//gl_FragColor = vec4(uv, 0., 1.); return;
@@ -198,11 +216,18 @@ void main() {
 	vec2 tuv = uv + vec2(0., -t/64.);
 	color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
 
+	vec4 sc5 = drawSDFScene(4);
+	color = mix(color, sc5.rgb, sc5.a);
+
+	/*
 	vec3 join = drawSDFScene(2);
 	color = mix(color, join, step(.001, join.r));
 	color += drawSDFScene(1).r * .3;
+	*/
 
-	color += vec3(.5) * circle(uv);
+	color += vec3(.5) * circle(uv, .4, .45, 8., t16);
+	color += vec3(.5) * circle(uv, .5, .55, 64., -t32);
+	color += vec3(.5) * circle(uv, .6, .65, 32., t64);
 
 	gl_FragColor = vec4(color, 1.);
 }

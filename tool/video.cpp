@@ -666,6 +666,12 @@ Framebuffer screen;
 Framebuffer framebuffer;
 
 int w, h;
+#ifdef TOOL
+void video_tool_resize(int W, int H) {
+	w = W; h = H;
+	screen.init(w, h);
+}
+#endif
 void video_init(int W, int H) {
 	w = W; h = H;
 
@@ -711,6 +717,7 @@ static float gt;
 
 static const Program& renderPass(float tick, const Framebuffer& fb, const Program& p) {
 	fb.bind();
+	glViewport(0, 0, fb.w(), fb.h());
 
 	int tslot = 0;
 	p.use(fb.w(), fb.h(), tick);
