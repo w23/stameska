@@ -118,24 +118,27 @@ float fOpIntersectionRound(float a, float b, float r) {
 */
 
 float box3w(vec3 p, vec3 s) {
+	float sz = 4./RES.x;
 	return max(box3(p,s), -min(min(
-		box3(p,s-vec3(-.1, .1, .1)),
-		box3(p,s-vec3(.1, -.1, .1))),
-		box3(p,s-vec3(.1, .1, -.1)))
+		box3(p,s-vec3(-1., sz, sz)),
+		box3(p,s-vec3(sz, -1., sz))),
+		box3(p,s-vec3(sz, sz, -1.)))
 		);
 }
 
-int sdf_scene = 2;
+int sdf_scene = 0;
+float d1 = 1., d2 = 1.;
 float w(vec3 p) {
 	if (sdf_scene == 1) {
-		return min(
-			box3w(RZ(t/10.)*RY(t/20.)*(p+1.5*E.zxx*sin(t32)), vec3(1.)),
-			box3w(RZ(t/17.)*RY(t/23.)*(p-1.5*E.zxx*sin(t32)), vec3(1.)));
-	} else
-	if (sdf_scene == 2) {
-		return max(
-			box3(RZ(t/10.)*RY(t/20.)*(p+1.5*E.zxx*sin(t32)), vec3(.9)),
-			box3(RZ(t/17.)*RY(t/23.)*(p-1.5*E.zxx*sin(t32)), vec3(.9)));
+		vec3 p1 = RZ(t/10.)*RY(t/20.)*(p+1.5*E.zxx*sin(t32));
+		vec3 p2 = RZ(t/17.)*RY(t/23.)*(p-1.5*E.zxx*sin(t32));
+		d1 = min(
+			box3w(p1, vec3(1.)),
+			box3w(p2, vec3(1.)));
+		d2 = max(
+			box3(p1, vec3(.9)),
+			box3(p2, vec3(.9)));
+		return min(d1, d2);
 	} else
 	if (sdf_scene == 3) {
 		return length(p) - 1.;
@@ -148,6 +151,14 @@ float w(vec3 p) {
 			d += .5 / dot(b,b);
 		}
 		return 1. - d;
+	} else
+	if (sdf_scene == 5) {
+		vec2 C = floor(p.xz);
+		p.xz -= C + .5;
+		p.y += 2.;// - .3*length(C);// - sin(C.x+t8) * sin(C.y + t16);
+		vec3 boxsz = vec3(.3, .02, .3);
+		float d = -box2(p.xz, vec2(.7));// - boxsz.xz/2.);
+		return min(d, box3(/*RY(t16)*/p, boxsz));
 	}
 	return box3(RZ(t/10.)*RY(t/20.)*p, vec3(1.));
 }
@@ -189,18 +200,33 @@ vec4 drawSDFScene(int index) {
 	if (l < 10.) {
 		vec3 p = O+D*l;
 		vec3 n = wn(p);
+		vec3 diffuse = vec3(1.);
+		//vec3 diffuse = vec3(.9, .3, .1);
+		if (sdf_scene == 1) {
+			diffuse = mix(vec3(1.), vec3(1.,.2,.3), step(d2, d1));
+		} else
+		if (sdf_scene == 4) {
+			n = wn((floor(p*4.)+.5)/4.);
+		} else
+		if (sdf_scene == 5) {
+			diffuse = vec3(.1, .2, .9);
+		}
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);
-		n = wn((floor(p*4.)+.5)/4.);
-		vec3 diffuse = vec3(.9, .3, .1);
 		vec3 ld = -D;//normalize(vec3(1.));
-		return vec4(ambient + diffuse * max(0., dot(n, ld)), 1.);
+		return vec4(diffuse * (ambient + max(0., dot(n, ld))), 1.);
 	}
 	return vec4(0.);
 }
 
+vec2 rectuv(vec2 pixel, vec4 blwh) {
+	return ((pixel - blwh.xy) / blwh.zw - .5) * 2.;
+}
+
 void main() {
 	//vec2 uv = gl_FragCoord.xy / RES;
+	vec2 pix = gl_FragCoord.xy;
+	vec2 cpix = pix - RES/2.;
 	vec2 uv = (gl_FragCoord.xy / RES * 2. - 1.); uv.x *= RES.x / RES.y;
 
 	//gl_FragColor = vec4(mod(gl_FragCoord.x, 2.)); return;
@@ -213,21 +239,22 @@ void main() {
 	D = normalize(vec3(uv, -2.));
 	vec3 color = vec3(0.);
 
-	vec2 tuv = uv + vec2(0., -t/64.);
-	color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
+	//vec2 tuv = uv + vec2(0., -t/64.);
+	//color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
 
-	vec4 sc5 = drawSDFScene(4);
-	color = mix(color, sc5.rgb, sc5.a);
+	//vec4 sc1 = drawSDFScene(1); color = mix(color, sc1.rgb, sc1.a);
+	//vec4 sc4 = drawSDFScene(4); color = mix(color, sc4.rgb, sc4.a);
+	//vec4 sc2 = drawSDFScene(2);	color = mix(color, sc2.rgb, sc2.a);
+	vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
 
 	/*
-	vec3 join = drawSDFScene(2);
-	color = mix(color, join, step(.001, join.r));
-	color += drawSDFScene(1).r * .3;
-	*/
-
 	color += vec3(.5) * circle(uv, .4, .45, 8., t16);
 	color += vec3(.5) * circle(uv, .5, .55, 64., -t32);
 	color += vec3(.5) * circle(uv, .6, .65, 32., t64);
+	color += vec3(.1) * circle(cpix, 50., 400., 32., -t64);
+
+	color += vec3(.5) * circle(rectuv(pix, vec4(100., 100., 200., 200.)), .5, .6, 1., t8);
+	*/
 
 	gl_FragColor = vec4(color, 1.);
 }
