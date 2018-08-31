@@ -419,8 +419,8 @@ static __forceinline void initText() {
 	const HBITMAP dib = CreateDIBSection(text_dc, &bitmap_info, DIB_RGB_COLORS, &bitmap_ptr, NULL, 0);
 	const HGDIOBJ obj = SelectObject(text_dc, dib);
 	RECT rect = { 0, 0, TEXT_WIDTH, TEXT_HEIGHT };
-	//SetTextColor(text_dc, RGB(255, 255, 255));
-	//SetBkMode(text_dc, TRANSPARENT);
+	SetTextColor(text_dc, RGB(255, 255, 255));
+	SetBkMode(text_dc, TRANSPARENT);
 
 	int size = 0;
 	HFONT font = CreateFontA(TEXT_SIZE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /*CLEARTYPE_QUALITY*/ NONANTIALIASED_QUALITY, 0, TEXT_FONT);

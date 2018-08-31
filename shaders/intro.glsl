@@ -151,6 +151,14 @@ float w(vec3 p) {
 			box3(p2, vec3(.9)));
 		return min(d1, d2);
 	} else
+	if (sdf_scene == 2) {
+		d1 = p.y + 1.;
+		d2 = min(min(
+			length(p) - 1.,
+			length(p-vec3(cos(t16)*2.,1.,sin(t16)*2.)) - .8),
+			length(p-vec3(2.,0.,0.)) - .8);
+		return min(d1, d2);
+	} else
 	if (sdf_scene == 3) {
 		p.y = abs(p.y);
 		return box3(RZ(t/10.)*RX(t/20.)*p, vec3(1.));
@@ -212,6 +220,7 @@ float march(vec3 o, vec3 d, float l, float L, int steps) {
 }
 
 vec3 O, D, N;
+float shine, kd;
 
 float dirlight(vec3 dir, float shine, float kd) {
 	return mix(
@@ -224,16 +233,32 @@ float dirlight(vec3 dir, float shine, float kd) {
 float tex1(vec2 p) {
  return fbm(p * 16. + 8. * (vec2(fbm(p*4.), fbm(p*4.+96.)) - .5));
 }
+/*
+vec3 tex2(vec2 p) {
+ return mix(vec3(.9,.4,.7), vec3(.2, .7,.9), tex1(p));
+}
+*/
+/*
+vec3 tex3(vec2 p) {
+	float c, f = t64;
+	vec2 s1,s2;
+	s1=4.*vec2(sin(-f),cos(-f*4.));
+	s2=7.*vec2(sin(f*3.),cos(f*7.));
+	c=sin(3.*p.x+s1.x)*sin(4.*p.y+s1.y)
+	+sin(7.*p.x+s2.x)*sin(2.*p.y+s2.y);
+	return vec3(1.-c);//sin(2.*(c+sqrt(c/4.))),c/4.+.5,log2(c)+exp(c));
+}*/
 
-vec3 ambient = vec3(.01);
-vec4 drawSDFScene(int index) {
+vec3 drawSDFScene(vec3 color, vec2 uv, int index) {
 	sdf_scene = index;
+	O = vec3(0., 0., 5.);
+	D = normalize(vec3(uv, -2.));
 	float l = march(O, D, 0., 20., 128);
 	if (l < 20.) {
 		vec3 p = O+D*l;
 		N = wn(p);
-		float shine = 100.;
-		float kd = .5;
+		shine = 100.;
+		kd = .5;
 		vec3 diffuse = vec3(1.);
 		//vec3 diffuse = vec3(.9, .3, .1);
 		if (sdf_scene == 1) {
@@ -254,9 +279,9 @@ vec4 drawSDFScene(int index) {
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);
 		vec3 ld = -D;//normalize(vec3(1.));
-		return vec4(diffuse * dirlight(ld, shine, kd), 1.);
+		return vec3(diffuse * dirlight(ld, shine, kd));
 	}
-	return vec4(0.);
+	return color;
 }
 
 float circle(vec2 uv, float r, float R, float n, float a) {
@@ -274,6 +299,7 @@ void main() {
 	vec2 pix = gl_FragCoord.xy;
 	vec2 cpix = pix - RES/2.;
 	vec2 uv = (gl_FragCoord.xy / RES * 2. - 1.); uv.x *= RES.x / RES.y;
+	t = float(s)/44096.;
 
 	//gl_FragColor = vec4(mod(gl_FragCoord.x, 2.)); return;
 	//gl_FragColor = vec4(1., 0., 0., 1.); return;
@@ -281,26 +307,27 @@ void main() {
 	//gl_FragColor = vec4(uv, 0., 1.); return;
 	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
 
-	O = vec3(0., 0., 5.);
-	D = normalize(vec3(uv, -2.));
 	vec3 color = vec3(0.);
-
 	if (t < 192.) {
-		vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
+		color = drawSDFScene(vec3(0.), uv, 5);
 	} else if (t < 256.) {
-		vec4 sc3 = drawSDFScene(3);	color = mix(color, sc3.rgb, sc3.a);
-		color += vec3(.5) * circle(uv, .4, .45, 8., t16);
-		color += vec3(.5) * circle(uv, .5, .55, 64., -t32);
-		color += vec3(.5) * circle(uv, .6, .65, 32., t64);
-		color += vec3(.1) * circle(cpix, 50., 400., 32., -t64);
+		color = drawSDFScene(vec3(1.), uv, 3);
+		color += .5 * circle(uv, .4, .45, 8., t16);
+		color += .5 * circle(uv, .5, .55, 64., -t32);
+		color += .5 * circle(uv, .6, .65, 32., t64);
+		color += .1 * circle(cpix, 50., 400., 32., -t64);
 	} else if (t < 384.) {
-		vec4 sc1 = drawSDFScene(1); color = mix(color, sc1.rgb, sc1.a);
+		color += .3 * tex1(uv+E.zx*t32);
+		color = drawSDFScene(color, uv, 1);
 	} else if (t < 512.) {
-		vec4 sc4 = drawSDFScene(4); color = mix(color, sc4.rgb, sc4.a);
+		//color += tex3(uv);
+		color = drawSDFScene(color, uv, 4);
 	} else if (t < 640.) {
-		vec4 sc6 = drawSDFScene(6); color = mix(color, sc6.rgb, sc6.a);
+		color = drawSDFScene(color, uv, 6);
 		color += texture2D(T, (gl_FragCoord.xy-vec2(120,t*16.))/2./textureSize(T,0)).rgb;
 	} else if (t < 768.) {
+		t16 = floor(t)/16.;
+		color = drawSDFScene(color, floor(uv*32.)/32., 2);
 	} else {
 	}
 
