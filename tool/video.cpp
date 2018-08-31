@@ -425,56 +425,7 @@ struct Label {
 
 Label labels[] = {
 	{"lab_greets",
-	"Aardbei\n"
-	"AND\n"
-	"Blasphemy\n"
-	"Bomb\n"
-	"Broncs\n"
-	"Byterapers\n"
-	"Calodox\n"
-	"Cocoon\n"
-	"Damage\n"
-	"Doomsday\n"
-	"Elitegroup\n"
-	"Exceed\n"
-	"Excess\n"
-	"Fairlight\n"
-	"Farbrausch\n"
-	"Federation Against Nature\n"
-	"Fresh!mindworkz\n"
-	"Halcyon\n"
-	"Haujobb\n"
-	"Kewlers\n"
-	"Kolor\n"
-	"Kosmoplovci\n"
-	"Lunix\n"
-	"MFX\n"
-	"Maturefurk\n"
-	"Moppi Productions\n"
-	"Nah-kolor\n"
-	"Noice\n"
-	"Orion\n"
-	"Park\n"
-	"Plastic\n"
-	"Popsy Team\n"
-	"Proxium\n"
-	"Pulse\n"
-	"Replay\n"
-	"Retro\n"
-	"Satori\n"
-	"Spinning Kids\n"
-	"Sunflower\n"
-	"T-Rex\n"
-	"tAAt\n"
-	"The Black Lotus\n"
-	"Threestate\n"
-	"Throb\n"
-	"Tpolm\n"
-	"Trauma\n"
-	"Ukonx\n"
-	"Umlaut Design\n"
-	"Wipe\n"
-	"Yomoma\n"
+#include "greetings.h"
 , NULL, L"Arial", 24, 0, 0, 0, 0},
 };
 
@@ -507,16 +458,16 @@ static void initText(Texture &text) {
 		if (l.ansi) {
 			DrawTextA(text_dc, l.ansi, -1, &rect, DT_CALCRECT);
 			DrawTextA(text_dc, l.ansi, -1, &rect, 0);
+			//DrawTextA(text_dc, l.ansi, -1, &rect, DT_CENTER | DT_VCENTER | DT_CALCRECT);
+			//DrawTextA(text_dc, l.ansi, -1, &rect, DT_CENTER | DT_VCENTER);
 			// DT_SINGLELINE | DT_NOCLIP);
 		} else {
 			DrawTextW(text_dc, l.unicode, -1, &rect, DT_CALCRECT);
 			DrawTextW(text_dc, l.unicode, -1, &rect, 0);
-			// DT_SINGLELINE | DT_NOCLIP);
 		}
 
 		l.x = rect.left;
-		l.y = rect.top;
-		l.w = rect.right - rect.left;
+		l.y = rect.top; l.w = rect.right - rect.left;
 		l.h = rect.bottom - rect.top;
 
 #ifdef TOOL

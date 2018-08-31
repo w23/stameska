@@ -152,7 +152,8 @@ float w(vec3 p) {
 		return min(d1, d2);
 	} else
 	if (sdf_scene == 3) {
-		return length(p) - 1.;
+		p.y = abs(p.y);
+		return box3(RZ(t/10.)*RX(t/20.)*p, vec3(1.));
 	} else
 	if (sdf_scene == 4) {
 		float d = 0.;
@@ -164,7 +165,7 @@ float w(vec3 p) {
 		return 1. - d;
 	} else
 	if (sdf_scene == 5) {
-		float tt = max(0., t32 - 1.);
+		float tt = max(0., t64 - 1.);
 		p *= RX(-1.2 + .7 * tt) * RY(t32);
 		float bbox = box3(p, vec3(4.));
 		vec2 C = floor(p.xz);
@@ -284,13 +285,32 @@ void main() {
 	D = normalize(vec3(uv, -2.));
 	vec3 color = vec3(0.);
 
+	if (t < 192.) {
+		vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
+	} else if (t < 256.) {
+		vec4 sc3 = drawSDFScene(3);	color = mix(color, sc3.rgb, sc3.a);
+		color += vec3(.5) * circle(uv, .4, .45, 8., t16);
+		color += vec3(.5) * circle(uv, .5, .55, 64., -t32);
+		color += vec3(.5) * circle(uv, .6, .65, 32., t64);
+		color += vec3(.1) * circle(cpix, 50., 400., 32., -t64);
+	} else if (t < 384.) {
+		vec4 sc1 = drawSDFScene(1); color = mix(color, sc1.rgb, sc1.a);
+	} else if (t < 512.) {
+		vec4 sc4 = drawSDFScene(4); color = mix(color, sc4.rgb, sc4.a);
+	} else if (t < 640.) {
+		vec4 sc6 = drawSDFScene(6); color = mix(color, sc6.rgb, sc6.a);
+		color += texture2D(T, (gl_FragCoord.xy-vec2(120,t*16.))/2./textureSize(T,0)).rgb;
+	} else if (t < 768.) {
+	} else {
+	}
+
 	//vec2 tuv = uv + vec2(0., -t/64.);
 	//color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
 
 	//vec4 sc1 = drawSDFScene(1); color = mix(color, sc1.rgb, sc1.a);
 	//vec4 sc2 = drawSDFScene(2);	color = mix(color, sc2.rgb, sc2.a);
-	//vec4 sc4 = drawSDFScene(4); color = mix(color, sc4.rgb, sc4.a);
-	vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
+	//vec4 sc3 = drawSDFScene(3);	color = mix(color, sc3.rgb, sc3.a);
+	//vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
 	//vec4 sc6 = drawSDFScene(6); color = mix(color, sc6.rgb, sc6.a);
 
 	/*
@@ -302,7 +322,6 @@ void main() {
 	color += vec3(.5) * circle(rectuv(pix, vec4(100., 100., 200., 200.)), .5, .6, 1., t8);
 	*/
 
-	//color += texture2D(T, (gl_FragCoord.xy-vec2(120,t*16.))/2./textureSize(T,0)).rgb;
 	//color += .1 * vec3(1.-fract((t-4.)/8.));
 
 	gl_FragColor = vec4(color, 1.);
