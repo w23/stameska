@@ -23,6 +23,7 @@ float hash2(vec2 v) { return hash1(dot(v, vec2(129.47, 37.56))); }
 //float noise1(float v) { float V = floor(v); v = fract(v); return mix(hash1(V), hash1(V+1.), v); }
 float noise2(vec2 v) {
   vec2 V = floor(v); v = fract(v);
+	v *= v * (3. - 2. * v);
   return mix(
     mix(hash2(V), hash2(V+E.zx), v.x),
     mix(hash2(V+E.xz), hash2(V+E.zz), v.x), v.y);
@@ -57,6 +58,7 @@ float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.x, max(p.y, p.z)); }
 
 //float ball(vec3 p, float r) { return length(p) - r; }
 
+/*
 float pModPolar(inout vec2 p, float repetitions) {
 	float angle = 2*PI/repetitions;
 	float a = atan(p.y, p.x) + angle/2.;
@@ -69,18 +71,21 @@ float pModPolar(inout vec2 p, float repetitions) {
 	if (abs(c) >= (repetitions/2)) c = abs(c);
 	return c;
 }
+*/
 
 
 vec3 rep3(vec3 p, vec3 r) { return mod(p,r) - r*.5; }
 vec2 rep2(vec2 p, vec2 r) { return mod(p,r) - r*.5; }
+/*
 float ring(vec3 p, float r, float R, float t) {
 	return max(abs(p.y)-t, max(length(p) - R, r - length(p)));
 }
+*/
 
 //float vmax2(vec2 p) { return max(p.x, p.y); }
 //float vmax3(vec3 v) { return max(v.x, max(v.y, v.z)); }
 //float box(vec3 p, vec3 s) { return vmax3(abs(p) - s);}
-float tor(vec3 p, vec2 s) { return length(vec2(length(p.xz) - s.x, p.y)) - s.y; }
+//float tor(vec3 p, vec2 s) { return length(vec2(length(p.xz) - s.x, p.y)) - s.y; }
 
 mat3 RX(float a){ float s=sin(a),c=cos(a); return mat3(1.,0.,0.,0.,c,-s,0.,s,c); }
 mat3 RY(float a){	float s=sin(a),c=cos(a); return mat3(c,0.,s,0.,1.,0,-s,0.,c); }
@@ -98,9 +103,11 @@ float raySphere(vec3 o, vec3 d, vec3 c, float r, float L) {
 }
 */
 
+/*
 float metamin(float a, float b, float r) {
 		return max(r, min (a, b)) - length(max(vec2(r - a,r - b), vec2(0)));
 }
+*/
 
 float sqr(vec3 p) { return dot(p, p); }
 
@@ -129,8 +136,9 @@ float box3w(vec3 p, vec3 s) {
 		);
 }
 
-int sdf_scene = 0;
-float d1 = 1., d2 = 1.;
+int sdf_scene;
+float d1, d2;
+vec2 tuv;
 float w(vec3 p) {
 	if (sdf_scene == 1) {
 		vec3 p1 = RZ(t/10.)*RY(t/20.)*(p+1.5*E.zxx*sin(t32));
@@ -156,12 +164,26 @@ float w(vec3 p) {
 		return 1. - d;
 	} else
 	if (sdf_scene == 5) {
+		float tt = max(0., t32 - 1.);
+		p *= RX(-1.2 + .7 * tt) * RY(t32);
+		float bbox = box3(p, vec3(4.));
 		vec2 C = floor(p.xz);
 		p.xz -= C + .5;
 		p.y += 2.;// - .3*length(C);// - sin(C.x+t8) * sin(C.y + t16);
 		vec3 boxsz = vec3(.3, .02, .3);
-		float d = -box2(p.xz, vec2(.7));// - boxsz.xz/2.);
-		return min(d, box3(/*RY(t16)*/p, boxsz));
+		float d = -box2(p.xz, vec2(.6));// - boxsz.xz/2.);
+		d1 = min(d, box3(/*RY(t16)*/p, boxsz));
+		d2 = min(d, box3(p - vec3(0., .6 * (1. + length(C)) * tt, 0.), boxsz));
+		return max(min(d1, d2), bbox);
+	} else
+	if (sdf_scene == 6) {
+		p.x += .4 * sin(t8 + p.y);
+		p.y += .4 * sin(t16 + p.x);
+		tuv = vec2(2. * atan(p.x, p.z) / PI + t16 + sin(p.y + t8), p.y);
+		float r = 1.
+			- .01 * noise2(tuv * 64.)
+			+ .4 * noise2(tuv * 4.);
+		return length(p.xz) - r;
 	}
 	return box3(RZ(t/10.)*RY(t/20.)*p, vec3(1.));
 }
@@ -178,48 +200,68 @@ vec3 wn(vec3 p) {
 		w(p + E.xxy) - w(p - E.xxy)));*/
 }
 
-float pixel_size = 1. / RES.x;
+//float pixel_size = 1. / RES.x;
 float march(vec3 o, vec3 d, float l, float L, int steps) {
 	for (int i = 0; i < steps; ++i) {
 		float dd = w(o + d * l);
 		l += dd;
-		if (dd < pixel_size * l || l > L) break;
+		if (dd < 0.002 * l || l > L) break;
 	}
 	return l;
+}
+
+vec3 O, D, N;
+
+float dirlight(vec3 dir, float shine, float kd) {
+	return mix(
+		max(0., dot(N, dir)) / 3.,
+		pow(max(0., dot(N, normalize(dir - D))), shine) * (shine + 8.) / 24.,
+		kd
+	);
+}
+
+float tex1(vec2 p) {
+ return fbm(p * 16. + 8. * (vec2(fbm(p*4.), fbm(p*4.+96.)) - .5));
+}
+
+vec3 ambient = vec3(.01);
+vec4 drawSDFScene(int index) {
+	sdf_scene = index;
+	float l = march(O, D, 0., 20., 128);
+	if (l < 20.) {
+		vec3 p = O+D*l;
+		N = wn(p);
+		float shine = 100.;
+		float kd = .5;
+		vec3 diffuse = vec3(1.);
+		//vec3 diffuse = vec3(.9, .3, .1);
+		if (sdf_scene == 1) {
+			kd = mix(.5, 0., step(d1, d2));
+			diffuse = mix(vec3(2.), vec3(1.,.2,.3), step(d2, d1));
+		} else
+		if (sdf_scene == 4) {
+			N = wn((floor(p*4.)+.5)/4.);
+		} else
+		if (sdf_scene == 5) {
+			diffuse = mix(vec3(.9, .4, .1), vec3(.1,.2,.9), step(d1, d2));
+		} else
+		if (sdf_scene == 6) {
+			kd = .7;
+			shine = 80.;
+			diffuse = mix(vec3(.9,.4,.7), vec3(.2, .7,.9), tex1(tuv/4.));
+		}
+		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
+		//n = wn(sign(p)*floor(p*4.)/4.);
+		vec3 ld = -D;//normalize(vec3(1.));
+		return vec4(diffuse * dirlight(ld, shine, kd), 1.);
+	}
+	return vec4(0.);
 }
 
 float circle(vec2 uv, float r, float R, float n, float a) {
 	float uvr = length(uv);
 	a += atan(uv.x, uv.y) / PI;
 	return step(r, uvr) * step(uvr, R) * step(.5, mod(a * n, 2.));
-}
-
-vec3 O, D;
-
-vec3 ambient = vec3(.01);
-vec4 drawSDFScene(int index) {
-	sdf_scene = index;
-	float l = march(O, D, 0., 10., 64);
-	if (l < 10.) {
-		vec3 p = O+D*l;
-		vec3 n = wn(p);
-		vec3 diffuse = vec3(1.);
-		//vec3 diffuse = vec3(.9, .3, .1);
-		if (sdf_scene == 1) {
-			diffuse = mix(vec3(1.), vec3(1.,.2,.3), step(d2, d1));
-		} else
-		if (sdf_scene == 4) {
-			n = wn((floor(p*4.)+.5)/4.);
-		} else
-		if (sdf_scene == 5) {
-			diffuse = vec3(.1, .2, .9);
-		}
-		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
-		//n = wn(sign(p)*floor(p*4.)/4.);
-		vec3 ld = -D;//normalize(vec3(1.));
-		return vec4(diffuse * (ambient + max(0., dot(n, ld))), 1.);
-	}
-	return vec4(0.);
 }
 
 vec2 rectuv(vec2 pixel, vec4 blwh) {
@@ -246,9 +288,10 @@ void main() {
 	//color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
 
 	//vec4 sc1 = drawSDFScene(1); color = mix(color, sc1.rgb, sc1.a);
-	//vec4 sc4 = drawSDFScene(4); color = mix(color, sc4.rgb, sc4.a);
 	//vec4 sc2 = drawSDFScene(2);	color = mix(color, sc2.rgb, sc2.a);
+	//vec4 sc4 = drawSDFScene(4); color = mix(color, sc4.rgb, sc4.a);
 	vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
+	//vec4 sc6 = drawSDFScene(6); color = mix(color, sc6.rgb, sc6.a);
 
 	/*
 	color += vec3(.5) * circle(uv, .4, .45, 8., t16);
@@ -259,8 +302,8 @@ void main() {
 	color += vec3(.5) * circle(rectuv(pix, vec4(100., 100., 200., 200.)), .5, .6, 1., t8);
 	*/
 
-	color += texture2D(T, (gl_FragCoord.xy-vec2(0,t*16.))/2./textureSize(T,0)).rgb;
-	color += .1 * vec3(1.-fract((t-4.)/8.));
+	//color += texture2D(T, (gl_FragCoord.xy-vec2(120,t*16.))/2./textureSize(T,0)).rgb;
+	//color += .1 * vec3(1.-fract((t-4.)/8.));
 
 	gl_FragColor = vec4(color, 1.);
 }
