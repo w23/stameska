@@ -122,15 +122,14 @@ FUNCLIST_DO(PFNGLLINKPROGRAMPROC, LinkProgram)
   FUNCLIST_DO(PFNGLUSEPROGRAMPROC, UseProgram) \
   FUNCLIST_DO(PFNGLGETUNIFORMLOCATIONPROC, GetUniformLocation) \
   FUNCLIST_DO(PFNGLUNIFORM1IPROC, Uniform1i) \
-  FUNCLIST_DO(PFNGLUNIFORM1FPROC, Uniform1f) \
-  FUNCLIST_DO(PFNGLUNIFORM2FPROC, Uniform2f) \
   FUNCLIST_DO(PFNGLGENFRAMEBUFFERSPROC, GenFramebuffers) \
   FUNCLIST_DO(PFNGLBINDFRAMEBUFFERPROC, BindFramebuffer) \
   FUNCLIST_DO(PFNGLFRAMEBUFFERTEXTURE2DPROC, FramebufferTexture2D) \
+  FUNCLIST_DO(PFNGLACTIVETEXTUREPROC, ActiveTexture) \
 
-  //FUNCLIST_DO(PFNGLACTIVETEXTUREPROC, ActiveTexture) \
-
-  //FUNCLIST_DO(PFNGLUNIFORM1FVPROC, Uniform1fv) \
+  //FUNCLIST_DO(PFNGLUNIFORM2FPROC, Uniform2f) \
+  FUNCLIST_DO(PFNGLUNIFORM1FPROC, Uniform1f) \
+  FUNCLIST_DO(PFNGLUNIFORM1FVPROC, Uniform1fv) \
 
 #ifndef DEBUG
 #define FUNCLIST_DBG
@@ -154,6 +153,7 @@ enum {
 
 enum {
 	//Tex_Random,
+	Tex_Text,
 	Tex_Frame,
 	Tex_COUNT
 };
@@ -183,6 +183,59 @@ static struct {
 	FUNCLISTS
 } gl;
 #undef FUNCLIST_DO
+
+#pragma data_seg(".greets")
+static const char greets[] =
+"Aardbei\n"
+"AND\n"
+"Blasphemy\n"
+"Bomb\n"
+"Broncs\n"
+"Byterapers\n"
+"Calodox\n"
+"Cocoon\n"
+"Damage\n"
+"Doomsday\n"
+"Elitegroup\n"
+"Exceed\n"
+"Excess\n"
+"Fairlight\n"
+"Farbrausch\n"
+"Federation Against Nature\n"
+"Fresh!mindworkz\n"
+"Halcyon\n"
+"Haujobb\n"
+"Kewlers\n"
+"Kolor\n"
+"Kosmoplovci\n"
+"Lunix\n"
+"MFX\n"
+"Maturefurk\n"
+"Moppi Productions\n"
+"Nah-kolor\n"
+"Noice\n"
+"Orion\n"
+"Park\n"
+"Plastic\n"
+"Popsy Team\n"
+"Proxium\n"
+"Pulse\n"
+"Replay\n"
+"Retro\n"
+"Satori\n"
+"Spinning Kids\n"
+"Sunflower\n"
+"T-Rex\n"
+"tAAt\n"
+"The Black Lotus\n"
+"Threestate\n"
+"Throb\n"
+"Tpolm\n"
+"Trauma\n"
+"Ukonx\n"
+"Umlaut Design\n"
+"Wipe\n"
+"Yomoma\n";
 
 #pragma data_seg(".pfd")
 static const PIXELFORMATDESCRIPTOR pfd = {
@@ -336,8 +389,8 @@ static /*__forceinline*/ void initTexture(GLuint tex, int w, int h, int comp, in
 	GLCHECK();
 	glTexImage2D(GL_TEXTURE_2D, 0, comp, w, h, 0, GL_RGBA, type, data);
 	GLCHECK();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
@@ -356,20 +409,24 @@ static /*__forceinline*/ void initFb(GLuint fb, GLuint tex1/*, GLuint tex2*/) {
 int itime;
 
 #pragma code_seg(".paint")
-static void paint(GLuint prog, GLuint dst_fb, int w) {
+static void paint(GLuint prog, GLuint dst_fb) {
 	oglBindFramebuffer(GL_FRAMEBUFFER, dst_fb);
 	GLCHECK();
 	oglUseProgram(prog);
 	GLCHECK();
 	//oglUniform1i(oglGetUniformLocation(prog, "N"), 0);
 	//glGetError();
-	oglUniform1i(oglGetUniformLocation(prog, "F"), 0);
+	oglUniform1i(oglGetUniformLocation(prog, "T"), 0);
 	glGetError();
-	const float t = (float)itime / (SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
-	oglUniform1f(oglGetUniformLocation(prog, "t"), t);// (float)(itime) / BYTES_PER_TICK);
+	oglUniform1i(oglGetUniformLocation(prog, "F"), 1);
 	glGetError();
-	oglUniform2f(oglGetUniformLocation(prog, "RES"), w, YRES);
+	oglUniform1i(oglGetUniformLocation(prog, "s"), itime);
 	glGetError();
+	//const float t = (float)itime / (SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
+	//oglUniform1f(oglGetUniformLocation(prog, "t"), t);// (float)(itime) / BYTES_PER_TICK);
+	//glGetError();
+	//oglUniform2f(oglGetUniformLocation(prog, "RES"), w, YRES);
+	//glGetError();
 #if defined(CAPTURE) && defined(TILED)
 	{
 		int x, y;
@@ -389,6 +446,47 @@ static void paint(GLuint prog, GLuint dst_fb, int w) {
 	GLCHECK();
 }
 
+#define TEXT_WIDTH 256
+#define TEXT_HEIGHT 2048
+#define TEXT_FONT "Arial"
+#define TEXT_SIZE 24
+
+#pragma data_seg(".bitmapinfo")
+BITMAPINFO bitmap_info = { {
+		/*bitmap_info.bmiHeader.biSize =*/ sizeof(BITMAPINFOHEADER),
+		/*bitmap_info.bmiHeader.biWidth =*/ TEXT_WIDTH,
+		/*bitmap_info.bmiHeader.biHeight =*/ TEXT_HEIGHT,
+		/*bmiHeader.biPlanes*/ 1,
+		/*bitmap_info.bmiHeader.biBitCount =*/ 32,
+		/*bitmap_info.bmiHeader.biCompression =*/ BI_RGB,
+		0, 0, 0, 0, 0}, {0} };
+
+static __forceinline void initText() {
+	const HDC text_dc = CreateCompatibleDC(NULL);
+	void *bitmap_ptr = NULL;
+	const HBITMAP dib = CreateDIBSection(text_dc, &bitmap_info, DIB_RGB_COLORS, &bitmap_ptr, NULL, 0);
+	const HGDIOBJ obj = SelectObject(text_dc, dib);
+	RECT rect = { 0, 0, TEXT_WIDTH, TEXT_HEIGHT };
+	//SetTextColor(text_dc, RGB(255, 255, 255));
+	//SetBkMode(text_dc, TRANSPARENT);
+
+	int size = 0;
+	HFONT font = CreateFontA(TEXT_SIZE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /*CLEARTYPE_QUALITY*/ NONANTIALIASED_QUALITY, 0, TEXT_FONT);
+	SelectObject(text_dc, font);
+
+	// needs rect; keeps newlines
+	//DrawTextA(text_dc, l.ansi, -1, &rect, DT_CALCRECT);
+	DrawTextA(text_dc, greets, -1, &rect, 0);
+			// DT_SINGLELINE | DT_NOCLIP);
+
+	//DeleteObject(font);
+
+	initTexture(texture[Tex_Text], TEXT_WIDTH, TEXT_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, bitmap_ptr);
+
+	//DeleteObject(dib);
+	//DeleteDC(text_dc);
+}
+
 #pragma code_seg(".introInit")
 static __forceinline void introInit() {
 	/*
@@ -406,7 +504,9 @@ static __forceinline void introInit() {
 
 	//initTexture(texture[Tex_Random], NOISE_SIZE, NOISE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, noise_bytes);
 	//oglActiveTexture(GL_TEXTURE1);
-	initTexture(texture[Tex_Frame], XRES/2, YRES, GL_RGBA16F, GL_FLOAT, NULL);
+	initText();
+	oglActiveTexture(GL_TEXTURE1);
+	initTexture(texture[Tex_Frame], 640, 480, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	initFb(fb[Pass_Main], texture[Tex_Frame]);
 
@@ -419,11 +519,11 @@ static __forceinline void introInit() {
 #pragma code_seg(".introPaint")
 static __forceinline void introPaint() {
 	glEnable(GL_BLEND);
-	glViewport(0, 0, XRES / 2, YRES);
-	paint(program[Pass_Main], fb[Pass_Main], XRES / 2);
+	glViewport(0, 0, 640, 480);
+	paint(program[Pass_Main], fb[Pass_Main]);
 	glDisable(GL_BLEND);
 	glViewport(0, 0, XRES, YRES);
-	paint(program[Pass_Blit], 0, XRES);
+	paint(program[Pass_Blit], 0);
 }
 
 #ifdef _WIN32

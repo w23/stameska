@@ -9,7 +9,7 @@ void main() {
 	float k = 1.;//min(ks.x, ks.y);// / 2.;
 	gl_FragColor = sqrt(texture2D(F, uv * k));
 
-	//gl_FragColor = vec4(mod(gl_FragCoord.x, 4.)/3.);
+	gl_FragColor = vec4(mod(gl_FragCoord.x, 4.)/3.);
 
 	//gl_FragColor = vec4(uv, 0., 1.);
 	//gl_FragColor = sqrt(texture2D(F, uv-vec2(.0,.5)/textureSize(F,0)) * (.5 + .5 * mod(gl_FragCoord.x, 2.)));

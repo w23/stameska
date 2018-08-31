@@ -71,7 +71,8 @@ static void paint(ATimeUs ts, float dt) {
 	++fpstat.frames;
 
 	(void)ts; (void)dt;
-	video_paint((audio.pos /* + (loop.paused * rand() % SAMPLES_PER_TICK / 2)*/) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
+	//video_paint((audio.pos /* + (loop.paused * rand() % SAMPLES_PER_TICK / 2)*/) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
+	video_paint(audio.pos * sizeof(SAMPLE_TYPE) * 2);
 }
 
 const int pattern_length = 64;
@@ -95,7 +96,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 
 	switch (key) {
 	case AK_Esc:
-		audioClose();
+		//audioClose();
 		aAppTerminate(0);
 		break;
 
@@ -163,6 +164,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	audio.pos = loop.start;
 
+	MSG("float t = s / %f;", (float)SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
 	video_init(WIDTH, HEIGHT);
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
 }

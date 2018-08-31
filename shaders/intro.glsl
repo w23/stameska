@@ -1,7 +1,10 @@
 #version 130
-uniform vec2 RES;
-uniform float t;
-//uniform sampler2D N;
+//uniform vec2 RES;
+//uniform float t;
+uniform int s;
+uniform sampler2D T;
+vec2 RES = vec2(640., 480.);
+float t = float(s)/44096.;
 
 //const float INF = 10000.;
 const vec3 E = vec3(0., .001, 1.);
@@ -255,6 +258,9 @@ void main() {
 
 	color += vec3(.5) * circle(rectuv(pix, vec4(100., 100., 200., 200.)), .5, .6, 1., t8);
 	*/
+
+	color += texture2D(T, (gl_FragCoord.xy-vec2(0,t*16.))/2./textureSize(T,0)).rgb;
+	color += .1 * vec3(1.-fract((t-4.)/8.));
 
 	gl_FragColor = vec4(color, 1.);
 }

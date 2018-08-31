@@ -10,8 +10,11 @@ const char *blitter_glsl =
  "uniform sampler2D F;"
  "void main()"
  "{"
-   "vec2 r=(gl_FragCoord.xy+.5)/RES;"
-   "gl_FragColor=sqrt(texture2D(F,r-vec2(0.,.5)/textureSize(F,0))*(.5+.5*mod(gl_FragCoord.x,2.)));"
+   "vec2 r=textureSize(F,0),g=gl_FragCoord.xy/RES,o=RES/r;"
+   "float v=1.;"
+   "gl_FragColor=sqrt(texture2D(F,g*v));"
+   "gl_FragColor=vec4(mod(gl_FragCoord.x,4.)/3.);"
+   "gl_FragColor=sqrt(texture2D(F,gl_FragCoord.xy/textureSize(F,0)));"
  "}";
 
 #endif // BLITTER_H_

@@ -1,50 +1,50 @@
-Aardbei
-AND
-Blasphemy
-Bomb
-Broncs
-Byterapers
-Calodox
-Cocoon
-Damage
-Doomsday
-Elitegroup
-Exceed
-Excess
-Fairlight
-Farbrausch
-Federation Against Nature
-Fresh!mindworkz
-Halcyon
-Haujobb
-Kewlers
-Kolor
-Kosmoplovci
-Lunix
-MFX
-Maturefurk
-Moppi Productions
-Nah-kolor
-Noice
-Orion
-Park
-Plastic
-Popsy Team
-Proxium
-Pulse
-Replay
-Retro
-Satori
-Spinning Kids
-Sunflower
-T-Rex
-tAAt
-The Black Lotus
-Threestate
-Throb
-Tpolm
-Trauma
-Ukonx
-Umlaut Design
-Wipe
-Yomoma
+"Aardbei\n"
+"AND\n"
+"Blasphemy\n"
+"Bomb\n"
+"Broncs\n"
+"Byterapers\n"
+"Calodox\n"
+"Cocoon\n"
+"Damage\n"
+"Doomsday\n"
+"Elitegroup\n"
+"Exceed\n"
+"Excess\n"
+"Fairlight\n"
+"Farbrausch\n"
+"Federation Against Nature\n"
+"Fresh!mindworkz\n"
+"Halcyon\n"
+"Haujobb\n"
+"Kewlers\n"
+"Kolor\n"
+"Kosmoplovci\n"
+"Lunix\n"
+"MFX\n"
+"Maturefurk\n"
+"Moppi Productions\n"
+"Nah-kolor\n"
+"Noice\n"
+"Orion\n"
+"Park\n"
+"Plastic\n"
+"Popsy Team\n"
+"Proxium\n"
+"Pulse\n"
+"Replay\n"
+"Retro\n"
+"Satori\n"
+"Spinning Kids\n"
+"Sunflower\n"
+"T-Rex\n"
+"tAAt\n"
+"The Black Lotus\n"
+"Threestate\n"
+"Throb\n"
+"Tpolm\n"
+"Trauma\n"
+"Ukonx\n"
+"Umlaut Design\n"
+"Wipe\n"
+"Yomoma\n"
