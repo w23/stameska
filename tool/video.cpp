@@ -347,8 +347,8 @@ public:
 		GL(glTexImage2D(GL_TEXTURE_2D, 0, comp, w, h, 0, GL_RGBA, type, data));
 		GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, data ? GL_REPEAT : GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, data ? GL_REPEAT : GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);// data ? GL_REPEAT : GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);// data ? GL_REPEAT : GL_CLAMP);
 	}
 
 	int bind(int slot) {
@@ -443,8 +443,8 @@ static void initText(Texture &text) {
 	const HBITMAP dib = CreateDIBSection(text_dc, &bitmap_info, DIB_RGB_COLORS, &bitmap_ptr, NULL, 0);
 	const HGDIOBJ obj = SelectObject(text_dc, dib);
 	RECT rect = { 0, 0, TEXT_WIDTH, TEXT_HEIGHT };
-	//SetTextColor(text_dc, RGB(255, 255, 255));
-	//SetBkMode(text_dc, TRANSPARENT);
+	SetTextColor(text_dc, RGB(255, 255, 255));
+	SetBkMode(text_dc, TRANSPARENT);
 
 	int size = 0;
 	HFONT font = 0;

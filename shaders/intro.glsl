@@ -128,7 +128,7 @@ float fOpIntersectionRound(float a, float b, float r) {
 */
 
 float box3w(vec3 p, vec3 s) {
-	float sz = 4./RES.x;
+	float sz = 1./RES.x;
 	return max(box3(p,s), -min(min(
 		box3(p,s-vec3(-1., sz, sz)),
 		box3(p,s-vec3(sz, -1., sz))),
@@ -165,9 +165,10 @@ float w(vec3 p) {
 	} else
 	if (sdf_scene == 4) {
 		float d = 0.;
+		p.z += 3.;
 		for (int i = 0; i < 4; ++i) {
 			float a = float(i)*4.;
-			vec3 b = p - 1.5*vec3(cos(t16 + a), sin(t8 + a*3.), cos(t32 + a));
+			vec3 b = p - 1.5*vec3(cos(t16 + a), sin(t8 + a*5.), cos(t32 + a));
 			d += .5 / dot(b,b);
 		}
 		return 1. - d;
@@ -259,11 +260,13 @@ vec3 drawSDFScene(vec3 color, vec2 uv, int index) {
 		N = wn(p);
 		shine = 100.;
 		kd = .5;
+		vec3 emissive = vec3(0.);
 		vec3 diffuse = vec3(1.);
 		//vec3 diffuse = vec3(.9, .3, .1);
 		if (sdf_scene == 1) {
-			kd = mix(.5, 0., step(d1, d2));
-			diffuse = mix(vec3(2.), vec3(1.,.2,.3), step(d2, d1));
+			//kd = mix(.5, 0., step(d1, d2));
+			emissive = vec3(step(d1, d2));
+			diffuse = mix(vec3(0.), vec3(1.,.2,.3), step(d2, d1));
 		} else
 		if (sdf_scene == 4) {
 			N = wn((floor(p*4.)+.5)/4.);
@@ -279,7 +282,7 @@ vec3 drawSDFScene(vec3 color, vec2 uv, int index) {
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);
 		vec3 ld = -D;//normalize(vec3(1.));
-		return vec3(diffuse * dirlight(ld, shine, kd));
+		return emissive + diffuse * dirlight(ld, shine, kd);
 	}
 	return color;
 }
@@ -317,14 +320,15 @@ void main() {
 		color += .5 * circle(uv, .6, .65, 32., t64);
 		color += .1 * circle(cpix, 50., 400., 32., -t64);
 	} else if (t < 384.) {
-		color += .3 * tex1(uv+E.zx*t32);
+		color += .3 * tex1(floor((uv+E.zx*t32)*64.)/64.);
 		color = drawSDFScene(color, uv, 1);
 	} else if (t < 512.) {
 		//color += tex3(uv);
 		color = drawSDFScene(color, uv, 4);
 	} else if (t < 640.) {
 		color = drawSDFScene(color, uv, 6);
-		color += texture2D(T, (gl_FragCoord.xy-vec2(120,t*16.))/2./textureSize(T,0)).rgb;
+		//color += texture2D(T, (gl_FragCoord.xy-vec2(120,mod(t,640.)*16.))/2./textureSize(T,0)).rgb;
+		color += texture2D(T, (gl_FragCoord.xy-vec2(140., (t-640.)*16.-2048.))/2./textureSize(T,0)).rgb;//(gl_FragCoord.xy+vec2(0., 300.))/2./textureSize(T,0)).rgb;
 	} else if (t < 768.) {
 		t16 = floor(t)/16.;
 		color = drawSDFScene(color, floor(uv*32.)/32., 2);

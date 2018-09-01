@@ -4,10 +4,10 @@
 #endif
 
 #ifndef XRES
-#define XRES 1280
+#define XRES 1920
 #endif
 #ifndef YRES
-#define YRES 720
+#define YRES 1080
 #endif
 //#define DO_RANGES
 
@@ -343,8 +343,8 @@ static /*__forceinline*/ void initTexture(GLuint tex, int w, int h, int comp, in
 	GLCHECK();
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 }
 
 #pragma code_seg(".initFb")
