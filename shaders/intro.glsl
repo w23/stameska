@@ -136,13 +136,15 @@ float box3w(vec3 p, vec3 s) {
 		);
 }
 
-int sdf_scene;
+int sdf_scene = 0;
 float d1, d2;
 vec2 tuv;
+mat3 rz10y20 = RZ(t/10.)*RY(t/20.);
+mat3 rz17y23 = RZ(t/17.)*RY(t/23.);
 float w(vec3 p) {
 	if (sdf_scene == 1) {
-		vec3 p1 = RZ(t/10.)*RY(t/20.)*(p+1.5*E.zxx*sin(t32));
-		vec3 p2 = RZ(t/17.)*RY(t/23.)*(p-1.5*E.zxx*sin(t32));
+		vec3 p1 = rz10y20*(p+1.5*E.zxx*sin(t32));
+		vec3 p2 = rz17y23*(p-1.5*E.zxx*sin(t32));
 		d1 = min(
 			box3w(p1, vec3(1.)),
 			box3w(p2, vec3(1.)));
@@ -152,16 +154,17 @@ float w(vec3 p) {
 		return min(d1, d2);
 	} else
 	if (sdf_scene == 2) {
+		p *= RZ(t16/20.+4.)*RX(-.4+.2*sin(t16));
 		d1 = p.y + 1.;
 		d2 = min(min(
 			length(p) - 1.,
-			length(p-vec3(cos(t16)*2.,1.,sin(t16)*2.)) - .8),
-			length(p-vec3(2.,0.,0.)) - .8);
+			length(p-vec3(cos(t16+PI),.2,sin(t16+PI))*2.) - .8),
+			length(p-vec3(cos(t16),.2,sin(t16))*2.) - .8);
 		return min(d1, d2);
 	} else
 	if (sdf_scene == 3) {
 		p.y = abs(p.y);
-		return box3(RZ(t/10.)*RX(t/20.)*p, vec3(1.));
+		return box3(rz10y20*p, vec3(1.));
 	} else
 	if (sdf_scene == 4) {
 		float d = 0.;
@@ -195,7 +198,7 @@ float w(vec3 p) {
 			+ .4 * noise2(tuv * 4.);
 		return length(p.xz) - r;
 	}
-	return box3(RZ(t/10.)*RY(t/20.)*p, vec3(1.));
+	return .5 * (length(p) - 1. + .3 * (sin(atan(p.x,p.y)*4. + t16) * sin(atan(p.x,p.z)*2.)));
 }
 
 vec3 wn(vec3 p) {
@@ -250,12 +253,16 @@ vec3 tex3(vec2 p) {
 	return vec3(1.-c);//sin(2.*(c+sqrt(c/4.))),c/4.+.5,log2(c)+exp(c));
 }*/
 
-vec3 drawSDFScene(vec3 color, vec2 uv, int index) {
-	sdf_scene = index;
+vec3 drawSDFScene(vec3 color, vec2 uv) {
 	O = vec3(0., 0., 5.);
 	D = normalize(vec3(uv, -2.));
-	float l = march(O, D, 0., 20., 128);
-	if (l < 20.) {
+	vec3 k = vec3(1.);
+	for (int i = 0; i < 2; ++i) {
+		float l = march(O, D, 0., 20., 128);
+		if (l > 20.)
+			break;
+		if (i == 0)
+			color = vec3(0.);
 		vec3 p = O+D*l;
 		N = wn(p);
 		shine = 100.;
@@ -268,7 +275,10 @@ vec3 drawSDFScene(vec3 color, vec2 uv, int index) {
 			emissive = vec3(step(d1, d2));
 			diffuse = mix(vec3(0.), vec3(1.,.2,.3), step(d2, d1));
 		} else
-		if (sdf_scene == 4) {
+		if (sdf_scene == 2) {
+			diffuse = mix(vec3(1.), vec3(tex1(p.xz/6.)), step(d1, d2));
+		} else
+		if (sdf_scene == 4 || sdf_scene == 0) {
 			N = wn((floor(p*4.)+.5)/4.);
 		} else
 		if (sdf_scene == 5) {
@@ -282,7 +292,14 @@ vec3 drawSDFScene(vec3 color, vec2 uv, int index) {
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);
 		vec3 ld = -D;//normalize(vec3(1.));
-		return emissive + diffuse * dirlight(ld, shine, kd);
+		color += k * (emissive + diffuse * dirlight(ld, shine, kd));
+
+		if (sdf_scene != 2)
+			break;
+
+		O = p + N * .01;
+		D = reflect(D,N);
+		k *= diffuse * (1. - kd);
 	}
 	return color;
 }
@@ -311,38 +328,39 @@ void main() {
 	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
 
 	vec3 color = vec3(0.);
+	vec4 overlay = vec4(0.);
 	if (t < 192.) {
-		color = drawSDFScene(vec3(0.), uv, 5);
+		sdf_scene = 5;
 	} else if (t < 256.) {
-		color = drawSDFScene(vec3(1.), uv, 3);
-		color += .5 * circle(uv, .4, .45, 8., t16);
-		color += .5 * circle(uv, .5, .55, 64., -t32);
-		color += .5 * circle(uv, .6, .65, 32., t64);
-		color += .1 * circle(cpix, 50., 400., 32., -t64);
+		sdf_scene = 3;
+		color = vec3(1.);
+		overlay = vec4(vec3(
+			circle(uv, .4, .45, 8., t16)
+		 	+ circle(uv, .5, .55, 64., -t32)
+			+ circle(uv, .6, .65, 32., t64)
+		  + .2 * circle(cpix, 50., 400., 32., -t64)), .5);
 	} else if (t < 384.) {
-		color += .3 * tex1(floor((uv+E.zx*t32)*64.)/64.);
-		color = drawSDFScene(color, uv, 1);
+		color = vec3(.3 * tex1(floor((uv+E.zx*t32)*64.)/64.));
+		sdf_scene = 1;
 	} else if (t < 512.) {
-		//color += tex3(uv);
-		color = drawSDFScene(color, uv, 4);
+		//float tx = .3 * tex1(floor((uv*(2. + sin(t16 + length(uv))))*64.)/64.);
+		//color = vec3(tx);
+		color = vec3(.3 * tex1(floor((uv*(2. + sin(t16 + length(uv))))*64.)/64.));
+		sdf_scene = 4;
 	} else if (t < 640.) {
-		color = drawSDFScene(color, uv, 6);
-		//color += texture2D(T, (gl_FragCoord.xy-vec2(120,mod(t,640.)*16.))/2./textureSize(T,0)).rgb;
-		color += texture2D(T, (gl_FragCoord.xy-vec2(140., (t-640.)*16.-2048.))/2./textureSize(T,0)).rgb;//(gl_FragCoord.xy+vec2(0., 300.))/2./textureSize(T,0)).rgb;
+		sdf_scene = 6;
+		overlay = vec4(texture2D(T, (gl_FragCoord.xy-vec2(140., (t-640.)*16.-2048.))/2./textureSize(T,0)).r);
+			//(gl_FragCoord.xy+vec2(0., 300.))/2./textureSize(T,0)).rgb;
 	} else if (t < 768.) {
 		t16 = floor(t)/16.;
-		color = drawSDFScene(color, floor(uv*32.)/32., 2);
-	} else {
+		uv = floor(uv*32.)/32.;
+		sdf_scene = 2;
 	}
+
+	color = mix(drawSDFScene(color, uv), overlay.rgb, overlay.a);
 
 	//vec2 tuv = uv + vec2(0., -t/64.);
 	//color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
-
-	//vec4 sc1 = drawSDFScene(1); color = mix(color, sc1.rgb, sc1.a);
-	//vec4 sc2 = drawSDFScene(2);	color = mix(color, sc2.rgb, sc2.a);
-	//vec4 sc3 = drawSDFScene(3);	color = mix(color, sc3.rgb, sc3.a);
-	//vec4 sc5 = drawSDFScene(5); color = mix(color, sc5.rgb, sc5.a);
-	//vec4 sc6 = drawSDFScene(6); color = mix(color, sc6.rgb, sc6.a);
 
 	/*
 	color += vec3(.5) * circle(uv, .4, .45, 8., t16);
