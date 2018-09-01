@@ -125,7 +125,8 @@ FUNCLIST_DO(PFNGLLINKPROGRAMPROC, LinkProgram)
   FUNCLIST_DO(PFNGLGENFRAMEBUFFERSPROC, GenFramebuffers) \
   FUNCLIST_DO(PFNGLBINDFRAMEBUFFERPROC, BindFramebuffer) \
   FUNCLIST_DO(PFNGLFRAMEBUFFERTEXTURE2DPROC, FramebufferTexture2D) \
-  FUNCLIST_DO(PFNGLACTIVETEXTUREPROC, ActiveTexture) \
+
+ //FUNCLIST_DO(PFNGLACTIVETEXTUREPROC, ActiveTexture) \
 
   //FUNCLIST_DO(PFNGLUNIFORM2FPROC, Uniform2f) \
   FUNCLIST_DO(PFNGLUNIFORM1FPROC, Uniform1f) \
@@ -361,17 +362,19 @@ static /*__forceinline*/ void initFb(GLuint fb, GLuint tex1/*, GLuint tex2*/) {
 int itime;
 
 #pragma code_seg(".paint")
-static void paint(GLuint prog, GLuint dst_fb) {
+static void paint(GLuint prog, GLuint tex, GLuint dst_fb) {
 	oglBindFramebuffer(GL_FRAMEBUFFER, dst_fb);
 	GLCHECK();
 	oglUseProgram(prog);
 	GLCHECK();
 	//oglUniform1i(oglGetUniformLocation(prog, "N"), 0);
 	//glGetError();
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glGetError();
 	oglUniform1i(oglGetUniformLocation(prog, "T"), 0);
 	glGetError();
-	oglUniform1i(oglGetUniformLocation(prog, "F"), 1);
-	glGetError();
+	//oglUniform1i(oglGetUniformLocation(prog, "F"), 1);
+	//glGetError();
 	oglUniform1i(oglGetUniformLocation(prog, "s"), itime);
 	glGetError();
 	//const float t = (float)itime / (SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
@@ -457,7 +460,7 @@ static __forceinline void introInit() {
 	//initTexture(texture[Tex_Random], NOISE_SIZE, NOISE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, noise_bytes);
 	//oglActiveTexture(GL_TEXTURE1);
 	initText();
-	oglActiveTexture(GL_TEXTURE1);
+	//oglActiveTexture(GL_TEXTURE1);
 	initTexture(texture[Tex_Frame], 640, 480, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	initFb(fb[Pass_Main], texture[Tex_Frame]);
@@ -465,17 +468,17 @@ static __forceinline void introInit() {
 	program[Pass_Main] = compileProgram(intro_glsl);
 	program[Pass_Blit] = compileProgram(blitter_glsl);
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 #pragma code_seg(".introPaint")
 static __forceinline void introPaint() {
-	glEnable(GL_BLEND);
+	//glEnable(GL_BLEND);
 	glViewport(0, 0, 640, 480);
-	paint(program[Pass_Main], fb[Pass_Main]);
-	glDisable(GL_BLEND);
+	paint(program[Pass_Main], texture[Tex_Text], fb[Pass_Main]);
+	//glDisable(GL_BLEND);
 	glViewport(0, 0, XRES, YRES);
-	paint(program[Pass_Blit], 0);
+	paint(program[Pass_Blit], texture[Tex_Frame], 0);
 }
 
 #ifdef _WIN32
@@ -545,7 +548,9 @@ void entrypoint(void) {
 #ifndef CAPTURE
 	// initialize sound
 	HWAVEOUT hWaveOut;
+#ifndef _DEBUG
 	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)_4klang_render, sound_buffer, 0, 0);
+#endif
 	//_4klang_render(sound_buffer);
 	//soundRender(sound_buffer);
 	//MMSYSERR_INVALHANDLE

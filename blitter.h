@@ -5,16 +5,15 @@
 # define BLITTER_H_
 
 const char *blitter_glsl =
- "#version 130\n"
- "uniform sampler2D F;"
+ "uniform sampler2D T;"
  "uniform int s;"
  "float i=float(s)/44096.;"
  "void main()"
  "{"
-   "vec2 r=vec2(1920.,1080.),y=gl_FragCoord.xy-r*.5,d=textureSize(F,0);"
+   "vec2 r=vec2(1920.,1080.),y=vec2(640.,480.),o=gl_FragCoord.xy-r*.5;"
    "vec3 x=vec3(0.);"
    "for(int v=0;v<80;++v)"
-     "x+=texture2D(F,((y+.4*smoothstep(56.,68.,i)*step(i,192.)*(y-vec2(0.,-200.))*float(v-40)/80.)*max(d.x/r.x,d.y/r.y)+d*.5)/d).xyz;"
+     "x+=texture2D(T,((o+.4*smoothstep(56.,68.,i)*step(i,192.)*(o-vec2(0.,-200.))*float(v-40)/80.)*max(y.x/r.x,y.y/r.y)+y*.5)/y).xyz;"
    "gl_FragColor=vec4(sqrt(x/80.),0.);"
  "}";
 
