@@ -276,18 +276,21 @@ vec3 drawSDFScene(vec3 color, vec2 uv) {
 			diffuse = mix(vec3(0.), vec3(1.,.2,.3), step(d2, d1));
 		} else
 		if (sdf_scene == 2) {
-			diffuse = mix(vec3(1.), vec3(tex1(p.xz/6.)), step(d1, d2));
+			diffuse = mix(vec3(1.,.2,.3), vec3(tex1(p.xz/6.)), step(d1, d2));
 		} else
 		if (sdf_scene == 4 || sdf_scene == 0) {
+			diffuse = vec3(1.,.2,.3);
 			N = wn((floor(p*4.)+.5)/4.);
 		} else
 		if (sdf_scene == 5) {
-			diffuse = mix(vec3(.9, .4, .1), vec3(.1,.2,.9), step(d1, d2));
+			diffuse = mix(vec3(1.,.2,.3), vec3(1.), step(d1, d2));
+			//diffuse = mix(vec3(.9, .4, .1), vec3(.1,.2,.9), step(d1, d2));
 		} else
 		if (sdf_scene == 6) {
 			kd = .7;
 			shine = 80.;
-			diffuse = mix(vec3(.9,.4,.7), vec3(.2, .7,.9), tex1(tuv/4.));
+			//diffuse = mix(vec3(.9,.4,.7), vec3(.2, .7,.9), tex1(tuv/4.));
+			diffuse = mix(vec3(1.,.2,.3), vec3(1.), tex1(tuv/4.));
 		}
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);

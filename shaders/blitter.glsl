@@ -1,29 +1,22 @@
 #version 130
 // TOOL
-uniform vec2 RES;
+//uniform vec2 RES;
 uniform sampler2D F;
 uniform int s;
 float t = float(s)/44096.;
 
 void main() {
 	// Release
-	//vec2 RES = vec2(1920.,1080.);
-	/*
-	vec2 uv = (gl_FragCoord.xy / RES - .5) * 2.; uv.x *= RES.x / RES.y;
-	gl_FragColor = sqrt(texture2D(F, uv*vec2(640.,480.)/RES+.5));
-	//gl_FragColor = vec4(uv, 0., 1.);
-	//
-	*/
+	vec2 RES = vec2(1920.,1080.);
+	//vec2 uv = (gl_FragCoord.xy / RES - .5) * 2.; uv.x *= RES.x / RES.y;
+	//gl_FragColor = sqrt(texture2D(F, uv*vec2(640.,480.)/RES+.5)); return;
+	//gl_FragColor = vec4(uv, 0., 1.); return;
 
 	vec2 uv2 = gl_FragCoord.xy - RES*.5;
 	vec2 FR = textureSize(F,0);
 	vec3 color = vec3(.0);
-	vec2 c = vec2(0., -200.);//sin(t/32.), cos(t/32.)) * 200.;
-	float l = .4 * smoothstep(56., 68., t) * step(t, 192.);
 	for (int i = 0; i < 80; ++i) {
-		//vec2 p = uv2-c;
-		vec2 p = uv2 + l * (uv2-c) * float(i-40) / 80.;
-		color += texture2D(F, (p*max(FR.x/RES.x,FR.y/RES.y)+FR*.5)/FR).rgb;
+		color += texture2D(F, ((uv2 + .4 * smoothstep(56., 68., t) * step(t, 192.) * (uv2-vec2(0., -200.)) * float(i-40) / 80.) * max(FR.x/RES.x,FR.y/RES.y)+FR*.5)/FR).rgb;
 	}
 	gl_FragColor = vec4(sqrt(color/80.),.0);
 
