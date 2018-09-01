@@ -8,7 +8,7 @@
 %define MAX_VOICES 2
 %define HLD 1
 %define BPM 120.000000
-%define MAX_PATTERNS 56
+%define MAX_PATTERNS 55
 %define PATTERN_SIZE_SHIFT 4
 %define PATTERN_SIZE (1 << PATTERN_SIZE_SHIFT)
 %define	MAX_TICKS (MAX_PATTERNS*PATTERN_SIZE)
@@ -463,12 +463,12 @@ section .g4kmuc2 data align=1
 section .data
 %endif
 go4k_pattern_lists
-Instrument3List		db	0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 3, 4, 2, 5, 5, 6, 7, 4, 4, 4, 2, 5, 5, 6, 7, 4, 4, 4, 2, 5, 5, 6, 7, 4, 4, 4, 2, 5, 5, 6, 7, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 
-Instrument5List		db	0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 0, 0, 0, 0, 
-Instrument7List		db	0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 11, 11, 9, 9, 9, 12, 11, 11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 0, 0, 0, 0, 13, 11, 11, 11, 11, 11, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 9, 9, 9, 9, 0, 0, 0, 0, 
-Instrument8List		db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 16, 9, 17, 18, 19, 20, 21, 22, 23, 24, 23, 25, 23, 26, 23, 27, 0, 28, 0, 0, 0, 0, 0, 
-Instrument10List		db	29, 30, 31, 30, 29, 30, 31, 30, 29, 30, 31, 30, 0, 0, 0, 0, 32, 32, 33, 33, 34, 34, 35, 35, 32, 32, 33, 33, 34, 34, 35, 35, 32, 32, 33, 33, 34, 34, 35, 35, 32, 32, 33, 33, 34, 34, 35, 35, 35, 35, 0, 0, 0, 0, 0, 0, 
-Instrument14List		db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 37, 36, 37, 36, 37, 36, 38, 0, 0, 0, 0, 0, 0, 0, 0, 36, 37, 36, 37, 36, 37, 36, 39, 9, 9, 9, 9, 0, 0, 0, 0, 
+Instrument3List		db	0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 3, 4, 2, 5, 5, 6, 7, 4, 4, 4, 2, 5, 5, 6, 7, 4, 4, 4, 2, 5, 5, 6, 7, 4, 4, 4, 2, 5, 5, 6, 7, 4, 4, 0, 0, 0, 0, 0, 0, 0, 
+Instrument5List		db	0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 0, 0, 0, 
+Instrument7List		db	0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 11, 11, 9, 9, 9, 12, 11, 11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 0, 0, 0, 0, 13, 11, 11, 11, 11, 11, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 9, 9, 9, 9, 0, 0, 0, 
+Instrument8List		db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 16, 9, 17, 18, 19, 20, 21, 22, 23, 24, 23, 25, 23, 26, 23, 27, 0, 28, 0, 0, 0, 0, 
+Instrument10List		db	29, 30, 31, 30, 29, 30, 31, 30, 29, 30, 31, 30, 0, 0, 0, 0, 32, 32, 33, 33, 34, 34, 35, 35, 32, 32, 33, 33, 34, 34, 35, 35, 32, 32, 33, 33, 34, 34, 35, 35, 32, 32, 33, 33, 34, 34, 35, 35, 35, 35, 0, 0, 0, 0, 0, 
+Instrument14List		db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 37, 36, 37, 36, 37, 36, 38, 0, 0, 0, 0, 0, 0, 0, 0, 36, 37, 36, 37, 36, 37, 36, 39, 9, 9, 9, 9, 0, 0, 0, 
 go4k_pattern_lists_end
 %ifdef USE_SECTIONS
 section .g4kmuc3 data align=1
@@ -647,7 +647,7 @@ GO4K_BEGIN_PARAMDEF(Instrument7)
 	GO4K_VCF	FREQUENCY(23),RESONANCE(32),VCFTYPE(HIGHPASS)
 	GO4K_VCF	FREQUENCY(80),RESONANCE(54),VCFTYPE(HIGHPASS)
 	GO4K_VCF	FREQUENCY(56),RESONANCE(3),VCFTYPE(ALLPASS)
-	GO4K_DLL	PREGAIN(28),DRY(128),FEEDBACK(60),DAMP(64),FREQUENCY(0),DEPTH(0),DELAY(-1),COUNT(1)
+	GO4K_DLL	PREGAIN(28),DRY(128),FEEDBACK(60),DAMP(64),FREQUENCY(0),DEPTH(0),DELAY(17),COUNT(1)
 	GO4K_PAN	PANNING(64)
 	GO4K_OUT	GAIN(3), AUXSEND(0)
 GO4K_END_PARAMDEF
@@ -666,9 +666,9 @@ GO4K_BEGIN_PARAMDEF(Instrument8)
 	GO4K_VCF	FREQUENCY(64),RESONANCE(64),VCFTYPE(LOWPASS)
 	GO4K_DST	DRIVE(105), SNHFREQ(128), FLAGS(0)
 	GO4K_PAN	PANNING(21)
-	GO4K_DLL	PREGAIN(96),DRY(128),FEEDBACK(96),DAMP(64),FREQUENCY(0),DEPTH(0),DELAY(-1),COUNT(1)
+	GO4K_DLL	PREGAIN(96),DRY(128),FEEDBACK(96),DAMP(64),FREQUENCY(0),DEPTH(0),DELAY(18),COUNT(1)
 	GO4K_FOP	OP(FOP_XCH)
-	GO4K_DLL	PREGAIN(108),DRY(128),FEEDBACK(64),DAMP(96),FREQUENCY(0),DEPTH(0),DELAY(17),COUNT(1)
+	GO4K_DLL	PREGAIN(108),DRY(128),FEEDBACK(64),DAMP(96),FREQUENCY(0),DEPTH(0),DELAY(19),COUNT(1)
 	GO4K_FOP	OP(FOP_XCH)
 	GO4K_VCF	FREQUENCY(70),RESONANCE(77),VCFTYPE(LOWPASS)
 	GO4K_OUT	GAIN(31), AUXSEND(2)
@@ -689,7 +689,7 @@ GO4K_BEGIN_PARAMDEF(Instrument10)
 	GO4K_FOP	OP(FOP_POP)
 	GO4K_VCF	FREQUENCY(51),RESONANCE(64),VCFTYPE(BANDPASS)
 	GO4K_FST	AMOUNT(54),DEST(16*MAX_UNIT_SLOTS+0+FST_SET)
-	GO4K_DLL	PREGAIN(64),DRY(128),FEEDBACK(64),DAMP(64),FREQUENCY(0),DEPTH(0),DELAY(-1),COUNT(1)
+	GO4K_DLL	PREGAIN(64),DRY(128),FEEDBACK(64),DAMP(64),FREQUENCY(0),DEPTH(0),DELAY(19),COUNT(1)
 	GO4K_PAN	PANNING(64)
 	GO4K_OUT	GAIN(34), AUXSEND(111)
 GO4K_END_PARAMDEF
@@ -751,5 +751,7 @@ _go4k_delay_times
 	dw 1516
 	dw 1580
 	dw 1642
+	dw 16537
+	dw 11025
 	dw 22050
 %endif
