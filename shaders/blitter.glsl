@@ -4,11 +4,11 @@
 uniform sampler2D T;
 uniform int s;
 float t = float(s)/44096.;
+vec2 FR = vec2(640., 480.);//textureSize(T,0);
+vec2 RES = vec2(1920.,1080.);
 
 void main() {
 	// Release
-	vec2 RES = vec2(1920.,1080.);
-	vec2 FR = vec2(640., 480.);//textureSize(T,0);
 	//vec2 uv = (gl_FragCoord.xy / RES - .5) * 2.; uv.x *= RES.x / RES.y;
 	//gl_FragColor = sqrt(texture2D(F, uv*vec2(640.,480.)/RES+.5)); return;
 	//gl_FragColor = vec4(uv, 0., 1.); return;
