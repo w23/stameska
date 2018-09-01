@@ -8,12 +8,13 @@ const char *blitter_glsl =
  "uniform sampler2D T;"
  "uniform int s;"
  "float i=float(s)/44096.;"
+ "vec2 r=vec2(640.,480.),v=vec2(1920.,1080.);"
  "void main()"
  "{"
-   "vec2 r=vec2(1920.,1080.),y=vec2(640.,480.),o=gl_FragCoord.xy-r*.5;"
+   "vec2 m=gl_FragCoord.xy-v*.5;"
    "vec3 x=vec3(0.);"
-   "for(int v=0;v<80;++v)"
-     "x+=texture2D(T,((o+.4*smoothstep(56.,68.,i)*step(i,192.)*(o-vec2(0.,-200.))*float(v-40)/80.)*max(y.x/r.x,y.y/r.y)+y*.5)/y).xyz;"
+   "for(int f=0;f<80;++f)"
+     "x+=texture2D(T,((m+.4*smoothstep(56.,68.,i)*step(i,192.)*(m-vec2(0.,-200.))*float(f-40)/80.)*max(r.x/v.x,r.y/v.y)+r*.5)/r).xyz;"
    "gl_FragColor=vec4(sqrt(x/80.),0.);"
  "}";
 

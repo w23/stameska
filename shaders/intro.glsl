@@ -260,7 +260,7 @@ vec3 drawSDFScene(vec3 color, vec2 uv) {
 	D = normalize(vec3(uv, -2.));
 	vec3 k = vec3(1.);
 	for (int i = 0; i < 2; ++i) {
-		float l = march(O, D, 0., 20., 128);
+		float l = march(O, D, 0., 20., 100);
 		if (l > 20.)
 			break;
 		if (i == 0)
@@ -273,7 +273,7 @@ vec3 drawSDFScene(vec3 color, vec2 uv) {
 		kd = .5;
 		//vec3 diffuse = vec3(.9, .3, .1);
 		if (sdf_scene == 1) {
-			diffuse = mix(vec3(0.), vec3(1.,.2,.3), step(d2, d1));
+			diffuse = mix(vec3(1.,.2,.3), vec3(0.), step(d1, d2));
 			//kd = mix(.5, 0., step(d1, d2));
 			emissive = vec3(step(d1, d2));
 		} else
@@ -310,9 +310,7 @@ vec3 drawSDFScene(vec3 color, vec2 uv) {
 }
 
 float circle(vec2 uv, float r, float R, float n, float a) {
-	float uvr = length(uv);
-	a += atan(uv.x, uv.y) / PI;
-	return step(r, uvr) * step(uvr, R) * step(.5, mod(a * n, 2.));
+	return step(r, length(uv)) * step(length(uv), R) * step(.5, mod((a + atan(uv.x, uv.y) / PI) * n, 2.));
 }
 
 //vec2 rectuv(vec2 pixel, vec4 blwh) { return ((pixel - blwh.xy) / blwh.zw - .5) * 2.; }
@@ -330,17 +328,16 @@ void main() {
 	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
 
 	vec3 color = vec3(0.);
-	vec4 overlay = vec4(0.);
+	float overlay = 0.;
 	if (t < 192.) {
 		sdf_scene = 5;
 	} else if (t < 256.) {
 		sdf_scene = 3;
 		color = vec3(1.);
-		overlay = vec4(vec3(
-			circle(uv, .4, .45, 8., t16)
+		overlay = .5 *(circle(uv, .4, .45, 8., t16)
 		 	//+ circle(uv, .5, .55, 64., -t32)
 			+ circle(uv, .6, .65, 32., t64)
-		  + .2 * circle(uv, .1, 9., 32., -t64)), .5);
+		  + .2 * circle(uv, .1, 9., 32., -t64));
 	} else if (t < 384.) {
 		sdf_scene = 1;
 		color = vec3(.3 * tex1(floor((uv+E.zx*t32)*64.)/64.));
@@ -351,7 +348,7 @@ void main() {
 		color = vec3(.3 * tex1(floor((uv*(2. + sin(t16 + length(uv))))*64.)/64.));
 	} else if (t < 640.) {
 		sdf_scene = 6;
-		overlay = vec4(texture2D(T, (gl_FragCoord.xy-vec2(140., (t-640.)*16.-2048.))/2./textureSize(T,0)).r);
+		overlay = texture2D(T, (gl_FragCoord.xy-vec2(140., (t-640.)*16.-2048.))/vec2(512.,4096.)).r;
 			//(gl_FragCoord.xy+vec2(0., 300.))/2./textureSize(T,0)).rgb;
 	} else if (t < 768.) {
 		t16 = floor(t)/16.;
@@ -373,5 +370,5 @@ void main() {
 
 	//color += .1 * vec3(1.-fract((t-4.)/8.));
 
-	gl_FragColor = vec4(mix(drawSDFScene(color, uv), overlay.rgb, overlay.a), 1.);
+	gl_FragColor = vec4(mix(drawSDFScene(color, uv), vec3(1.), overlay), 1.);
 }
