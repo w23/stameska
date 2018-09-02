@@ -79,7 +79,7 @@ int _fltused = 1;
 #endif
 #define LOL(x) #x
 #define STR(x) LOL(x)
-static const char *FFMPEG_CAPTURE_INPUT = "ffmpeg-4.0.2-win64-static\\bin\\ffmpeg.exe"
+static const char *FFMPEG_CAPTURE_INPUT = "ffmpeg.exe"
 " -y -f rawvideo -vcodec rawvideo"
 " -s " STR(XRES) "x" STR(YRES) " -pix_fmt rgb24"
 " -framerate " STR(CAPTURE_FRAMERATE)
