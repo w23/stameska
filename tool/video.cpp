@@ -309,7 +309,7 @@ public:
 		glUseProgram(name);
 		//glUniform1f(glGetUniformLocation(name, "t"), t);
 		glUniform1i(glGetUniformLocation(name, "s"), (int)t);
-		glUniform2f(glGetUniformLocation(name, "RES"), w, h);
+		glUniform2f(glGetUniformLocation(name, "R"), w, h);
 		return true;
 	}
 
@@ -579,8 +579,8 @@ PROGRAMS(DECLARE_PROGRAM)
 #undef DECLARE_PROGRAM
 #endif
 
-Texture text;
-Texture noise;
+//Texture text;
+//Texture noise;
 Texture frame;
 
 Framebuffer screen;
@@ -602,14 +602,14 @@ void video_init(int W, int H) {
 #undef GL_LOAD_FUNC
 #endif
 
-	text.init();
-	noise.init();
+//	text.init();
+//	noise.init();
 	frame.init();
-	frame.upload(640, 480, GL_RGBA16F, GL_FLOAT, nullptr);
+	frame.upload(640, 720, GL_RGBA16F, GL_FLOAT, nullptr);
 	screen.init(w, h);
 	framebuffer.init().attach(frame).check();
 
-	initNoise(noise);
+//	initNoise(noise);
 
 #ifdef TOOL
 #define POLL_SHADER_FILE(s) s.poll();
@@ -622,7 +622,7 @@ PROGRAMS(LOAD_PROGRAM)
 #undef LOAD_PROGRAM
 #endif
 
-	initText(text);
+//	initText(text);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
@@ -634,9 +634,9 @@ static const Program& renderPass(float tick, const Framebuffer& fb, const Progra
 
 	int tslot = 0;
 	p.use(fb.w(), fb.h(), tick);
-	p.setUniform("N", noise.bind(tslot++));
+//	p.setUniform("N", noise.bind(tslot++));
 	p.setUniform("F", frame.bind(tslot++));
-	p.setUniform("T", text.bind(tslot++));
+//	p.setUniform("T", text.bind(tslot++));
 
 	/*
 	for (int i = 0; i < COUNTOF(labels); ++i) {

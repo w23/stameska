@@ -1,10 +1,10 @@
 #version 130
-//uniform vec2 resolution;
+uniform vec2 R;
 //uniform float t;
 uniform sampler2D T;
 uniform int s;
-float t = float(s)/44096.;
-vec2 resolution = vec2(640., 480.);
+float t = float(s)/88200.;
+//vec2 R = vec2(640., 480.);
 
 //const float INF = 10000.;
 const vec3 E = vec3(0., .001, 1.);
@@ -127,93 +127,50 @@ float fOpIntersectionRound(float a, float b, float r) {
 }
 */
 
-float box3w(vec3 p, vec3 s) {
-	float sz = 1./resolution.x;
-	return max(box3(p,s), -min(min(
-		box3(p,s-vec3(-1., sz, sz)),
-		box3(p,s-vec3(sz, -1., sz))),
-		box3(p,s-vec3(sz, sz, -1.)))
-		);
-}
-
-int sdf_scene = 0;
-float d1, d2;
-vec2 tuv;
-mat3 rz10y20 = RZ(t/10.)*RY(t/20.);
-mat3 rz17y23 = RZ(t/17.)*RY(t/23.);
+int sdf_scene = 1;
 float w(vec3 p) {
-	if (sdf_scene == 1) {
-		vec3 p1 = rz10y20*(p+1.5*E.zxx*sin(t32));
-		vec3 p2 = rz17y23*(p-1.5*E.zxx*sin(t32));
-		d1 = min(
-			box3w(p1, vec3(1.)),
-			box3w(p2, vec3(1.)));
-		d2 = max(
-			box3(p1, vec3(.9)),
-			box3(p2, vec3(.9)));
-		return min(d1, d2);
-	} else
-	if (sdf_scene == 2) {
-		p *= RZ(t16/20.+4.)*RX(-.4+.2*sin(t16));
-		d1 = p.y + 1.;
-		d2 = min(min(
-			length(p) - 1.,
-			length(p-vec3(cos(t16+PI),.2,sin(t16+PI))*2.) - .8),
-			length(p-vec3(cos(t16),.2,sin(t16))*2.) - .8);
-		return min(d1, d2);
-	} else
 	if (sdf_scene == 3) {
-		p.y = abs(p.y);
-		return box3(rz10y20*p, vec3(1.));
-	} else
-	if (sdf_scene == 4) {
-		float d = 0.;
-		p.z += 3.;
-		for (int i = 0; i < 4; ++i) {
-			float a = float(i)*4.;
-			vec3 b = p - 1.5*vec3(cos(t16 + a), sin(t8 + a*5.), cos(t32 + a));
-			d += .5 / dot(b,b);
-		}
-		return 1. - d;
-	} else
-	if (sdf_scene == 5) {
-		float tt = max(0., t64 - 1.);
-		p *= RX(-1.2 + .7 * tt) * RY(t32);
-		float bbox = box3(p, vec3(4.));
-		vec2 C = floor(p.xz);
-		p.xz -= C + .5;
-		p.y += 2.;// - .3*length(C);// - sin(C.x+t8) * sin(C.y + t16);
-		vec3 boxsz = vec3(.3, .02, .3);
-		float d = -box2(p.xz, vec2(.6));// - boxsz.xz/2.);
-		d1 = min(d, box3(/*RY(t16)*/p, boxsz));
-		d2 = min(d, box3(p - vec3(0., .6 * (1. + length(C)) * tt, 0.), boxsz));
-		return max(min(d1, d2), bbox);
-	} else
-	if (sdf_scene == 6) {
-		p.x += .4 * sin(t8 + p.y);
-		p.y += .4 * sin(t16 + p.x);
-		tuv = vec2(2. * atan(p.x, p.z) / PI + t16 + sin(p.y + t8), p.y);
-		float r = 1.
-			- .01 * noise2(tuv * 64.)
-			+ .4 * noise2(tuv * 4.);
-		return length(p.xz) - r;
+		//float flr = p.
+		float walls = -box3(p-vec3(0.,1.8,0.), vec3(3., 1.8, 30.));
+		vec3 p1 = p;
+		p1.z = mod(p.z, 10.) - 5.;
+		p1.x -= 3.;
+		p1.y += .3 - 1.8;
+		walls = max(walls, -box3(p1, vec3(2., 1.2, 1.)));
+		walls = min(walls, box3(p, vec3(.3, .1, 30.)));
+		walls = max(walls, p.x - 4.4);
+		return walls;
+	} else if (sdf_scene == 1) {
+		float flr = p.y; //if (flr < .1) flr += .2 * noise2(p.xz);
+		float walls = min(p.x + 4., 6. - p.y);
+		vec3 p1 = p;
+		p1.z = mod(p.z, 10.) - 5.;
+		float holes = box3(p1, vec3(1., 10., 1.));
+		p1.x -= 4.;
+		p1.y += .3 - 1.8;
+		float columns = box3(p1, vec3(.5, 10., .5));
+		walls = min(walls, columns);
+		walls = min(walls, p.z + 30.);
+		walls = min(walls, box3(p-vec3(5., 0., 0.), vec3(1., 1., 100.)));
+		walls = max(walls, -min(holes, 6.4 - p.y));
+		return max(min(flr, walls), p.x - 6.);
 	}
-	return .5 * (length(p) - 1. + .3 * (sin(atan(p.x,p.y)*4. + t16) * sin(atan(p.x,p.z)*2.)));
+	return min(p.y + 1., length(p) - 1.);
 }
 
 vec3 wn(vec3 p) {
 	return normalize(vec3(
-	//* gives NaNs a lot
+	/* gives NaNs a lot
 		w(p + E.yxx),
 		w(p + E.xyx),
 		w(p + E.xxy)) - w(p));
-	/*/
+	*/
 		w(p + E.yxx) - w(p - E.yxx),
 		w(p + E.xyx) - w(p - E.xyx),
-		w(p + E.xxy) - w(p - E.xxy)));*/
+		w(p + E.xxy) - w(p - E.xxy)));
 }
 
-//float pixel_size = 1. / resolution.x;
+//float pixel_size = 1. / R.x;
 float march(vec3 o, vec3 d, float l, float L, int steps) {
 	for (int i = 0; i < steps; ++i) {
 		float dd = w(o + d * l);
@@ -253,25 +210,36 @@ vec3 tex3(vec2 p) {
 	return vec3(1.-c);//sin(2.*(c+sqrt(c/4.))),c/4.+.5,log2(c)+exp(c));
 }*/
 
-//vec3 col_red = vec3(1.,.2,.3);
-//vec3 col_white = vec3(1.);
-vec3 drawSDFScene(vec3 color, vec2 uv) {
-	O = vec3(0., 0., 5.);
-	D = normalize(vec3(uv, -2.));
+float shadow(vec3 o, vec3 d, float L, int steps) {
+	float l = march(o, d, .01, L, steps);
+	return step(L, l);
+}
+
+vec3 drawSDFScene(vec3 sample_color, vec2 uv) {
+	//O = vec3(-.5, 1.8, 5.);
+	//D = normalize(vec3(uv, -2.));
 	vec3 k = vec3(1.);
-	for (int i = 0; i < 2; ++i) {
-		float l = march(O, D, 0., 20., 100);
-		if (l > 20.)
+	for (int i = 0; i < 1; ++i) {
+		float l = march(O, D, 0., 40., 80);
+		if (l > 40.)
 			break;
 		if (i == 0)
-			color = vec3(0.);
+			sample_color = vec3(0.);
 		vec3 p = O+D*l;
 		vec3 emissive = vec3(0.);
 		vec3 diffuse = vec3(1.);
 		N = wn(p);
 		shine = 100.;
-		kd = .5;
-		//vec3 diffuse = vec3(.9, .3, .1);
+		kd = 0.;
+
+		//return N;
+
+		vec2 uv = p.xz;
+		//emissive = .1 * step(.9,mod(p,1.));
+		//diffuse = mod(p,1.);
+		//diffuse = vec3(tex1(uv));
+		//diffuse = N;
+		/*
 		if (sdf_scene == 1) {
 			diffuse = mix(vec3(1.,.2,.3), vec3(0.), step(d1, d2));
 			//kd = mix(.5, 0., step(d1, d2));
@@ -294,81 +262,145 @@ vec3 drawSDFScene(vec3 color, vec2 uv) {
 			shine = 80.;
 			//diffuse = mix(vec3(.9,.4,.7), vec3(.2, .7,.9), tex1(tuv/4.));
 		}
+		*/
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);
 		//vec3 ld = -D;//normalize(vec3(1.));
-		color += k * (emissive + diffuse * dirlight(-D, shine, kd));
+		vec3 ld;
+		for (int j = 0; j < 3; ++j) {
+			float z = float(j) * 10.;
+			ld = vec3(4., 3., -5. - z) - p;
+			sample_color += k * diffuse * 10.
+				* shadow(p, normalize(ld), length(ld), 40)
+				* dirlight(normalize(ld), shine, kd)/dot(ld,ld);
+			ld = vec3(-1., 2., -5. - z) - p;
+			sample_color += k * diffuse * 1.
+				* shadow(p, normalize(ld), length(ld), 40)
+				* dirlight(normalize(ld), shine, kd)/dot(ld,ld);
+		}
 
-		if (sdf_scene != 2)
-			break;
+		sample_color += k * emissive;
+		//if (sdf_scene != 2) break;
 
 		O = p + N * .01;
 		D = reflect(D,N);
-		k *= diffuse * (1. - kd);
+		k *= diffuse * kd;
 	}
-	return color;
+	return sample_color;
 }
-
-float circle(vec2 uv, float r, float R, float n, float a) {
-	return step(r, length(uv)) * step(length(uv), R) * step(.5, mod((a + atan(uv.x, uv.y) / PI) * n, 2.));
-}
-
-//vec2 rectuv(vec2 pixel, vec4 blwh) { return ((pixel - blwh.xy) / blwh.zw - .5) * 2.; }
 
 void main() {
-	//vec2 uv = gl_FragCoord.xy / resolution;
-	//vec2 pix = gl_FragCoord.xy;
-	//vec2 cpix = pix - resolution/2.;
-	vec2 uv = (gl_FragCoord.xy / resolution * 2. - 1.); uv.x *= resolution.x / resolution.y;
-
-	//gl_FragColor = vec4(mod(gl_FragCoord.x, 2.)); return;
-	//gl_FragColor = vec4(1., 0., 0., 1.); return;
-	//gl_FragColor = vec4(hash1(uv.x), 0., 0., 1.); return;
+	vec2 uv = (gl_FragCoord.xy / R * 2. - 1.); uv.x *= 2. * R.x / R.y;
 	//gl_FragColor = vec4(uv, 0., 1.); return;
-	//gl_FragColor = vec4(snoise24((floor(gl_FragCoord.xy) + .5)/textureSize(N, 0).xy).xyz, 1.); return;
 
-	vec3 color = vec3(0.);
-	float overlay = 0.;
-	if (t < 192.) {
-		sdf_scene = 5;
-	} else if (t < 256.) {
-		sdf_scene = 3;
-		color = vec3(1.);
-		overlay = .5 *(circle(uv, .4, .45, 8., t16)
-		 	//+ circle(uv, .5, .55, 64., -t32)
-			+ circle(uv, .6, .65, 32., t64)
-		  + .2 * circle(uv, .1, 9., 32., -t64));
-	} else if (t < 384.) {
-		sdf_scene = 1;
-		color = vec3(.3 * tex1(floor((uv+E.zx*t32)*64.)/64.));
-	} else if (t < 512.) {
-		sdf_scene = 4;
-		//float tx = .3 * tex1(floor((uv*(2. + sin(t16 + length(uv))))*64.)/64.);
-		//color = vec3(tx);
-		color = vec3(.3 * tex1(floor((uv*(2. + sin(t16 + length(uv))))*64.)/64.));
-	} else if (t < 640.) {
-		sdf_scene = 6;
-		overlay = texture2D(T, (gl_FragCoord.xy-vec2(140., (t-640.)*16.-2048.))/vec2(512.,4096.)).r;
-			//(gl_FragCoord.xy+vec2(0., 300.))/2./textureSize(T,0)).rgb;
-	} else if (t < 768.) {
-		t16 = floor(t)/16.;
-		uv = floor(uv*32.)/32.;
-		sdf_scene = 2;
+	O = vec3(-.5+.5*sin(t/16.), 1.8, 5.);
+	D = normalize(vec3(uv, -2.));
+	//vec3 D = normalize(vec3(uv, -2.));
+	vec3 D2 = normalize(vec3(uv+vec2(2.,1.)/R, -2.));
+
+	//gl_FragColor = vec4(drawSDFScene(vec3(0.), uv), 1.); return;
+
+	const int samples_per_pixel = 16;
+	float seedhash = t;
+	vec3 total_color = vec3(0.);
+	for (int s = 0; s < samples_per_pixel; ++s) {
+		vec3 o = O;
+		vec3 d = mix(D, D2, vec3(hash1(seedhash), hash1(seedhash+1.), hash1(seedhash+2.)));
+
+		vec3 sample_color = vec3(0.);
+		vec3 k = vec3(1.);
+		for (int b = 0; b < 3; ++b) {
+			//if (any(isnan(d))) { lolnan = true; break; }
+			float l = 50.;//escape(o, d, Ra);
+			//if (isnan(lsky)) break;
+			//if (isnan(lsky)) lolnan = true;
+			int mat = 0;
+			//if (isnan(l)) break;
+
+			float L = min(l, 40.);
+			float ldf = march(o, d, 0., L, 40);
+			//if (isnan(l)) {lolnan = true; break; }
+			if (ldf < L) {
+				l = ldf;
+				mat = 2;
+			}
+
+			vec3 emissive = vec3(0.);
+			vec3 albedo = vec3(.75, .75, .73);
+			vec3 n = vec3(0., 1., 0.);
+			float roughness = .04;
+			roughness = .9;//.04;
+
+			if (mat == 0) {
+				emissive = vec3(1.5);//*dot(d,vec3(0.,1.,0.)));
+				albedo = vec3(0.);
+				o = o + d * l;
+			} else {
+				o = o + d * l;
+				n = wn(o);
+				o += n * .01;
+				//albedo = vec3(tex1(o.xz));
+			}
+
+			//vec3 fog = vec3(1.);//vec3(1. * exp(-l/8.));
+			//vec3 fog = vec3(1.);//vec3(exp(-max(0., length(o)-4.)/2.));
+			/*
+			sample_color += fog * k * em;
+			k *= al * fog;
+			*/
+			//k *= fog;
+
+			sample_color += k * emissive;
+			k *= albedo.rgb;
+			//if (s == 0 && b == 0) { d = sundir; k *= max(0., dot(n, sundir)); continue; }
+			if (all(lessThan(k,vec3(.001)))) break;
+
+			//gl_FragColor = vec4(n, 1.); return;
+
+			d = reflect(d, n);
+			//if (any(isnan(d))) { break; }
+			/*
+			seed.x += 1. / textureSize(N,0).x;
+			vec4 rvect = texture2D(N, seed);//snoise24(vec2(seed,.5));
+			d = normalize(mix(d, (rvect.xyz - .5) * 2., roughness));
+			*/
+
+			//gl_FragColor = vec4(d, 1.); return;
+			//gl_FragColor = vec4(hash1(uv.x), 0., 0., 1.); return;
+			//gl_FragColor = vec4(hash1(t), 0., 0., 1.); return;
+	/*		vec3 rvect =
+				vec3(
+							hash1(seedhash += d.x),
+							hash1(seedhash += d.y),
+							hash1(seedhash += d.z))
+				;*/
+
+			//gl_FragColor = vec4(rvect + 1., 1.); return;
+
+			d = normalize(mix(d, (
+				vec3(
+							hash1(seedhash += d.x),
+							hash1(seedhash += d.y),
+							hash1(seedhash += d.z))
+							- .5) * 2.,
+					roughness));
+
+			d *= sign(dot(n, d));
+			//float s = sign(dot(n, d)); if (s < .0) { gl_FragColor = vec4(1., 0., 0., 1.); return; }
+		}
+
+		//if (lolnan) { gl_FragColor = vec4(0., 1000., 0., 1.); return; }
+
+		total_color += sample_color;
 	}
 
-	//vec2 tuv = uv + vec2(0., -t/64.);
-	//color = .2 * vec3(fbm(tuv * 16. + 8. * (vec2(fbm(tuv*4.), fbm(tuv*4.+96.)) - .5)));
+	//if (lolnan) { gl_FragColor = vec4(0., 0., 1000., 1.); return; }
 
-	/*
-	color += vec3(.5) * circle(uv, .4, .45, 8., t16);
-	color += vec3(.5) * circle(uv, .5, .55, 64., -t32);
-	color += vec3(.5) * circle(uv, .6, .65, 32., t64);
-	color += vec3(.1) * circle(cpix, 50., 400., 32., -t64);
+	//total_color /= float(samples_per_pixel);
 
-	color += vec3(.5) * circle(rectuv(pix, vec4(100., 100., 200., 200.)), .5, .6, 1., t8);
-	*/
-
-	//color += .1 * vec3(1.-fract((t-4.)/8.));
-
-	gl_FragColor = vec4(mix(drawSDFScene(color, uv), vec3(1.), overlay), 1.);
+	//gl_FragColor = vec4(total_color /* * smoothstep(0., 4., t)*/, mix(.1, 1., step(t,1.)));//.4);
+	//float alpha = .15;
+	//alpha = .3;
+	//alpha = 1.;
+	gl_FragColor = vec4(total_color/float(samples_per_pixel), .12); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
 }
