@@ -127,7 +127,8 @@ float fOpIntersectionRound(float a, float b, float r) {
 }
 */
 
-int sdf_scene = 1;
+int sdf_scene = 7;
+float flr;
 float w(vec3 p) {
 	if (sdf_scene == 3) {
 		//float flr = p.
@@ -141,7 +142,7 @@ float w(vec3 p) {
 		walls = max(walls, p.x - 4.4);
 		return walls;
 	} else if (sdf_scene == 1) {
-		float flr = p.y; //if (flr < .1) flr += .2 * noise2(p.xz);
+		flr = p.y; //if (flr < .1) flr += .2 * noise2(p.xz);
 		float walls = min(p.x + 4., 6. - p.y);
 		vec3 p1 = p;
 		p1.z = mod(p.z, 10.) - 5.;
@@ -150,10 +151,19 @@ float w(vec3 p) {
 		p1.y += .3 - 1.8;
 		float columns = box3(p1, vec3(.5, 10., .5));
 		walls = min(walls, columns);
-		walls = min(walls, p.z + 30.);
+		//walls = min(walls, p.z + 30.);
 		walls = min(walls, box3(p-vec3(5., 0., 0.), vec3(1., 1., 100.)));
 		walls = max(walls, -min(holes, 6.4 - p.y));
-		return max(min(flr, walls), p.x - 6.);
+		return min(max(min(flr, walls), p.x - 6.), p.z + 30.);
+	} else if (sdf_scene == 7) {
+		flr = p.y;
+		float walls = p.z + 30.; //max(box3(p, vec3(6.)), -box3(p, vec3(5.)));
+		//walls = max(walls, -box3(p, vec3(1., 100., 1.)));
+
+		p.x = abs(p.x);
+		walls = min(walls, 10. - p.x);
+		walls = min(walls, box3(p-vec3(14.,12.,-20.), vec3(8., 4., 10.)));
+		return min(flr, walls);
 	}
 	return min(p.y + 1., length(p) - 1.);
 }
@@ -181,6 +191,8 @@ float march(vec3 o, vec3 d, float l, float L, int steps) {
 }
 
 vec3 O, D, N;
+
+/*
 float shine, kd;
 
 float dirlight(vec3 dir, float shine, float kd) {
@@ -190,6 +202,7 @@ float dirlight(vec3 dir, float shine, float kd) {
 		kd
 	);
 }
+*/
 
 float tex1(vec2 p) {
  return fbm(p * 16. + 8. * (vec2(fbm(p*4.), fbm(p*4.+96.)) - .5));
@@ -210,6 +223,7 @@ vec3 tex3(vec2 p) {
 	return vec3(1.-c);//sin(2.*(c+sqrt(c/4.))),c/4.+.5,log2(c)+exp(c));
 }*/
 
+/*
 float shadow(vec3 o, vec3 d, float L, int steps) {
 	float l = march(o, d, .01, L, steps);
 	return step(L, l);
@@ -239,6 +253,8 @@ vec3 drawSDFScene(vec3 sample_color, vec2 uv) {
 		//diffuse = mod(p,1.);
 		//diffuse = vec3(tex1(uv));
 		//diffuse = N;
+		*/
+
 		/*
 		if (sdf_scene == 1) {
 			diffuse = mix(vec3(1.,.2,.3), vec3(0.), step(d1, d2));
@@ -266,6 +282,8 @@ vec3 drawSDFScene(vec3 sample_color, vec2 uv) {
 		//n = wn(RZ(-t/16.)*floor(RZ(t/16.)*p*4.));
 		//n = wn(sign(p)*floor(p*4.)/4.);
 		//vec3 ld = -D;//normalize(vec3(1.));
+
+/*
 		vec3 ld;
 		for (int j = 0; j < 3; ++j) {
 			float z = float(j) * 10.;
@@ -288,6 +306,7 @@ vec3 drawSDFScene(vec3 sample_color, vec2 uv) {
 	}
 	return sample_color;
 }
+ */
 
 void main() {
 	vec2 uv = (gl_FragCoord.xy / R * 2. - 1.); uv.x *= 2. * R.x / R.y;
@@ -311,13 +330,13 @@ void main() {
 		vec3 k = vec3(1.);
 		for (int b = 0; b < 3; ++b) {
 			//if (any(isnan(d))) { lolnan = true; break; }
-			float l = 50.;//escape(o, d, Ra);
+			float l = 60.;//escape(o, d, Ra);
 			//if (isnan(lsky)) break;
 			//if (isnan(lsky)) lolnan = true;
 			int mat = 0;
 			//if (isnan(l)) break;
 
-			float L = min(l, 40.);
+			float L = min(l, 50.);
 			float ldf = march(o, d, 0., L, 40);
 			//if (isnan(l)) {lolnan = true; break; }
 			if (ldf < L) {
@@ -339,7 +358,9 @@ void main() {
 				o = o + d * l;
 				n = wn(o);
 				o += n * .01;
-				//albedo = vec3(tex1(o.xz));
+				//albedo = vec3(tex1(o.xz/4.));
+				////roughness = smoothstep(.3, .6,tex1(o.xz/4.));
+				//roughness = .01 + .8*smoothstep(.3, .6, fbm(o.xz));
 			}
 
 			//vec3 fog = vec3(1.);//vec3(1. * exp(-l/8.));
