@@ -129,21 +129,10 @@ float fOpIntersectionRound(float a, float b, float r) {
 }
 */
 
-int sdf_scene = 1;
+int sdf_scene = 3;
 float flr, walls;
 float w(vec3 p) {
-	if (sdf_scene == 3) {
-		//float flr = p.
-		walls = -box3(p-vec3(0.,1.8,0.), vec3(3., 1.8, 30.));
-		vec3 p1 = p;
-		p1.z = mod(p.z, 10.) - 5.;
-		p1.x -= 3.;
-		p1.y += .3 - 1.8;
-		walls = max(walls, -box3(p1, vec3(2., 1.2, 1.)));
-		walls = min(walls, box3(p, vec3(.3, .1, 30.)));
-		walls = max(walls, p.x - 4.4);
-		return walls;
-	} else if (sdf_scene == 1) {
+	if (sdf_scene == 1) {
 		flr = p.y; //if (flr < .1) flr += .2 * noise2(p.xz);
 		walls = min(p.x + 4., 6. - p.y);
 		vec3 p1 = p;
@@ -157,6 +146,17 @@ float w(vec3 p) {
 		walls = min(walls, box3(p-vec3(5., 0., 0.), vec3(1., 1., 100.)));
 		walls = max(walls, -min(holes, 6.4 - p.y));
 		return min(max(min(flr, walls), p.x - 6.), p.z + 30.);
+	} else if (sdf_scene == 3) {
+		flr = p.y;
+		flr = min(flr, box3(p, vec3(.3, .1, 30.)));
+		walls = -box3(p, vec3(3., 4., 30.));
+		vec3 p1 = p;
+		p1.z = mod(p.z, 10.) - 5.;
+		p1.x -= 3.;
+		p1.y += .3 - 1.8;
+		walls = max(walls, -box3(p1, vec3(2., 1.2, 1.)));
+		walls = max(walls, p.x - 4.4);
+		return min(flr, walls);
 	} else if (sdf_scene == 7) {
 		flr = p.y;
 		walls = p.z + 30.; //max(box3(p, vec3(6.)), -box3(p, vec3(5.)));
@@ -231,10 +231,17 @@ vec3 rust(vec2 uv) {
 			smoothstep(.2,.8,fbm(uv*3.)));
 }
 
+vec2 normalToUv(vec3 p, vec3 n) {
+	vec3 t1 = cross(n, E.zxx), t2 = cross(n, E.xxz), tangent, binormal;
+	if (dot(t1,t1) > dot(t2,t2)) tangent = t1; else tangent = t2;
+	binormal = cross(n, tangent);
+	return vec2(dot(p, binormal), dot(p, tangent)).xy;
+}
+
 void main() {
 	vec2 uv = (gl_FragCoord.xy / R * 2. - 1.); uv.x *= 2. * R.x / R.y;
 	//gl_FragColor = vec4(uv, 0., 1.); return;
-	gl_FragColor = vec4(concrete(uv*2.), 1.); return;
+	//gl_FragColor = vec4(concrete(uv*2.), 1.); return;
 	//gl_FragColor = vec4(rust(uv), 1.); return;
 
 	// rust1
@@ -249,15 +256,15 @@ void main() {
 	D = RX(-.2)*D;
 	D2 = RX(-.2)*D2;
 
-	vec3 sundir = normalize(vec3(1.));
+	vec3 sundir = normalize(vec3(-2.,1.,1.));
 
+	float alpha = .1;
 	const int samples_per_pixel = 16;
 	float seedhash = t;
 	vec3 total_color = vec3(0.);
 	for (int s = 0; s < samples_per_pixel; ++s) {
 		vec3 o = O;
 		vec3 d = mix(D, D2, vec3(hash1(seedhash), hash1(seedhash+1.), hash1(seedhash+2.)));
-
 		vec3 sample_color = vec3(0.);
 		vec3 k = vec3(1.);
 		for (int b = 0; b < 3; ++b) {
@@ -280,18 +287,28 @@ void main() {
 			roughness = .9;//.04;
 
 			if (mat == 0) {
-				emissive = vec3(.5) + 30. * pow(max(0.,dot(d, sundir)),10.);//*dot(d,vec3(0.,1.,0.)));
+				emissive = vec3(2.) + 30. * pow(max(0.,dot(d, sundir)),10.);//*dot(d,vec3(0.,1.,0.)));
 				albedo = vec3(0.);
-				o = o + d * l;
+				//o = o + d * l;
 			} else {
 				o = o + d * l;
 				n = wn(o);
+				vec2 uv = normalToUv(o, n);
 				o += n * .01;
-				albedo = concrete(o.zy);
-				albedo = mix(albedo, rust(o.zy), step(.5, fbm(o.zy*vec2(1.,.2))));
+
+				if (flr < walls) {
+					albedo = vec3(.75,.75,.73);
+					float mask = smoothstep(.4,.45,fbm(uv/2.));
+					roughness = 9.*mask + .01;
+				} else {
+					albedo = concrete(uv);
+					albedo = mix(albedo, rust(uv), step(.5, fbm(uv*vec2(1.,.2))));
+				}
+
 				//albedo = vec3(tex1(o.xz/4.));
 				////roughness = smoothstep(.3, .6,tex1(o.xz/4.));
 				//roughness = .01 + .8*smoothstep(.3, .6, fbm(o.xz));
+				//emissive = 20. * step(1.-16.*fract(31./32.), o.z) * step(o.z, 2.-16.*fract(31./32.));
 			}
 
 			sample_color += k * emissive;
@@ -303,8 +320,8 @@ void main() {
 			//if (any(isnan(d))) { break; }
 
 			//if (true) {
-			//if (false) {
-			if (hash1(seedhash+d.x) < .1) {
+			if (false) {
+			//if (hash1(seedhash+d.x) < .01) {
 				d = sundir;
 				k *= max(0., dot(n, d)) / 3.;
 				roughness = .03;
@@ -336,6 +353,6 @@ void main() {
 	//float alpha = .15;
 	//alpha = .3;
 	//alpha = 1.;
-	gl_FragColor = vec4(total_color/float(samples_per_pixel), .1); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
+	gl_FragColor = vec4(total_color/float(samples_per_pixel), alpha); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
 	//gl_FragColor = vec4(vec3(mod(float(sdfcnt),500.)/500.), 1.);
 }
