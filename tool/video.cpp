@@ -409,6 +409,7 @@ const GLuint Framebuffer::draw_buffers_[4] = {
 	GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3
 };
 
+#ifdef GEN_TEXT
 #ifdef _WIN32
 #define DEFAULT_FONT L"Tahoma"
 
@@ -493,6 +494,7 @@ static void initText(Texture &text) {
 	DeleteDC(text_dc);
 }
 #endif // WIN32
+#endif // GEN_TEXT
 
 #define PCG32_INITIALIZER { 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL }
 typedef struct { uint64_t state;  uint64_t inc; } pcg32_random_t;

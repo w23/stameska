@@ -58,6 +58,13 @@ vec4 snoise24(vec2 c) { return texture2D(N, (c+.5)/textureSize(N,0)); }
 //float box2(vec2 p, vec2 s) { p = abs(p) - s; return max(p.x, p.y); }
 float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.z, max(p.x, p.y)); }
 
+float fOpIntersectionChamfer(float a, float b, float r) {
+	return max(max(a, b), (a + r + b)*sqrt(0.5));
+}
+float hexabox(vec3 p, vec3 s, float rxz, float ry) {
+	p = abs(p) - s;
+	return fOpIntersectionChamfer(fOpIntersectionChamfer(p.x, p.z, rxz), p.y, ry);
+}
 //float ball(vec3 p, float r) { return length(p) - r; }
 
 /*
@@ -136,9 +143,11 @@ float w(vec3 p) {
 		flr = p.y + 10.;
 		vec3 p1 = vec3(p.xy, mod(p.z, 5.) - 2.5);
 		walls = box3(p1, vec3(10., 10., 1.));
-		walls = max(walls, -box3(p1, vec3(8., 7., 2.)));
+		walls = max(walls, -hexabox(p1, vec3(8., 7., 2.), 1., 1.));
+		walls = min(walls, 14. - abs(p.x));
+		walls = max(walls, - p.z - 20.);
 		return min(flr, walls);
-	} else if (sdf_scene == 4) {
+	} else if (sdf_scene == 3) {
 		flr = p.y; // if (flr < .1) flr += .2 * noise2(p.xz);
 		walls = min(p.x + 4., 6. - p.y);
 		vec3 p1 = p;
@@ -155,7 +164,16 @@ float w(vec3 p) {
 		walls = min(walls, p.z + 30.);
 		flr = max(flr, p.x - 6.);
 		return min(flr, walls);
-	} else if (sdf_scene == 3) {
+	} else if (sdf_scene == 4) {
+		flr = p.y;
+		walls = p.z + 30.; //max(box3(p, vec3(6.)), -box3(p, vec3(5.)));
+		//walls = max(walls, -box3(p, vec3(1., 100., 1.)));
+
+		p.x = abs(p.x);
+		walls = min(walls, 10. - p.x);
+		walls = min(walls, box3(p-vec3(14.,12.,-20.), vec3(8., 4., 10.)));
+		return min(flr, walls);
+	} else if (sdf_scene == 6) {
 		flr = p.y;
 		flr = min(flr, box3(p, vec3(.3, .1, 30.)));
 		walls = -box3(p, vec3(3., 4., 30.));
@@ -165,15 +183,6 @@ float w(vec3 p) {
 		p1.y += .3 - 1.8;
 		walls = max(walls, -box3(p1, vec3(2., 1.2, 1.)));
 		walls = max(walls, p.x - 4.4);
-		return min(flr, walls);
-	} else if (sdf_scene == 7) {
-		flr = p.y;
-		walls = p.z + 30.; //max(box3(p, vec3(6.)), -box3(p, vec3(5.)));
-		//walls = max(walls, -box3(p, vec3(1., 100., 1.)));
-
-		p.x = abs(p.x);
-		walls = min(walls, 10. - p.x);
-		walls = min(walls, box3(p-vec3(14.,12.,-20.), vec3(8., 4., 10.)));
 		return min(flr, walls);
 	}
 
@@ -274,12 +283,15 @@ void main() {
 	if (sdf_scene < 2) {
 		O.y = 1.;
 		O.z = -3. + 3. * fract(scenet);
+	} else if (sdf_scene == 2) {
+		O.y = 0.;
+		O.z = 10.;
 	}
 	D = normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
 	vec3 D2 = normalize(vec3(uv+vec2(2.,1.)/R, -2.));
-	D = RX(-.2)*D;
-	D2 = RX(-.2)*D2;
+	//D = RX(-.2)*D;
+	//D2 = RX(-.2)*D2;
 
 	vec3 sundir = normalize(vec3(-2.,1.,1.));
 
@@ -292,7 +304,7 @@ void main() {
 		vec3 d = mix(D, D2, vec3(hash1(seedhash), hash1(seedhash+1.), hash1(seedhash+2.)));
 		vec3 sample_color = vec3(0.);
 		vec3 k = vec3(1.);
-		for (int b = 0; b < 3; ++b) {
+		for (int b = 0; b < 4; ++b) {
 			//if (any(isnan(d))) { lolnan = true; break; }
 			float l = 60.;
 			int mat = 0;
