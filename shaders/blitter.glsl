@@ -1,12 +1,12 @@
 //#version 130
 // TOOL
-uniform vec2 R;
+//uniform vec2 R;
 uniform sampler2D T;
 //uniform int s;
 //float t = float(s)/88200.;
 vec2 FR = vec2(640., 720.);//textureSize(T,0);
 //vec2 FR = textureSize(T,0);
-//vec2 RES = vec2(1920.,1080.);
+vec2 R = vec2(1280.,720.);
 
 void main() {
 	// Release

@@ -1,10 +1,10 @@
 //#version 130
-uniform vec2 R;
+//uniform vec2 R;
 //uniform float t;
 uniform sampler2D T;
 uniform int s;
 float t = float(s)/88200.;
-//vec2 R = vec2(640., 480.);
+vec2 R = vec2(640., 720.);
 
 //const float INF = 10000.;
 const vec3 E = vec3(0., .001, 1.);

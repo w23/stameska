@@ -4,10 +4,10 @@
 #endif
 
 #ifndef XRES
-#define XRES 1920
+#define XRES 1280
 #endif
 #ifndef YRES
-#define YRES 1080
+#define YRES 720
 #endif
 //#define DO_RANGES
 
@@ -185,10 +185,12 @@ static struct {
 } gl;
 #undef FUNCLIST_DO
 
+#ifdef GEN_TEXT
 #pragma data_seg(".greets")
 static const char greets[] =
 #include "greetings.h"
 ;
+#endif
 
 #pragma data_seg(".pfd")
 static const PIXELFORMATDESCRIPTOR pfd = {
@@ -343,9 +345,11 @@ static /*__forceinline*/ void initTexture(GLuint tex, int w, int h, int comp, in
 	glTexImage2D(GL_TEXTURE_2D, 0, comp, w, h, 0, GL_RGBA, type, data);
 	GLCHECK();
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	/*
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	*/
 }
 
 #pragma code_seg(".initFb")
@@ -362,15 +366,15 @@ static /*__forceinline*/ void initFb(GLuint fb, GLuint tex1/*, GLuint tex2*/) {
 int itime;
 
 #pragma code_seg(".paint")
-static void paint(GLuint prog, GLuint tex, GLuint dst_fb) {
+static void paint(GLuint prog, /*GLuint tex, */GLuint dst_fb) {
 	oglBindFramebuffer(GL_FRAMEBUFFER, dst_fb);
 	GLCHECK();
 	oglUseProgram(prog);
 	GLCHECK();
 	//oglUniform1i(oglGetUniformLocation(prog, "N"), 0);
 	//glGetError();
-	glBindTexture(GL_TEXTURE_2D, tex);
-	glGetError();
+	//glBindTexture(GL_TEXTURE_2D, tex);
+	//glGetError();
 	oglUniform1i(oglGetUniformLocation(prog, "T"), 0);
 	glGetError();
 	//oglUniform1i(oglGetUniformLocation(prog, "F"), 1);
@@ -401,6 +405,7 @@ static void paint(GLuint prog, GLuint tex, GLuint dst_fb) {
 	GLCHECK();
 }
 
+#ifdef GEN_TEXT
 #define TEXT_WIDTH 256
 #define TEXT_HEIGHT 2048
 #define TEXT_FONT "Arial"
@@ -441,6 +446,7 @@ static __forceinline void initText() {
 	//DeleteObject(dib);
 	//DeleteDC(text_dc);
 }
+#endif // #ifdef GEN_TEXT
 
 #pragma code_seg(".introInit")
 static __forceinline void introInit() {
@@ -459,26 +465,26 @@ static __forceinline void introInit() {
 
 	//initTexture(texture[Tex_Random], NOISE_SIZE, NOISE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, noise_bytes);
 	//oglActiveTexture(GL_TEXTURE1);
-	initText();
+	//initText();
 	//oglActiveTexture(GL_TEXTURE1);
-	initTexture(texture[Tex_Frame], 640, 480, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	initTexture(texture[Tex_Frame], XRES / 2, YRES, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	initFb(fb[Pass_Main], texture[Tex_Frame]);
 
 	program[Pass_Main] = compileProgram(intro_glsl);
 	program[Pass_Blit] = compileProgram(blitter_glsl);
 
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 #pragma code_seg(".introPaint")
 static __forceinline void introPaint() {
-	//glEnable(GL_BLEND);
-	glViewport(0, 0, 640, 480);
-	paint(program[Pass_Main], texture[Tex_Text], fb[Pass_Main]);
-	//glDisable(GL_BLEND);
+	glEnable(GL_BLEND);
+	glViewport(0, 0, XRES / 2, YRES);
+	paint(program[Pass_Main]/*, texture[Tex_Text]*/, fb[Pass_Main]);
+	glDisable(GL_BLEND);
 	glViewport(0, 0, XRES, YRES);
-	paint(program[Pass_Blit], texture[Tex_Frame], 0);
+	paint(program[Pass_Blit],/* texture[Tex_Frame],*/ 0);
 }
 
 #ifdef _WIN32

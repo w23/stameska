@@ -149,7 +149,6 @@
   <ItemGroup>
     <ClInclude Include="4klang.h" />
     <ClInclude Include="blitter.h" />
-    <ClInclude Include="greetings.h" />
     <ClInclude Include="intro.h" />
     <ClInclude Include="main.shader.h" />
   </ItemGroup>
