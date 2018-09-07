@@ -129,10 +129,16 @@ float fOpIntersectionRound(float a, float b, float r) {
 }
 */
 
-int sdf_scene = 1;
+int sdf_scene;
 float flr, walls;
 float w(vec3 p) {
-	if (sdf_scene == 1) {
+	if (sdf_scene == 2) {
+		flr = p.y + 10.;
+		vec3 p1 = vec3(p.xy, mod(p.z, 5.) - 2.5);
+		walls = box3(p1, vec3(10., 10., 1.));
+		walls = max(walls, -box3(p1, vec3(8., 7., 2.)));
+		return min(flr, walls);
+	} else if (sdf_scene == 4) {
 		flr = p.y; // if (flr < .1) flr += .2 * noise2(p.xz);
 		walls = min(p.x + 4., 6. - p.y);
 		vec3 p1 = p;
@@ -170,7 +176,12 @@ float w(vec3 p) {
 		walls = min(walls, box3(p-vec3(14.,12.,-20.), vec3(8., 4., 10.)));
 		return min(flr, walls);
 	}
-	return min(p.y + 1., length(p) - 1.);
+
+	flr = p.y;
+	walls = -box3(p, vec3(4., 3., 10.));
+	walls = max(walls, box3(p, vec3(5.1, 3.1, 10.1)));
+	walls = max(walls, -box3(p+vec3(1.5, 1., 10.), vec3(2., 3., 1.)));
+	return min(flr, walls);
 }
 
 //float wd(vec3 p) { return w(p); }// + .01 * noise3(p*16.); }
@@ -212,9 +223,11 @@ float dirlight(vec3 dir, float shine, float kd) {
 }
 */
 
+/*
 float tex1(vec2 p) {
  return fbm(p * 16. + 8. * (vec2(fbm(p*4.), fbm(p*4.+96.)) - .5));
 }
+*/
 
 vec3 concrete(vec2 uv) {
 	//vec3 tx = vec3(tex1(uv));
@@ -253,8 +266,15 @@ void main() {
 	// moss1
 	//vec3(.48, .51, .31)
 
+	float scenet = t/64.;
+	sdf_scene = 1 + int(floor(scenet));
+
 	vec3 O, D, N;
-	O = vec3(-.5+.5*sin(t/16.), 1.8, 5.);
+	O = vec3(-.5+fract(scenet), 1.8, 5.);
+	if (sdf_scene < 2) {
+		O.y = 1.;
+		O.z = -3. + 3. * fract(scenet);
+	}
 	D = normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
 	vec3 D2 = normalize(vec3(uv+vec2(2.,1.)/R, -2.));
@@ -293,6 +313,7 @@ void main() {
 
 			if (mat == 0) {
 				emissive = vec3(2.) + 30. * pow(max(0.,dot(d, sundir)),10.);//*dot(d,vec3(0.,1.,0.)));
+				//emissive *= 10.;
 				albedo = vec3(0.);
 				//o = o + d * l;
 			} else {
@@ -313,10 +334,11 @@ void main() {
 					vec2 wC = floor(uv/2.), wc = (uv/2. - wC);
 					float sqrmsk = hash2(wC);
 					albedo *= 1. - .3 * sqrmsk - .4 * step(.99,max(wc.x,wc.y));
-					albedo = mix(albedo, .6 * rust(uv), 1.-step(.5, max(wc.x, wc.y)));
-					albedo = mix(albedo,
+					//albedo = mix(albedo, .6 * rust(uv), 1.-step(.5, max(wc.x, wc.y)));
+					/*albedo = mix(albedo,
 							.4*rust(uv)*(.3+.7*fbm(uv*vec2(16.,4.))),
 							smoothstep(.5, .6, fbm(uv*vec2(1.,.2))));
+							*/
 					float moss = fbm(uv/4.), mossmask = smoothstep(.5, .7, moss);
 					//roughness = mix(roughness, .4, mossmask);
 					albedo = mix(albedo, vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)), mossmask);
@@ -338,10 +360,10 @@ void main() {
 
 			//if (true) {
 			if (false) {
-			//if (hash1(seedhash+d.x) < .01) {
+			//if (hash1(seedhash+=d.x) < .01) {
 				d = sundir;
-				k *= max(0., dot(n, d)) / 3.;
 				roughness = .03;
+				//k *= max(0., dot(n, d)) / 3.;
 			} else {
 				d = reflect(d, n);
 			}
@@ -353,6 +375,7 @@ void main() {
 								- .5) * 2.,
 						roughness));
 				d *= sign(dot(n, d));
+				//k *= max(0., dot(n, d)) / 3.;
 			//}
 			//float s = sign(dot(n, d)); if (s < .0) { gl_FragColor = vec4(1., 0., 0., 1.); return; }
 		}
