@@ -138,9 +138,21 @@ float fOpIntersectionRound(float a, float b, float r) {
 }
 */
 
+float scenet = t/128., lt = fract(scenet);
 int sdf_scene;
-float flr, walls, rusty;
+float flr, walls;
+mat3 rz2 = RZ(.2);
+mat3 rz3 = RZ(.3);
+mat3 rz5 = RZ(.5);
 float w(vec3 p) {
+	if (sdf_scene < 2) {
+		flr = p.y;
+		walls = -box3(p, vec3(4., 3., 10.));
+		float balki = max(-walls, box3(vec3(p.xy-vec2(0., 3.), fract(p.z) - .5), vec3(10., .3, .1)));
+		walls = max(walls, box3(p, vec3(5.1, 3.1, 10.1)));
+		walls = max(walls, -box3(p+vec3(1.5, 1., 10.), vec3(2., 3., 1.)));
+		walls = min(walls, balki);
+	} else
 	if (sdf_scene == 2) {
 		flr = p.y;
 		p.y -= 4.;
@@ -153,7 +165,7 @@ float w(vec3 p) {
 		walls = max(walls, -box3(p1 - vec3(0., 0., -12.), vec3(3., 10., 3.)));
 		walls = max(walls, -box3(p1 - vec3(0., 0., -12.), vec3(6., 4., 3.)));
 		//pipes = length(rep2(p1.yz, vec2(4.))) - 1.;
-		return min(flr, walls);//max(walls, -pipes));
+		//return min(flr, walls);//max(walls, -pipes));
 
 		/*
 		walls = box3(p1, vec3(10., 10., 1.));
@@ -178,7 +190,7 @@ float w(vec3 p) {
 		walls = max(walls, p.x - 6.);
 		walls = min(walls, p.z + 30.);
 		flr = max(flr, p.x - 6.);
-		return min(flr, walls);
+		//return min(flr, walls);
 	} else if (sdf_scene == 4) {
 		flr = p.y;
 		walls = p.z + 30.; //max(box3(p, vec3(6.)), -box3(p, vec3(5.)));
@@ -202,14 +214,14 @@ float w(vec3 p) {
 
 		p.z += 20.;
 		p.x -= 30.;
-		p *= RZ(.2);
+		p *= rz2;
 		walls = min(walls, box3(p, vec3(20.)));
-		p *= RZ(.3);
+		p *= rz3;
 		p.z += 7.;
 		p.y -= 10.;
 		p.x -= 5.;
 		walls = min(walls, box3(p, vec3(20.)));
-		p *= RZ(.5);
+		p *= rz5;
 		p.z += 10.;
 		p.y -= 3.;
 		p.x -= 7.;
@@ -226,28 +238,27 @@ float w(vec3 p) {
 */
 
 		walls = max(walls, -paths);
-		return min(flr, walls);
-	} else if (sdf_scene == 6) {
+		//return min(flr, walls);
+	} else {
 		flr = p.y;
 		flr = min(flr, box3(p, vec3(.3, .1, 30.)));
 		walls = -box3(p, vec3(3., 4., 30.));
+		walls = max(walls, box3(p, vec3(4.0, 4.2, 31.)));
 		vec3 p1 = p;
 		p1.z = mod(p.z, 10.) - 5.;
 		p1.x -= 3.;
 		p1.y += .3 - 1.8;
 		walls = max(walls, -box3(p1, vec3(2., 1.2, 1.)));
-		walls = max(walls, p.x - 4.4);
-		return min(flr, walls);
+		// interesting walls = max(walls, box3(p1, vec3(2.2, 1.4, 1.2)));
+		//walls = max(walls, p.x - 4.4);
+
+		walls = max(walls, -box3(vec3(p.x, p.y + 2. - (t-512.-64.)/16., mod(p.z, 1.)-.5), vec3(20., 2., .4)));
+		//shiny = box3(p + vec3(0., 0., 10.), vec3(1.));
+		//return min(flr, min(walls, shiny));
 	}
 
-	flr = p.y;
-	walls = -box3(p, vec3(4., 3., 10.));
-	rusty = max(-walls, box3(vec3(p.xy-vec2(0., 3.), fract(p.z) - .5), vec3(10., .3, .1)));
-	walls = max(walls, box3(p, vec3(5.1, 3.1, 10.1)));
-	walls = max(walls, -box3(p+vec3(1.5, 1., 10.), vec3(2., 3., 1.)));
-
 	//if (flr < .1) flr += .2 * noise2(p.xz);// + .1 * noise2(p.xz*4.);
-	return min(flr, min(walls, rusty));
+	return min(flr, walls);
 }
 
 //float wd(vec3 p) { return w(p); }// + .01 * noise3(p*16.); }
@@ -332,13 +343,13 @@ void main() {
 	// moss1
 	//vec3(.48, .51, .31)
 
-	float scenet = t/128., lt = fract(scenet);
 	sdf_scene = 1 + int(floor(scenet));
 
 	vec3 O, D, N;
 	O = vec3(-.5+lt, 1.8, 5.);
 	mat3 Dorient = RX(0.);
 	vec3 sundir = vec3(-2.,1.,-1.);
+	float alpha = .15;
 	if (sdf_scene < 2) {
 		O.y = 1.;
 		O.z = -3. + 3. * fract(scenet);
@@ -353,6 +364,12 @@ void main() {
 		sundir = vec3(1., 2., 1.);
 		O = vec3(5.-6.*lt, 1.8, 9.);
 		Dorient =  RY(-.3+.2*lt) * RX(-.3);
+	} else {
+		O.z -= lt * 10.;
+		O.x = 2.;
+		O.y += .1 * abs(sin(lt*60.));
+		Dorient = RY(-.3);
+		alpha = mix(alpha, .6, step(512.+64., t));
 	}
 	D = Dorient * normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
@@ -360,7 +377,6 @@ void main() {
 
 	sundir = normalize(sundir);
 
-	float alpha = .15;
 	float seedhash = t;
 	vec3 total_color = vec3(0.);
 	const int samples_per_pixel = 16;
