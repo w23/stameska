@@ -139,7 +139,7 @@ float fOpIntersectionRound(float a, float b, float r) {
 */
 
 int sdf_scene;
-float flr, walls, pipes, metal;
+float flr, walls, rusty;
 float w(vec3 p) {
 	if (sdf_scene == 2) {
 		flr = p.y;
@@ -187,6 +187,16 @@ float w(vec3 p) {
 		p.x = abs(p.x);
 		walls = min(walls, 10. - p.x);
 		walls = min(walls, box3(p-vec3(14.,12.,-20.), vec3(8., 4., 10.)));
+		walls = min(walls, - p.y + 24.8);
+		//walls = max(walls, -box3(vec3(rep2(p.xz, vec2(1.,2.)), p.y).xzy+vec3(0., -25., 10.), vec3(1.)));
+		walls = max(walls,
+			-box3(
+				vec3(
+					rep2(p.xz, vec2(2.,4.)),
+					p.y - 25.).xzy,
+				vec3(.8, 1., 1.6)));
+
+		walls = max(walls, p.y - 25.);
 		return min(flr, walls);
 	} else if (sdf_scene == 6) {
 		flr = p.y;
@@ -203,9 +213,12 @@ float w(vec3 p) {
 
 	flr = p.y;
 	walls = -box3(p, vec3(4., 3., 10.));
+	rusty = max(-walls, box3(vec3(p.xy-vec2(0., 3.), fract(p.z) - .5), vec3(10., .3, .1)));
 	walls = max(walls, box3(p, vec3(5.1, 3.1, 10.1)));
 	walls = max(walls, -box3(p+vec3(1.5, 1., 10.), vec3(2., 3., 1.)));
-	return min(flr, walls);
+
+	//if (flr < .1) flr += .2 * noise2(p.xz);// + .1 * noise2(p.xz*4.);
+	return min(flr, min(walls, rusty));
 }
 
 //float wd(vec3 p) { return w(p); }// + .01 * noise3(p*16.); }
@@ -307,6 +320,10 @@ void main() {
 		Dorient = RX(-.2);
 	} else if (sdf_scene == 3) {
 		sundir.z = -sundir.z;
+	} else if (sdf_scene == 4) {
+		sundir = vec3(1., 2., 1.);
+		O = vec3(5., 1.8, 9.);
+		Dorient =  RY(-.3) * RX(-.3);
 	}
 	D = Dorient * normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
@@ -337,7 +354,7 @@ void main() {
 			}
 
 			vec3 emissive = vec3(0.);
-			vec3 albedo;// = vec3(.75, .75, .73);
+			vec3 albedo = vec3(.75, .75, .73);
 			vec3 n = vec3(0., 1., 0.);
 			float roughness = .04;
 			roughness = .9;//.04;
@@ -354,9 +371,10 @@ void main() {
 				o += n * .01;
 
 				if (flr < walls) {
-					albedo = vec3(.75,.75,.73);
+					//albedo = vec3(.75,.75,.73);
 					float mossmask = smoothstep(.45, .6, fbm(uv/4.)+.5 * saturate(- 10. - o.z));
-					albedo = mix(albedo, vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)),
+					albedo = mix(albedo,
+							vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)),
 							mossmask);
 					float puddlemask = smoothstep(.4,.45,(fbm(uv/2.)*.85+.15*fbm(uv*8.)));
 					roughness = 9.*puddlemask + .01;
@@ -390,10 +408,10 @@ void main() {
 			//if (any(isnan(d))) { break; }
 
 			//if (true) {
-			if (false) {
-			//if (hash1(seedhash+=d.x) < .01) {
+			//if (false) {
+			if (hash1(seedhash+=d.x) < .03) {
 				d = sundir;
-				roughness = .03;
+				roughness = .02;
 				//k *= max(0., dot(n, d)) / 3.;
 			} else {
 				d = reflect(d, n);
