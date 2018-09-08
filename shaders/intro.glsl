@@ -15,6 +15,8 @@ const float PI = 3.141593;
 //float t32 = t/32.;
 //float t64 = t/64.;
 
+float saturate(float f) { return min(1., max(0., f)); }
+
 float hash1(float v) { return fract(sin(v) * 43758.5453); }
 float hash2(vec2 v) { return hash1(dot(v, vec2(129.47, 37.56))); }
 //float hash3(vec3 v) { return hash1(dot(v, vec3(17.343,129.47, 37.56))); }
@@ -61,9 +63,9 @@ float box3(vec3 p, vec3 s) { p = abs(p) - s; return max(p.z, max(p.x, p.y)); }
 float fOpIntersectionChamfer(float a, float b, float r) {
 	return max(max(a, b), (a + r + b)*sqrt(0.5));
 }
-float hexabox(vec3 p, vec3 s, float rxz, float ry) {
+float hexabox(vec3 p, vec3 s) {//, float rxz, float ry) {
 	p = abs(p) - s;
-	return fOpIntersectionChamfer(fOpIntersectionChamfer(p.x, p.z, rxz), p.y, ry);
+	return fOpIntersectionChamfer(fOpIntersectionChamfer(p.x, p.z, 1./*rxz*/), p.y, 1./*ry*/);
 }
 //float ball(vec3 p, float r) { return length(p) - r; }
 
@@ -83,8 +85,8 @@ float pModPolar(inout vec2 p, float repetitions) {
 */
 
 
-//vec3 rep3(vec3 p, vec3 r) { return mod(p,r) - r*.5; }
-//vec2 rep2(vec2 p, vec2 r) { return mod(p,r) - r*.5; }
+vec3 rep3(vec3 p, vec3 r) { return mod(p,r) - r*.5; }
+vec2 rep2(vec2 p, vec2 r) { return mod(p,r) - r*.5; }
 /*
 float ring(vec3 p, float r, float R, float t) {
 	return max(abs(p.y)-t, max(length(p) - R, r - length(p)));
@@ -137,16 +139,27 @@ float fOpIntersectionRound(float a, float b, float r) {
 */
 
 int sdf_scene;
-float flr, walls;
+float flr, walls, pipes, metal;
 float w(vec3 p) {
 	if (sdf_scene == 2) {
-		flr = p.y + 10.;
-		vec3 p1 = vec3(p.xy, mod(p.z, 5.) - 2.5);
+		flr = p.y;
+		p.y -= 4.;
+		vec3 p1 = vec3(mod(p.x, 9.) - 4.5, p.yz);
+		walls = box3(p, vec3(50., 8., 16.));
+		walls = max(walls, -hexabox(p1, vec3(4., 3., 15.)));
+		walls = max(walls, -hexabox(p1, vec3(4., 10., 7.)));
+		walls = max(walls, -hexabox(p1-vec3(0., 0., 14.), vec3(10., 4., 5.)));
+		walls = min(walls, box3(p1 - vec3(0., 6., -7.), vec3(1.2)));
+		//pipes = length(rep2(p1.yz, vec2(4.))) - 1.;
+		return min(flr, walls);//max(walls, -pipes));
+
+		/*
 		walls = box3(p1, vec3(10., 10., 1.));
-		walls = max(walls, -hexabox(p1, vec3(8., 7., 2.), 1., 1.));
+		walls = max(walls, -hexabox(p1, vec3(8., 7., 2.)));
 		walls = min(walls, 14. - abs(p.x));
 		walls = max(walls, - p.z - 20.);
 		return min(flr, walls);
+		*/
 	} else if (sdf_scene == 3) {
 		flr = p.y; // if (flr < .1) flr += .2 * noise2(p.xz);
 		walls = min(p.x + 4., 6. - p.y);
@@ -275,30 +288,31 @@ void main() {
 	// moss1
 	//vec3(.48, .51, .31)
 
-	float scenet = t/64.;
+	float scenet = t/128., lt = fract(scenet);
 	sdf_scene = 1 + int(floor(scenet));
 
 	vec3 O, D, N;
-	O = vec3(-.5+fract(scenet), 1.8, 5.);
+	O = vec3(-.5+lt, 1.8, 5.);
+	mat3 Dorient = RX(0.);
 	if (sdf_scene < 2) {
 		O.y = 1.;
 		O.z = -3. + 3. * fract(scenet);
 	} else if (sdf_scene == 2) {
-		O.y = 0.;
-		O.z = 10.;
+		//O.y = 0.;
+		O.z = 16.;
+		O.x = 3. - 6.*lt;
+		Dorient = RX(-.2);
 	}
-	D = normalize(vec3(uv, -2.));
+	D = Dorient * normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
-	vec3 D2 = normalize(vec3(uv+vec2(2.,1.)/R, -2.));
-	//D = RX(-.2)*D;
-	//D2 = RX(-.2)*D2;
+	vec3 D2 = Dorient * normalize(vec3(uv+vec2(2.,1.)/R, -2.));
 
-	vec3 sundir = normalize(vec3(-2.,1.,1.));
+	vec3 sundir = normalize(vec3(-2.,1.,-1.));
 
-	float alpha = .2;
-	const int samples_per_pixel = 16;
+	float alpha = .15;
 	float seedhash = t;
 	vec3 total_color = vec3(0.);
+	const int samples_per_pixel = 16;
 	for (int s = 0; s < samples_per_pixel; ++s) {
 		vec3 o = O;
 		vec3 d = mix(D, D2, vec3(hash1(seedhash), hash1(seedhash+1.), hash1(seedhash+2.)));
@@ -324,7 +338,7 @@ void main() {
 			roughness = .9;//.04;
 
 			if (mat == 0) {
-				emissive = vec3(2.) + 30. * pow(max(0.,dot(d, sundir)),10.);//*dot(d,vec3(0.,1.,0.)));
+				emissive = vec3(2.) + vec3(30., 20., 10.) * pow(max(0.,dot(d, sundir)),10.);//*dot(d,vec3(0.,1.,0.)));
 				//emissive *= 10.;
 				albedo = vec3(0.);
 				//o = o + d * l;
@@ -336,11 +350,11 @@ void main() {
 
 				if (flr < walls) {
 					albedo = vec3(.75,.75,.73);
-					float mossmask = fbm(uv/4.);
+					float mossmask = smoothstep(.45, .6, fbm(uv/4.)+.5 * saturate(- 10. - o.z));
 					albedo = mix(albedo, vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)),
-							smoothstep(.45, .6, mossmask));
-					float mask = smoothstep(.4,.45,fbm(uv/2.));
-					roughness = 9.*mask + .01;
+							mossmask);
+					float puddlemask = smoothstep(.4,.45,(fbm(uv/2.)*.85+.15*fbm(uv*8.)));
+					roughness = 9.*puddlemask + .01;
 				} else {
 					albedo = concrete(uv);
 					vec2 wC = floor(uv/2.), wc = (uv/2. - wC);
