@@ -186,7 +186,8 @@ float w(vec3 p) {
 
 		p.x = abs(p.x);
 		walls = min(walls, 10. - p.x);
-		walls = min(walls, box3(p-vec3(14.,12.,-20.), vec3(8., 4., 10.)));
+
+// ceiling w/ grid
 		walls = min(walls, - p.y + 24.8);
 		//walls = max(walls, -box3(vec3(rep2(p.xz, vec2(1.,2.)), p.y).xzy+vec3(0., -25., 10.), vec3(1.)));
 		walls = max(walls,
@@ -195,8 +196,36 @@ float w(vec3 p) {
 					rep2(p.xz, vec2(2.,4.)),
 					p.y - 25.).xzy,
 				vec3(.8, 1., 1.6)));
-
 		walls = max(walls, p.y - 25.);
+
+		float paths = box3(vec3(p.xy, mod(p.z, 10.) - 5.), vec3(100., 4.5, 1.8));
+
+		p.z += 20.;
+		p.x -= 30.;
+		p *= RZ(.2);
+		walls = min(walls, box3(p, vec3(20.)));
+		p *= RZ(.3);
+		p.z += 7.;
+		p.y -= 10.;
+		p.x -= 5.;
+		walls = min(walls, box3(p, vec3(20.)));
+		p *= RZ(.5);
+		p.z += 10.;
+		p.y -= 3.;
+		p.x -= 7.;
+		walls = min(walls, box3(p, vec3(20.)));
+
+/*
+		p.z += 20.;
+		//walls = min(walls, box3(p-vec3(14.,12.,0.), vec3(8., 4., 10.)));
+		p *= RZ(.1);
+		//walls = min(walls, box3(p-vec3(14.,12.,0.), vec3(8., 4., 10.)));
+		p *= RZ(.4);
+		p.x -= 6.;
+		walls = min(walls, box3(p-vec3(14.,12.,0.), vec3(8., 4., 10.)));
+*/
+
+		walls = max(walls, -paths);
 		return min(flr, walls);
 	} else if (sdf_scene == 6) {
 		flr = p.y;
@@ -322,8 +351,8 @@ void main() {
 		sundir.z = -sundir.z;
 	} else if (sdf_scene == 4) {
 		sundir = vec3(1., 2., 1.);
-		O = vec3(5., 1.8, 9.);
-		Dorient =  RY(-.3) * RX(-.3);
+		O = vec3(5.-6.*lt, 1.8, 9.);
+		Dorient =  RY(-.3+.2*lt) * RX(-.3);
 	}
 	D = Dorient * normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
