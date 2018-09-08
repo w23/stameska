@@ -150,6 +150,8 @@ float w(vec3 p) {
 		walls = max(walls, -hexabox(p1, vec3(4., 10., 7.)));
 		walls = max(walls, -hexabox(p1-vec3(0., 0., 14.), vec3(10., 4., 5.)));
 		walls = min(walls, box3(p1 - vec3(0., 6., -7.), vec3(1.2)));
+		walls = max(walls, -box3(p1 - vec3(0., 0., -12.), vec3(3., 10., 3.)));
+		walls = max(walls, -box3(p1 - vec3(0., 0., -12.), vec3(6., 4., 3.)));
 		//pipes = length(rep2(p1.yz, vec2(4.))) - 1.;
 		return min(flr, walls);//max(walls, -pipes));
 
@@ -294,6 +296,7 @@ void main() {
 	vec3 O, D, N;
 	O = vec3(-.5+lt, 1.8, 5.);
 	mat3 Dorient = RX(0.);
+	vec3 sundir = vec3(-2.,1.,-1.);
 	if (sdf_scene < 2) {
 		O.y = 1.;
 		O.z = -3. + 3. * fract(scenet);
@@ -302,12 +305,14 @@ void main() {
 		O.z = 16.;
 		O.x = 3. - 6.*lt;
 		Dorient = RX(-.2);
+	} else if (sdf_scene == 3) {
+		sundir.z = -sundir.z;
 	}
 	D = Dorient * normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
 	vec3 D2 = Dorient * normalize(vec3(uv+vec2(2.,1.)/R, -2.));
 
-	vec3 sundir = normalize(vec3(-2.,1.,-1.));
+	sundir = normalize(sundir);
 
 	float alpha = .15;
 	float seedhash = t;
