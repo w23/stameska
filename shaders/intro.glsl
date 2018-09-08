@@ -290,17 +290,6 @@ float tex1(vec2 p) {
 }
 */
 
-vec3 concrete(vec2 uv) {
-	//vec3 tx = vec3(tex1(uv));
-	//tx = step(.99, abs(sin((noise2(uv*8.)-noise2(uv*8.-E.yz*8.5))*4.)));
-	//vec3 tx = smoothstep(.9, .99, sin(PI*fbm(uv)));
-	//tx = (.6+.4*fbm(uv*4.)) * vec3(.753, .749, .733) - .1 * tx;
-	uv *= 4.;
-	vec3 c = (.6+(.2+.2*smoothstep(.9, .99, sin(PI*fbm(uv))))*fbm(uv*4.)) * vec3(.753, .749, .733);
-	//c -= vec3(.3) * smoothstep(.5, .52, fbm(uv*vec2(1.,.1)));
-	return c;
-}
-
 vec3 rust(vec2 uv) {
 	return mix(
 		vec3(.467, .22, .1),
@@ -359,8 +348,8 @@ void main() {
 	D2 = Dorient * normalize(vec3(uv+vec2(2.,1.)/R, -2.));
 
 	sundir = normalize(sundir);
-	const int samples_per_pixel = 16;
-	for (int s = 0; s < samples_per_pixel; ++s) {
+	//const int samples_per_pixel = 16;
+	for (int s = 0; s < 16; ++s) {
 		vec3 o = O;
 		vec3 d = mix(D, D2, vec3(hash1(seedhash), hash1(seedhash+1.), hash1(seedhash+2.)));
 		vec3 sample_color = vec3(0.);
@@ -392,28 +381,29 @@ void main() {
 				vec2 uv = normalToUv(o, n);
 				o += n * .01;
 
+				float mossmask;
 				if (flr < walls) {
 					//albedo = vec3(.75,.75,.73);
-					float mossmask = smoothstep(.45, .6, fbm(uv/4.)+.5 * saturate(- 10. - o.z));
-					albedo = mix(albedo,
-							vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)),
-							mossmask);
-					float puddlemask = smoothstep(.4,.45,(fbm(uv/2.)*.85+.15*fbm(uv*8.)));
-					roughness = 9.*puddlemask + .01;
+					roughness = 9.*smoothstep(.4,.45,(fbm(uv/2.)*.85+.15*fbm(uv*8.))) + .01;
+					mossmask = smoothstep(.45, .6, fbm(uv/4.) + .5 * saturate(- 10. - o.z));
 				} else {
-					albedo = concrete(uv);
+					//albedo = concrete(uv);
+					albedo *= .6+(.2+.2*smoothstep(.9, .99, sin(PI*fbm(uv*4.))))*fbm(uv*16.);
 					vec2 wC = floor(uv/2.), wc = (uv/2. - wC);
-					float sqrmsk = hash2(wC);
-					albedo *= 1. - .3 * sqrmsk - .4 * step(.99,max(wc.x,wc.y));
+					albedo *= 1. - .3 * hash2(wC) - .4 * step(.99,max(wc.x,wc.y));
 					//albedo = mix(albedo, .6 * rust(uv), 1.-step(.5, max(wc.x, wc.y)));
 					/*albedo = mix(albedo,
 							.4*rust(uv)*(.3+.7*fbm(uv*vec2(16.,4.))),
 							smoothstep(.5, .6, fbm(uv*vec2(1.,.2))));
 							*/
-					float moss = fbm(uv/4.), mossmask = smoothstep(.5, .7, moss);
+					mossmask = smoothstep(.5, .7, fbm(uv/4.));
 					//roughness = mix(roughness, .4, mossmask);
-					albedo = mix(albedo, vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)), mossmask);
+					//albedo = mix(albedo, vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)), mossmask);
 				}
+
+				albedo = mix(albedo,
+					vec3(.3, .44, .15)*(.3+.7*fbm(uv*16.)),
+					mossmask);
 
 				//albedo = vec3(tex1(o.xz/4.));
 				////roughness = smoothstep(.3, .6,tex1(o.xz/4.));
@@ -464,6 +454,6 @@ void main() {
 	//float alpha = .15;
 	//alpha = .3;
 	//alpha = 1.;
-	gl_FragColor = vec4(total_color/float(samples_per_pixel), alpha); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
+	gl_FragColor = vec4(total_color/16., alpha); // /* * smoothstep(0., 4., t)*/, mix(alpha, 1., step(t,1.)));//.4);
 	//gl_FragColor = vec4(vec3(mod(float(sdfcnt),500.)/500.), 1.);
 }
