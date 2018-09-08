@@ -4,7 +4,6 @@
 uniform sampler2D T;
 uniform int s;
 float t = float(s)/88200.;
-vec2 R = vec2(640., 720.);
 
 //const float INF = 10000.;
 const vec3 E = vec3(0., .001, 1.);
@@ -139,7 +138,7 @@ float fOpIntersectionRound(float a, float b, float r) {
 */
 
 float scenet = t/128., lt = fract(scenet);
-int sdf_scene;
+int sdf_scene = 1 + int(floor(scenet));
 float flr, walls;
 mat3 rz2 = RZ(.2);
 mat3 rz3 = RZ(.3);
@@ -212,30 +211,15 @@ float w(vec3 p) {
 
 		float paths = box3(vec3(p.xy, mod(p.z, 10.) - 5.), vec3(100., 4.5, 1.8));
 
-		p.z += 20.;
-		p.x -= 30.;
+		p -= vec3(30., 0., -20.);
 		p *= rz2;
 		walls = min(walls, box3(p, vec3(20.)));
 		p *= rz3;
-		p.z += 7.;
-		p.y -= 10.;
-		p.x -= 5.;
+		p -= vec3(5., 10., -7.);
 		walls = min(walls, box3(p, vec3(20.)));
 		p *= rz5;
-		p.z += 10.;
-		p.y -= 3.;
-		p.x -= 7.;
+		p -= vec3(7., 3., -10.);
 		walls = min(walls, box3(p, vec3(20.)));
-
-/*
-		p.z += 20.;
-		//walls = min(walls, box3(p-vec3(14.,12.,0.), vec3(8., 4., 10.)));
-		p *= RZ(.1);
-		//walls = min(walls, box3(p-vec3(14.,12.,0.), vec3(8., 4., 10.)));
-		p *= RZ(.4);
-		p.x -= 6.;
-		walls = min(walls, box3(p-vec3(14.,12.,0.), vec3(8., 4., 10.)));
-*/
 
 		walls = max(walls, -paths);
 		//return min(flr, walls);
@@ -332,7 +316,8 @@ vec2 normalToUv(vec3 p, vec3 n) {
 }
 
 void main() {
-	vec2 uv = gl_FragCoord.xy / R * 2. - 1.; uv.x *= 2. * R.x / R.y;
+	vec2 R = vec2(640., 720.);
+	vec2 uv = gl_FragCoord.xy / R * vec2(3.56,2.) - 1.;// uv.x *= 2. * R.x / R.y;
 	//gl_FragColor = vec4(uv, 0., 1.); return;
 	//gl_FragColor = vec4(concrete(uv*2.), 1.); return;
 	//gl_FragColor = vec4(rust(uv), 1.); return;
@@ -343,16 +328,16 @@ void main() {
 	// moss1
 	//vec3(.48, .51, .31)
 
-	sdf_scene = 1 + int(floor(scenet));
-
-	vec3 O, D, N;
-	O = vec3(-.5+lt, 1.8, 5.);
 	mat3 Dorient = RX(0.);
+	vec3 O, D, D2, N;
+	O = vec3(-.5+lt, 1.8, 5.);
 	vec3 sundir = vec3(-2.,1.,-1.);
+	vec3 total_color = vec3(0.);
+	float seedhash = t;
 	float alpha = .15;
 	if (sdf_scene < 2) {
-		O.y = 1.;
-		O.z = -3. + 3. * fract(scenet);
+		//O.y = 1.;
+		O.z = -3. + 3. * lt;
 	} else if (sdf_scene == 2) {
 		//O.y = 0.;
 		O.z = 16.;
@@ -365,20 +350,15 @@ void main() {
 		O = vec3(5.-6.*lt, 1.8, 9.);
 		Dorient =  RY(-.3+.2*lt) * RX(-.3);
 	} else {
-		O.z -= lt * 10.;
-		O.x = 2.;
-		O.y += .1 * abs(sin(lt*60.));
+		O = vec3(2., 1.8 + .1 * abs(sin(lt*60.)), 5. - lt * 10.);
 		Dorient = RY(-.3);
 		alpha = mix(alpha, .6, step(512.+64., t));
 	}
 	D = Dorient * normalize(vec3(uv, -2.));
 	//vec3 D = normalize(vec3(uv, -2.));
-	vec3 D2 = Dorient * normalize(vec3(uv+vec2(2.,1.)/R, -2.));
+	D2 = Dorient * normalize(vec3(uv+vec2(2.,1.)/R, -2.));
 
 	sundir = normalize(sundir);
-
-	float seedhash = t;
-	vec3 total_color = vec3(0.);
 	const int samples_per_pixel = 16;
 	for (int s = 0; s < samples_per_pixel; ++s) {
 		vec3 o = O;
@@ -386,25 +366,22 @@ void main() {
 		vec3 sample_color = vec3(0.);
 		vec3 k = vec3(1.);
 		for (int b = 0; b < 4; ++b) {
-			//if (any(isnan(d))) { lolnan = true; break; }
-			float l = 60.;
-			int mat = 0;
-
-			float L = min(l, 50.);
-			float ldf = march(o, d, 0., L, 40);
-			//if (isnan(l)) {lolnan = true; break; }
-			if (ldf < L) {
-				l = ldf;
-				mat = 2;
+			float roughness = .9;
+			float L = 50.;
+			float l = 0.;
+			for (int i = 0; i < 40; ++i) {
+				float dd = w(o + d * l);
+				l += dd;
+				if (dd < 0.002 * l || l > L)
+					break;
 			}
 
 			vec3 emissive = vec3(0.);
 			vec3 albedo = vec3(.75, .75, .73);
 			vec3 n = vec3(0., 1., 0.);
-			float roughness = .04;
-			roughness = .9;//.04;
+			//roughness = .9;//.04;
 
-			if (mat == 0) {
+			if (l > L) {
 				emissive = vec3(2.) + vec3(30., 20., 10.) * pow(max(0.,dot(d, sundir)),10.);//*dot(d,vec3(0.,1.,0.)));
 				//emissive *= 10.;
 				albedo = vec3(0.);
