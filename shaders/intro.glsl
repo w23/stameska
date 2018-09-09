@@ -227,16 +227,21 @@ float w(vec3 p) {
 		flr = p.y;
 		flr = min(flr, box3(p, vec3(.3, .1, 30.)));
 		walls = -box3(p, vec3(3., 4., 30.));
-		walls = max(walls, box3(p, vec3(4.0, 4.2, 31.)));
-		vec3 p1 = p;
-		p1.z = mod(p.z, 10.) - 5.;
+		walls = max(walls, box3(p, vec3(4.0, 4.4, 31.)));
+		vec3 p1 = vec3(p.x - 3., p.y - 1.5, mod(p.z, 10.) - 5.);
+		/*vec3 p1 = p;
 		p1.x -= 3.;
 		p1.y += .3 - 1.8;
+		p1.z = mod(p.z, 10.) - 5.;
+		*/
 		walls = max(walls, -box3(p1, vec3(2., 1.2, 1.)));
 		// interesting walls = max(walls, box3(p1, vec3(2.2, 1.4, 1.2)));
 		//walls = max(walls, p.x - 4.4);
 
-		walls = max(walls, -box3(vec3(p.x, p.y + 2. - (t-512.-64.)/16., mod(p.z, 1.)-.5), vec3(20., 2., .4)));
+		walls = max(walls, -box3(vec3(p.x,
+			p.y + 4. - (t-512.-64.)/16. - 2. * max(0., t-684.),
+			mod(p.z, 1.)-.5),
+			vec3(20., 4., .4)));
 		//shiny = box3(p + vec3(0., 0., 10.), vec3(1.));
 		//return min(flr, min(walls, shiny));
 	}
@@ -334,13 +339,14 @@ void main() {
 		Dorient = RX(-.2);
 	} else if (sdf_scene == 3) {
 		sundir.z = -sundir.z;
+		Dorient = RY(-.15);
 	} else if (sdf_scene == 4) {
 		sundir = vec3(1., 2., 1.);
 		O = vec3(5.-6.*lt, 1.8, 9.);
 		Dorient =  RY(-.3+.2*lt) * RX(-.3);
 	} else {
 		O = vec3(2., 1.8 + .1 * abs(sin(lt*60.)), 5. - lt * 10.);
-		Dorient = RY(-.3);
+		Dorient = RY(-.5);
 		alpha = mix(alpha, .6, step(512.+64., t));
 	}
 	D = Dorient * normalize(vec3(uv, -2.));

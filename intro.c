@@ -1,6 +1,6 @@
 #ifdef CAPTURE
-#define XRES 1920
-#define YRES 1080
+//#define XRES 1920
+//#define YRES 1080
 #endif
 
 #ifndef XRES
@@ -91,7 +91,8 @@ static const char *FFMPEG_CAPTURE_INPUT = "ffmpeg.exe"
 " -movflags +faststart"
 //" -level:v 4.2 -profile:v high -preset slower -crf 20.0 -pix_fmt yuv420p"
 " -level 4.1 -preset veryslow -crf 14.0"
-" -tune film"
+//" -tune film"
+" -tune grain"
 //" -x264-params keyint=600:bframes=3:scenecut=60:ref=3:qpmin=10:qpstep=8:vbv-bufsize=24000:vbv-maxrate=24000:merange=32"
 " capture_" STR(XRES) "x" STR(YRES) ".mp4"
 ;
