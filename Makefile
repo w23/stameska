@@ -3,7 +3,7 @@
 #MAKEFLAGS += -rR --no-print-directory -j4
 MAKEFLAGS += -r --no-print-directory -j $(shell nproc)
 
-INTRO=cc18
+INTRO=kak
 OBJDIR ?= .obj
 MIDIDEV ?= ''
 WIDTH ?= 1280
@@ -25,7 +25,7 @@ $(OBJDIR)/%.c.o: %.c
 	@mkdir -p $(dir $@)
 	$(COMPILE.c) -c $< -o $@
 
-$(OBJDIR)/%.asm.obj: %.asm main.shader.inc
+$(OBJDIR)/%.asm.obj: %.asm shaders/intro.inc shaders/blitter.inc
 	@mkdir -p $(dir $@)
 	nasm -f win32 -i4klang_win32/ $< -o $@
 
@@ -139,24 +139,26 @@ $(INTRO)-slow.exe: $(INTRO_WIN32_OBJS)
 		$(INTRO_WIN32_OBJS) \
 		/OUT:$@
 
-$(INTRO).capture: main.shader.h $(INTRO).c
+$(INTRO).capture: shaders/intro.h shaders/blitter.h intro.c
 	$(CC) -O3 -Wall -Wno-unknown-pragmas -I. \
 		-DCAPTURE `pkg-config --cflags --libs sdl` -lGL \
 		$^ -o $@
 
 FFMPEG_ARGS = \
+	-s:v $(WIDTH)x$(HEIGHT) -pix_fmt rgb24 \
 	-y -f rawvideo -vcodec rawvideo \
-	-s $(WIDTH)x$(HEIGHT) -pix_fmt rgb24 \
 	-framerate 60 \
 	-i - \
 	-f f32le -ar 44100 -ac 2 \
 	-i audio.raw \
+	-s:v 3840:2160 \
 	-c:a aac -b:a 160k \
 	-c:v libx264 -vf vflip \
 	-movflags +faststart \
-	-level 4.1 -preset veryslow -crf 14.0 \
+	-level 4.1 -profile:v high -preset veryslow -crf 14.0 -pix_fmt yuv420p \
 	-tune film
 
+# -vf scale=3840:2160:flags=neighbor \
 #	-x264-params keyint=600:bframes=3:scenecut=60:ref=3:qpmin=10:qpstep=8:vbv-bufsize=24000:vbv-maxrate=24000:merange=32 \
 
 capture: $(INTRO)_$(WIDTH)_$(HEIGHT).mp4

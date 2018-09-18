@@ -1,13 +1,13 @@
 #ifdef CAPTURE
-//#define XRES 1920
-//#define YRES 1080
+//#define WIDTH 1920
+//#define HEIGHT 1080
 #endif
 
-#ifndef XRES
-#define XRES 1280
+#ifndef WIDTH
+#define WIDTH 1280
 #endif
-#ifndef YRES
-#define YRES 720
+#ifndef HEIGHT
+#define HEIGHT 720
 #endif
 //#define DO_RANGES
 
@@ -67,6 +67,10 @@ int _fltused = 1;
 #define oglUseProgram glUseProgram
 #define oglGetUniformLocation glGetUniformLocation
 #define oglUniform1i glUniform1i
+#define oglGenFramebuffers glGenFramebuffers
+#define oglBindFramebuffer glBindFramebuffer
+#define oglFramebufferTexture2D glFramebufferTexture2D
+#define oglActiveTexture glActiveTexture
 #endif
 
 #include "glext.h"
@@ -81,7 +85,7 @@ int _fltused = 1;
 #define STR(x) LOL(x)
 static const char *FFMPEG_CAPTURE_INPUT = "ffmpeg.exe"
 " -y -f rawvideo -vcodec rawvideo"
-" -s " STR(XRES) "x" STR(YRES) " -pix_fmt rgb24"
+" -s " STR(WIDTH) "x" STR(HEIGHT) " -pix_fmt rgb24"
 " -framerate " STR(CAPTURE_FRAMERATE)
 " -i -"
 " -f f32le -ar 44100 -ac 2"
@@ -90,11 +94,11 @@ static const char *FFMPEG_CAPTURE_INPUT = "ffmpeg.exe"
 " -c:v libx264 -vf vflip"
 " -movflags +faststart"
 //" -level:v 4.2 -profile:v high -preset slower -crf 20.0 -pix_fmt yuv420p"
-" -level 4.1 -preset veryslow -crf 14.0"
+" -level 4.1 -profile:v high -preset veryslow -crf 14.0"
 //" -tune film"
 " -tune grain"
 //" -x264-params keyint=600:bframes=3:scenecut=60:ref=3:qpmin=10:qpstep=8:vbv-bufsize=24000:vbv-maxrate=24000:merange=32"
-" capture_" STR(XRES) "x" STR(YRES) ".mp4"
+" capture_" STR(WIDTH) "x" STR(HEIGHT) ".mp4"
 ;
 #endif
 
@@ -168,7 +172,7 @@ static GLuint texture[Tex_COUNT];
 static GLuint fb[Pass_COUNT - 1];
 
 #ifdef CAPTURE
-static GLubyte backbufferData[XRES*YRES * 3];
+static GLubyte backbufferData[WIDTH*HEIGHT * 3];
 #endif
 
 #ifdef _WIN32
@@ -201,9 +205,9 @@ static const PIXELFORMATDESCRIPTOR pfd = {
 #pragma data_seg(".devmode")
 static const DEVMODE screenSettings = { {0},
 	#if _MSC_VER < 1400
-	0,0,148,0,0x001c0000,{0},0,0,0,0,0,0,0,0,0,{0},0,32,XRES,YRES,0,0,      // Visual C++ 6.0
+	0,0,148,0,0x001c0000,{0},0,0,0,0,0,0,0,0,0,{0},0,32,WIDTH,HEIGHT,0,0,      // Visual C++ 6.0
 	#else
-	0,0,156,0,0x001c0000,{0},0,0,0,0,0,{0},0,32,XRES,YRES,{0}, 0,           // Visual Studio 2005+
+	0,0,156,0,0x001c0000,{0},0,0,0,0,0,{0},0,32,WIDTH,HEIGHT,{0}, 0,           // Visual Studio 2005+
 	#endif
 	#if(WINVER >= 0x0400)
 	0,0,0,0,0,0,
@@ -385,18 +389,18 @@ static void paint(GLuint prog, /*GLuint tex, */GLuint dst_fb) {
 	//const float t = (float)itime / (SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
 	//oglUniform1f(oglGetUniformLocation(prog, "t"), t);// (float)(itime) / BYTES_PER_TICK);
 	//glGetError();
-	//oglUniform2f(oglGetUniformLocation(prog, "RES"), w, YRES);
+	//oglUniform2f(oglGetUniformLocation(prog, "RES"), w, HEIGHT);
 	//glGetError();
 #if defined(CAPTURE) && defined(TILED)
 	{
 		int x, y;
-		for (y = 0; y < YRES; y += 64)
-			for (x = 0; x < XRES; x += 64) {
+		for (y = 0; y < HEIGHT; y += 64)
+			for (x = 0; x < WIDTH; x += 64) {
 				glRectf(
-					x * 2.f / XRES - 1,
-					y * 2.f / YRES - 1,
-					(x + 64) * 2.f / XRES - 1,
-					(y + 64) * 2.f / YRES - 1);
+					x * 2.f / WIDTH - 1,
+					y * 2.f / HEIGHT - 1,
+					(x + 64) * 2.f / WIDTH - 1,
+					(y + 64) * 2.f / HEIGHT - 1);
 				glFinish();
 			}
 	}
@@ -468,7 +472,7 @@ static __forceinline void introInit() {
 	//oglActiveTexture(GL_TEXTURE1);
 	//initText();
 	//oglActiveTexture(GL_TEXTURE1);
-	initTexture(texture[Tex_Frame], XRES / 2, YRES, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	initTexture(texture[Tex_Frame], WIDTH / 2, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	initFb(fb[Pass_Main], texture[Tex_Frame]);
 
@@ -481,10 +485,10 @@ static __forceinline void introInit() {
 #pragma code_seg(".introPaint")
 static __forceinline void introPaint() {
 	glEnable(GL_BLEND);
-	glViewport(0, 0, XRES / 2, YRES);
+	glViewport(0, 0, WIDTH / 2, HEIGHT);
 	paint(program[Pass_Main]/*, texture[Tex_Text]*/, fb[Pass_Main]);
 	glDisable(GL_BLEND);
-	glViewport(0, 0, XRES, YRES);
+	glViewport(0, 0, WIDTH, HEIGHT);
 	paint(program[Pass_Blit],/* texture[Tex_Frame],*/ 0);
 }
 
@@ -507,9 +511,9 @@ void entrypoint(void) {
 #ifdef FULLSCREEN
 	ChangeDisplaySettings(&screenSettings, CDS_FULLSCREEN);
 	ShowCursor(0);
-	HDC hDC = GetDC(CreateWindow((LPCSTR)0xC018, 0, WS_POPUP | WS_VISIBLE, 0, 0, XRES, YRES, 0, 0, 0, 0));
+	HDC hDC = GetDC(CreateWindow((LPCSTR)0xC018, 0, WS_POPUP | WS_VISIBLE, 0, 0, WIDTH, HEIGHT, 0, 0, 0, 0));
 #else
-	HDC hDC = GetDC(CreateWindow("static", 0, WS_POPUP | WS_VISIBLE, 0, 0, XRES, YRES, 0, 0, 0, 0));
+	HDC hDC = GetDC(CreateWindow("static", 0, WS_POPUP | WS_VISIBLE, 0, 0, WIDTH, HEIGHT, 0, 0, 0, 0));
 #endif
 
 	// initalize opengl
@@ -577,7 +581,7 @@ void entrypoint(void) {
 #endif
 
 	// does not work
-	//gl.AddSwapHintRectWIN(0, 0, XRES, YRES);
+	//gl.AddSwapHintRectWIN(0, 0, WIDTH, HEIGHT);
 	//glReadBuffer(GL_FRONT);
 	//glDrawBuffer(GL_BACK);
 
@@ -605,11 +609,11 @@ void entrypoint(void) {
 		introPaint();
 		SwapBuffers(hDC);
 		*/
-		//ridiculously slow glCopyPixels(0, 0, XRES, YRES, GL_COLOR);
+		//ridiculously slow glCopyPixels(0, 0, WIDTH, HEIGHT, GL_COLOR);
 
 #ifdef CAPTURE
-		glReadPixels(0, 0, XRES, YRES, GL_RGB, GL_UNSIGNED_BYTE, backbufferData);
-		fwrite(backbufferData, 1, XRES*YRES * 3, captureStream);
+		glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, backbufferData);
+		fwrite(backbufferData, 1, WIDTH*HEIGHT * 3, captureStream);
 		fflush(captureStream);
 #endif
 
@@ -677,8 +681,8 @@ void _start() {
 #else
 #define FULLSCREEN 0
 #endif
-	SDL_SetVideoMode(XRES, YRES, 32, SDL_OPENGL | FULLSCREEN);
-	glViewport(0, 0, XRES, YRES);
+	SDL_SetVideoMode(WIDTH, HEIGHT, 32, SDL_OPENGL | FULLSCREEN);
+	glViewport(0, 0, WIDTH, HEIGHT);
 	glClearColor(0,0,0,0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -711,13 +715,13 @@ void _start() {
 #ifdef CAPTURE
 		const uint32_t frame_end = SDL_GetTicks();
 		const uint32_t total_time = frame_end - global_start;
-		glReadPixels(0, 0, XRES, YRES, GL_RGB, GL_UNSIGNED_BYTE, backbufferData);
-		write(1, backbufferData, XRES * YRES * 3);
+		glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, backbufferData);
+		write(1, backbufferData, WIDTH * HEIGHT * 3);
 		fprintf(stderr, "frame %d/%d: %dms/frame, total: %ds/%llds, MBytes: %lld/%lld\n",
 			frame, total_frames, frame_end - frame_start,
 			total_time / 1000, (unsigned long long)total_time * total_frames / frame / 1000,
-			((unsigned long long)frame * XRES * YRES * 3) / 1024 / 1024,
-			((unsigned long long)total_frames * XRES * YRES * 3) / 1024 / 1024);
+			((unsigned long long)frame * WIDTH * HEIGHT * 3) / 1024 / 1024,
+			((unsigned long long)total_frames * WIDTH * HEIGHT * 3) / 1024 / 1024);
 		usleep(1000);
 		frame_start = frame_end;
 #endif

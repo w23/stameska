@@ -509,6 +509,7 @@ uint32_t pcg32_random_r(pcg32_random_t* rng)
 	return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
 
+#ifdef DO_NOISE
 #define NOISE_SIZE 1024
 uint32_t noise_buffer[NOISE_SIZE * NOISE_SIZE];
 static void initNoise(Texture &noise) {
@@ -519,6 +520,7 @@ static void initNoise(Texture &noise) {
 
 	noise.upload(NOISE_SIZE, NOISE_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, noise_buffer);
 }
+#endif
 
 #ifdef TOOL
 class PollAdaptor {
@@ -628,7 +630,7 @@ PROGRAMS(LOAD_PROGRAM)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-static float gt;
+//static float gt;
 
 static const Program& renderPass(float tick, const Framebuffer& fb, const Program& p) {
 	fb.bind();

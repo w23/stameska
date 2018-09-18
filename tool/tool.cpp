@@ -52,6 +52,7 @@ static void audioCallback(void *unused, float *samples, int nsamples) {
 
 static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
+	(void)w; (void)h;
 	video_tool_resize(a_app_state->width, a_app_state->height);
 }
 
@@ -61,6 +62,7 @@ static struct {
 } fpstat;
 
 static void paint(ATimeUs ts, float dt) {
+	(void)dt;
 	const ATimeUs last_print_delta = ts - fpstat.last_print;
 	if (last_print_delta > 1000000) {
 		MSG("avg fps: %.1f", fpstat.frames * 1000000.f / last_print_delta);
