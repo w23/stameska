@@ -1,9 +1,8 @@
 .SUFFIXES:
 .DEFAULT:
-#MAKEFLAGS += -rR --no-print-directory -j4
 MAKEFLAGS += -r --no-print-directory -j $(shell nproc)
 
-INTRO=kak
+INTRO=example
 OBJDIR ?= .obj
 MIDIDEV ?= ''
 WIDTH ?= 1280
@@ -11,7 +10,7 @@ HEIGHT ?= 720
 SHMIN=mono shader_minifier.exe
 CC ?= cc
 CXX ?= c++
-CFLAGS += -Wall -Wextra -Werror -pedantic -DTOOL -DWIDTH=$(WIDTH) -DHEIGHT=$(HEIGHT) -I. -Itool/atto -O0 -g
+CFLAGS += -Wall -Wextra -Werror -pedantic -DTOOL -DWIDTH=$(WIDTH) -DHEIGHT=$(HEIGHT) -I. -I3p/atto -I3p -O0 -g
 CXXFLAGS += -std=c++11 $(CFLAGS)
 LIBS = -lX11 -lXfixes -lGL -lasound -lm -pthread
 
@@ -40,12 +39,12 @@ $(OBJDIR)/%.cpp.o: %.cpp
 $(OBJDIR)/4klang.o32: 4klang.asm ./4klang_linux/4klang.inc
 	nasm -f elf32 -I./4klang_linux/ 4klang.asm -o $@
 
-TOOL_EXE = $(OBJDIR)/tool/tool
+TOOL_EXE = $(OBJDIR)/src/tool
 TOOL_SRCS = \
-	tool/atto/src/app_linux.c \
-	tool/atto/src/app_x11.c \
-	tool/video.cpp \
-	tool/tool.cpp
+	3p/atto/src/app_linux.c \
+	3p/atto/src/app_x11.c \
+	src/video.cpp \
+	src/tool.cpp
 
 TOOL_OBJS = $(TOOL_SRCS:%=$(OBJDIR)/%.o)
 TOOL_DEPS = $(TOOL_OBJS:%=%.d)
@@ -58,11 +57,11 @@ $(TOOL_EXE): $(TOOL_OBJS)
 tool: $(TOOL_EXE)
 
 DUMP_AUDIO_EXE = $(OBJDIR)/dump_audio
-DUMP_AUDIO_SRCS = dump_audio.c
+DUMP_AUDIO_SRCS = example/dump_audio.c
 DUMP_AUDIO_OBJS = $(DUMP_AUDIO_SRCS:%=$(OBJDIR)/%.o32)
 DUMP_AUDIO_DEPS = $(DUMP_AUDIO_OBJS:%=%.d)
 
-INTRO_WIN32_SRCS = 4klang.asm $(INTRO).asm
+INTRO_WIN32_SRCS = example/4klang.asm example/$(INTRO).asm
 INTRO_WIN32_OBJS = $(INTRO_WIN32_SRCS:%=$(OBJDIR)/%.obj)
 
 -include $(DUMP_AUDIO_DEPS)
@@ -70,18 +69,18 @@ INTRO_WIN32_OBJS = $(INTRO_WIN32_SRCS:%=$(OBJDIR)/%.obj)
 $(DUMP_AUDIO_EXE): $(DUMP_AUDIO_OBJS) $(OBJDIR)/4klang.o32
 	$(CC) -m32 $(LIBS) $^ -o $@
 
-audio.raw: $(DUMP_AUDIO_EXE)
+$(OBJDIR)/audio.raw: $(DUMP_AUDIO_EXE)
 	$(DUMP_AUDIO_EXE) $@
 
 clean:
 	rm -f $(TOOL_OBJS) $(TOOL_DEPS) $(TOOL_EXE)
-	rm -f $(DUMP_AUDIO_OBJS) $(DUMP_AUDIO_DEPS) $(DUMP_AUDIO_EXE) audio.raw
+	rm -f $(DUMP_AUDIO_OBJS) $(DUMP_AUDIO_DEPS) $(DUMP_AUDIO_EXE) $(OBJDIR)/audio.raw
 	rm -f $(INTRO).sh $(INTRO).gz $(INTRO).elf $(INTRO) $(INTRO).dbg
 
-run_tool: $(TOOL_EXE) audio.raw
+run_tool: $(TOOL_EXE) $(OBJDIR)/audio.raw
 	$(TOOL_EXE) -w $(WIDTH) -h $(HEIGHT) -m $(MIDIDEV)
 
-debug_tool: $(TOOL_EXE) audio.raw
+debug_tool: $(TOOL_EXE) $(OBJDIR)/audio.raw
 	gdb --args $(TOOL_EXE) -w $(WIDTH) -h $(HEIGHT) -m $(MIDIDEV)
 
 $(INTRO).sh: linux_header $(INTRO).gz

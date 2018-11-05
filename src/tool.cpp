@@ -17,9 +17,10 @@
 
 #define MSG(...) aAppDebugPrintf(__VA_ARGS__)
 
-#include "4klang.h"
+#define SAMPLE_TYPE float
 
 static struct {
+	int samples_per_tick;
 	int samples;
 	float *data;
 	int pos;
@@ -74,22 +75,22 @@ static void paint(ATimeUs ts, float dt) {
 
 	(void)ts; (void)dt;
 	const int byte_pos = audio.pos * sizeof(SAMPLE_TYPE) * 2;
-	//video_paint((audio.pos /* + (loop.paused * rand() % SAMPLES_PER_TICK / 2)*/) / (float)SAMPLES_PER_TICK);// ts / 1e6f);
-	video_paint(byte_pos + (loop.paused * rand() % SAMPLES_PER_TICK) * sizeof(SAMPLE_TYPE) * 2);
+	//video_paint((audio.pos /* + (loop.paused * rand() % audio.samples_per_tick / 2)*/) / (float)audio.samples_per_tick);// ts / 1e6f);
+	video_paint(byte_pos + (loop.paused * rand() % audio.samples_per_tick) * sizeof(SAMPLE_TYPE) * 2);
 	//video_paint(byte_pos);
 }
 
 const int pattern_length = 64;
 
 static void timeShift(int ticks) {
-	int next_pos = audio.pos + ticks * SAMPLES_PER_TICK;
+	int next_pos = audio.pos + ticks * audio.samples_per_tick;
 	const int loop_length = loop.end - loop.start;
 	while (next_pos < loop.start)
 		next_pos += loop_length;
 	while (next_pos > loop.end)
 		next_pos -= loop_length;
 	audio.pos = next_pos;
-	MSG("pos = %d", next_pos / SAMPLES_PER_TICK);
+	MSG("pos = %d", next_pos / audio.samples_per_tick);
 }
 
 static void key(ATimeUs ts, AKey key, int down) {
@@ -124,11 +125,11 @@ static void key(ATimeUs ts, AKey key, int down) {
 	case AK_Z:
 		switch (loop.set) {
 		case 0:
-			loop.start = ((audio.pos / SAMPLES_PER_TICK) / 64) * SAMPLES_PER_TICK * 64;
+			loop.start = ((audio.pos / audio.samples_per_tick) / 64) * audio.samples_per_tick * 64;
 			loop.set = 1;
 			break;
 		case 1:
-			loop.end = (((audio.pos / SAMPLES_PER_TICK) + 63) / 64) * SAMPLES_PER_TICK * 64;
+			loop.end = (((audio.pos / audio.samples_per_tick) + 63) / 64) * audio.samples_per_tick * 64;
 			loop.set = 2;
 			break;
 		case 2:
@@ -152,6 +153,11 @@ void attoAppInit(struct AAppProctable *proctable) {
 	loop.set = 0;
 	fpstat.last_print = 0;
 
+	// TODO args
+
+	// FIXME args
+	audio.samples_per_tick = 5000;
+
 	FILE *f = fopen("audio.raw", "rb");
 	fseek(f, 0L, SEEK_END);
 	audio.samples = ftell(f) / (sizeof(float) * 2);
@@ -161,14 +167,14 @@ void attoAppInit(struct AAppProctable *proctable) {
 	fclose(f);
 
 	loop.start = 0;
-	loop.end = audio.samples / SAMPLES_PER_TICK;
+	loop.end = audio.samples / audio.samples_per_tick;
 
-	loop.start *= SAMPLES_PER_TICK;
-	loop.end *= SAMPLES_PER_TICK;
+	loop.start *= audio.samples_per_tick;
+	loop.end *= audio.samples_per_tick;
 
 	audio.pos = loop.start;
 
-	MSG("float t = s / %f;", (float)SAMPLES_PER_TICK * sizeof(SAMPLE_TYPE) * 2);
+	MSG("float t = s / %f;", (float)audio.samples_per_tick * sizeof(SAMPLE_TYPE) * 2);
 	video_init(WIDTH, HEIGHT);
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
 }
