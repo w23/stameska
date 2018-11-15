@@ -3,17 +3,8 @@
 #include "video.h"
 #include "atto/app.h"
 #include "atto/platform.h"
-//#define ATTO_UDIO_SAMPLERATE 44100
-//#define ATTO_UDIO_H_IMPLEMENT
 #define AUDIO_IMPLEMENT
 #include "aud_io.h"
-
-#ifndef WIDTH
-#define WIDTH 1280
-#endif
-#ifndef HEIGHT
-#define HEIGHT 720
-#endif
 
 #define MSG(...) aAppDebugPrintf(__VA_ARGS__)
 
@@ -40,7 +31,6 @@ static void audioCallback(void *unused, float *samples, int nsamples) {
 	}
 
 	for (int i = 0; i < nsamples; ++i) {
-		//samples[i] = audio.data[audio.pos];
 		samples[i * 2] = audio.data[audio.pos * 2];
 		samples[i * 2 + 1] = audio.data[audio.pos * 2 + 1];
 		audio.pos = (audio.pos + 1) % audio.samples;
@@ -154,17 +144,21 @@ void attoAppInit(struct AAppProctable *proctable) {
 	fpstat.last_print = 0;
 
 	// TODO args
-
 	// FIXME args
 	audio.samples_per_tick = 5000;
 
 	FILE *f = fopen("audio.raw", "rb");
-	fseek(f, 0L, SEEK_END);
-	audio.samples = ftell(f) / (sizeof(float) * 2);
-	fseek(f, 0L, SEEK_SET);
-	audio.data = new float[audio.samples * 2];
-	fread(audio.data, sizeof(float) * 2, audio.samples, f);
-	fclose(f);
+	if (f) {
+		fseek(f, 0L, SEEK_END);
+		audio.samples = ftell(f) / (sizeof(float) * 2);
+		fseek(f, 0L, SEEK_SET);
+		audio.data = new float[audio.samples * 2];
+		fread(audio.data, sizeof(float) * 2, audio.samples, f);
+		fclose(f);
+	} else {
+		audio.samples = 44100 * 120;
+		audio.data = NULL;
+	}
 
 	loop.start = 0;
 	loop.end = audio.samples / audio.samples_per_tick;
