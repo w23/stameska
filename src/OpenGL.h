@@ -6,12 +6,13 @@
 #define NOMINMAX
 #define NOMSG
 #include <windows.h>
-#else
-#define GL_GLEXT_PROTOTYPES
-#endif
-
 #include <GL/gl.h>
 #include "glext.h"
+#else
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#endif
+
 
 #define GL_FUNC_LIST(X) \
   X(PFNGLCREATESHADERPROGRAMVPROC, CreateShaderProgramv) \

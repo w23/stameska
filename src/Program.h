@@ -21,8 +21,8 @@ protected:
 	static GLuint createSeparableProgram(GLenum type, const ConstArrayView<const char*>& sources) {
 		const GLuint pid = glCreateShaderProgramv(type, sources.size(), sources.ptr());
 
-#define SHADER_DEBUG
-#ifdef SHADER_DEBUG
+		MSG("%s", sources.ptr()[0]);
+
 		{
 			int result;
 			char info[2048];
@@ -34,21 +34,26 @@ protected:
 			glGetInfoLogARB(pid, 2047, NULL, (char*)info);
 			if (!result)
 			{
-				MSG(info);
+				MSG("Shader error: %s", info);
 				//MessageBoxA(NULL, info, "LINK", 0x00000000L);
 #ifndef TOOL
 				ExitProcess(0);
 #endif
+				glDeleteProgram(pid);
+				return 0;
 			}
 		}
-#endif
 
 		return pid;
 	}
 
 public:
 	void load(const ConstArrayView<const char*>& sources) {
-		name = createFragmentProgram(sources);
+		const GLuint  new_name = createFragmentProgram(sources);
+		if (new_name > 0) {
+			glDeleteProgram(name);
+			name = new_name;
+		}
 	}
 
 	bool use(int w, int h, float t) const {

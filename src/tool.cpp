@@ -25,8 +25,10 @@ static struct {
 
 static void audioCallback(void *unused, float *samples, int nsamples) {
 	(void)unused;
-	if (loop.paused) {
+	if (loop.paused || !audio.data) {
 		memset(samples, 0, sizeof(*samples) * nsamples * 2);
+		if (!loop.paused)
+			audio.pos = (audio.pos + nsamples) % audio.samples;
 		return;
 	}
 
@@ -135,6 +137,8 @@ static void key(ATimeUs ts, AKey key, int down) {
 	}
 }
 
+#define aAppMessage aAppDebugPrintf
+
 void attoAppInit(struct AAppProctable *proctable) {
 	proctable->resize = resize;
 	proctable->paint = paint;
@@ -143,6 +147,13 @@ void attoAppInit(struct AAppProctable *proctable) {
 	loop.set = 0;
 	fpstat.last_print = 0;
 
+	if (a_app_state->argc < 2) {
+		aAppMessage("Usage: %s shader.glsl", a_app_state->argv[0]);
+		aAppTerminate(1);
+	}
+
+	const char *shader_file = a_app_state->argv[1];
+	aAppMessage("using shader file %s", shader_file);
 	// TODO args
 	// FIXME args
 	audio.samples_per_tick = 5000;
@@ -156,6 +167,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 		fread(audio.data, sizeof(float) * 2, audio.samples, f);
 		fclose(f);
 	} else {
+		aAppMessage("No audio file given, continuing in silence");
 		audio.samples = 44100 * 120;
 		audio.data = NULL;
 	}
@@ -169,6 +181,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 	audio.pos = loop.start;
 
 	MSG("float t = s / %f;", (float)audio.samples_per_tick * sizeof(SAMPLE_TYPE) * 2);
-	video_init(WIDTH, HEIGHT);
+	video_init(WIDTH, HEIGHT, shader_file);
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
 }
