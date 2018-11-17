@@ -10,8 +10,8 @@ HEIGHT ?= 720
 SHMIN=mono shader_minifier.exe
 CC ?= cc
 CXX ?= c++
-CFLAGS += -Wall -Wextra -Werror -pedantic -DTOOL -DWIDTH=$(WIDTH) -DHEIGHT=$(HEIGHT) -I. -I3p/atto -I3p -O0 -g
-CXXFLAGS += -std=c++11 $(CFLAGS)
+CFLAGS += -Wall -Wextra -Werror -pedantic -DTOOL -I. -I3p/atto -I3p -Isrc -O0 -g
+CXXFLAGS += -std=c++17 $(CFLAGS)
 LIBS = -lX11 -lXfixes -lGL -lasound -lm -pthread
 
 DEPFLAGS = -MMD -MP
@@ -39,22 +39,37 @@ $(OBJDIR)/%.cpp.o: %.cpp
 $(OBJDIR)/4klang.o32: 4klang.asm ./4klang_linux/4klang.inc
 	nasm -f elf32 -I./4klang_linux/ 4klang.asm -o $@
 
-TOOL_EXE = $(OBJDIR)/src/tool
+TOOL_EXE = $(OBJDIR)/tool
 TOOL_SRCS = \
 	3p/atto/src/app_linux.c \
 	3p/atto/src/app_x11.c \
+	src/ShaderSource.cpp \
 	src/video.cpp \
 	src/tool.cpp
 
 TOOL_OBJS = $(TOOL_SRCS:%=$(OBJDIR)/%.o)
 TOOL_DEPS = $(TOOL_OBJS:%=%.d)
-
 -include $(TOOL_DEPS)
 
 $(TOOL_EXE): $(TOOL_OBJS)
 	$(CXX) $(LIBS) $^ -o $@
 
 tool: $(TOOL_EXE)
+
+TEST_EXE = $(OBJDIR)/test_
+TEST_SRCS = \
+	src/ShaderSource.cpp \
+	test/ShaderSource.cpp
+
+TEST_OBJS = $(TEST_SRCS:%=$(OBJDIR)/%.o)
+TEST_DEPS = $(TEST_OBJS:%=%.d)
+-include $(TEST_DEPS)
+
+$(TEST_EXE): $(TEST_OBJS)
+	$(CXX) $(LIBS) $^ -o $@
+
+run_test: $(TEST_EXE)
+	./$(TEST_EXE)
 
 DUMP_AUDIO_EXE = $(OBJDIR)/dump_audio
 DUMP_AUDIO_SRCS = example/dump_audio.c
