@@ -81,10 +81,12 @@ class PolledFile {
 		return metadata;
 #else
 	struct stat st;
-	stat(filename, &st);
+	const int result = stat(filename, &st);
 	Metadata metadata;
-	metadata.size = st.st_size;
-	metadata.time = st.st_mtim;
+	if (result == 0) {
+		metadata.size = st.st_size;
+		metadata.time = st.st_mtim;
+	}
 	return metadata;
 #endif
 	}
