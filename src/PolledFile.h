@@ -179,26 +179,3 @@ public:
 		return false;
 	}
 };
-
-template <int N>
-class PolledProgram : public Program {
-	PollAdaptor* const adaptors_;
-	const char *sources[N];
-
-public:
-	PolledProgram(PollAdaptor *adaptors)
-		: adaptors_(adaptors)
-	{
-		for (int i = 0; i < N; ++i)
-			sources[i] = adaptors_[i].file().data();
-	}
-
-	void poll() {
-		bool updated = false;
-		for (int i = 0; i < N; ++i)
-			updated |= adaptors_[i].consume();
-
-		if (updated)
-			load(ConstArrayView<const char*>(sources, N));
-	}
-};

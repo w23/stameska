@@ -1,36 +1,66 @@
 #pragma once
 
+#include "utils.h"
+
 #include <string_view>
 #include <string>
 #include <map>
-#include <variant>
+#include <vector>
 #include <memory>
+
+namespace shader {
 
 enum class UniformType {
 	Float, Vec2, Vec3, Vec4
 };
 
-class ShaderSource {
+struct UniformDeclaration {
+	UniformType type;
+	std::string name;
+};
+
+typedef std::map<std::string, UniformDeclaration> UniformsMap;
+
+class Source {
 public:
-	typedef std::shared_ptr<ShaderSource> Shared;
-	typedef std::variant<std::string, ShaderSource::Shared> Result;
-	static Result create(const std::string_view& raw_source);
+	Source() {}
+	~Source() {}
+	Source(Source&&) = default;
 
-	struct UniformDeclaration {
-		UniformType type;
-		std::string name;
-	};
-
-	typedef std::map<std::string, UniformDeclaration> UniformsMap;
+	static Source load(const std::string_view& raw_source);
 
 	const std::string& source() const { return source_; }
 	const UniformsMap& uniforms() const { return uniforms_; }
 
-private:
-	ShaderSource(const ShaderSource&) = delete;
-	ShaderSource(std::string&& source, UniformsMap&& uniforms);
-	ShaderSource(ShaderSource&&);
+	Source& operator=(Source&& other) = default;
 
-	const std::string source_;
-	const UniformsMap uniforms_;
+private:
+	Source(const Source&) = delete;
+	Source(std::string&& source, UniformsMap&& uniforms);
+
+	std::string source_;
+	UniformsMap uniforms_;
 };
+
+class Sources {
+public:
+	Sources() {}
+	~Sources() {}
+	Sources(Sources&&) = default;
+
+	static Sources load(const std::vector<Source>& source);
+
+	const std::string& source() const { return source_; }
+	const UniformsMap& uniforms() const { return uniforms_; }
+
+	Sources& operator=(Sources&& other) = default;
+
+private:
+	Sources(const Sources&) = delete;
+	Sources(std::string&& source, UniformsMap&& uniforms);
+
+	std::string source_;
+	UniformsMap uniforms_;
+};
+
+}

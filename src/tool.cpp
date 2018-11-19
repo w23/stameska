@@ -181,6 +181,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 	audio.pos = loop.start;
 
 	MSG("float t = s / %f;", (float)audio.samples_per_tick * sizeof(SAMPLE_TYPE) * 2);
-	video_init(WIDTH, HEIGHT, shader_file);
+	video_init(1920, 1080, shader_file);
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
 }

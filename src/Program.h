@@ -1,27 +1,108 @@
 #pragma once
 
-#include "OpenGL.h"
+#include "ShaderSource.h"
 #include "utils.h"
+#include "OpenGL.h"
 
-#ifndef TOOL
-#define MSG(str) MessageBoxA(NULL, str, "Error", MB_OK)
-#else
-#include "atto/app.h"
-#define MSG(...) aAppDebugPrintf(__VA_ARGS__)
-#endif
+#include <utility>
 
 class Program {
-protected:
-	GLuint name = 0;
+public:
+	Program() {}
+	~Program() {}
+	Program(Program&&) = default;
 
-	static GLuint createFragmentProgram(const ConstArrayView<const char*>& sources) {
-		return createSeparableProgram(GL_FRAGMENT_SHADER, sources);
+	static Program load(const shader::Sources& sources) {
+		return Program(createFragmentProgram(sources));
 	}
 
-	static GLuint createSeparableProgram(GLenum type, const ConstArrayView<const char*>& sources) {
-		const GLuint pid = glCreateShaderProgramv(type, sources.size(), sources.ptr());
+	const Program& use() const {
+		handle_.use();
+		return *this;
+	}
 
-		MSG("%s", sources.ptr()[0]);
+	const Program& setUniform(const char *uname, int i) const {
+		glUniform1i(glGetUniformLocation(handle_.name(), uname), i);
+		return *this;
+	}
+
+	const Program& setUniform(const char *uname, float x) const {
+		glUniform1f(glGetUniformLocation(handle_.name(), uname), x);
+		return *this;
+	}
+
+	const Program& setUniform(const char *uname, float x, float y) const {
+		glUniform2f(glGetUniformLocation(handle_.name(), uname), x, y);
+		return *this;
+	}
+
+	const Program& setUniform(const char *uname, float x, float y, float z) const {
+		glUniform3f(glGetUniformLocation(handle_.name(), uname), x, y, z);
+		return *this;
+	}
+
+	const Program& setUniform(const char *uname, float x, float y, float z, float w) const {
+		glUniform4f(glGetUniformLocation(handle_.name(), uname), x, y, z, w);
+		return *this;
+	}
+
+	void compute() const {
+		glRects(-1, -1, 1, 1);
+	}
+
+	Program& operator=(Program&&) = default;
+
+private:
+	Program(const Program&) = delete;
+
+	class Handle {
+		Handle(const Handle&) = delete;
+		GLuint name_;
+
+	public:
+		Handle() : name_(0) {}
+		explicit Handle(GLuint name) : name_(name) {}
+		Handle(Handle&& other) : name_(other.name_) { other.name_ = 0; }
+		~Handle() {
+			if (name_ > 0)
+				glDeleteProgram(name_);
+		}
+
+		Handle& operator=(Handle&& other) {
+			if (name_ > 0)
+				glDeleteProgram(name_);
+
+			name_ = other.name_;
+			other.name_ = 0;
+			return *this;
+		}
+
+		bool isValid() const { return name_ > 0; }
+
+		GLuint name() const {
+			return name_;
+		}
+
+		bool use() const {
+			if (name_ < 1)
+				return false;
+
+			glUseProgram(name_);
+			return true;
+		}
+	};
+
+	Handle handle_;
+
+	static Handle createFragmentProgram(const shader::Sources& sources) {
+		return createSeparableProgram(GL_FRAGMENT_SHADER, sources.source().c_str());
+	}
+
+	static Handle createSeparableProgram(GLenum type, const char* sources) {
+		Handle pid = Handle(glCreateShaderProgramv(type, 1, &sources));
+
+		if (!pid.isValid())
+			return Handle();
 
 		{
 			int result;
@@ -30,59 +111,20 @@ protected:
 #define glGetObjectParameterivARB ((PFNGLGETOBJECTPARAMETERIVARBPROC) wglGetProcAddress("glGetObjectParameterivARB"))
 #define glGetInfoLogARB ((PFNGLGETINFOLOGARBPROC) wglGetProcAddress("glGetInfoLogARB"))
 #endif
-			glGetObjectParameterivARB(pid, GL_OBJECT_LINK_STATUS_ARB, &result);
-			glGetInfoLogARB(pid, 2047, NULL, (char*)info);
+			glGetObjectParameterivARB(pid.name(), GL_OBJECT_LINK_STATUS_ARB, &result);
+			glGetInfoLogARB(pid.name(), 2047, NULL, (char*)info);
 			if (!result)
 			{
 				MSG("Shader error: %s", info);
-				//MessageBoxA(NULL, info, "LINK", 0x00000000L);
 #ifndef TOOL
 				ExitProcess(0);
 #endif
-				glDeleteProgram(pid);
-				return 0;
+				return Handle();
 			}
 		}
 
 		return pid;
 	}
 
-public:
-	void load(const ConstArrayView<const char*>& sources) {
-		const GLuint  new_name = createFragmentProgram(sources);
-		if (new_name > 0) {
-			glDeleteProgram(name);
-			name = new_name;
-		}
-	}
-
-	bool use(int w, int h, float t) const {
-		if (!name)
-			return false;
-
-		glUseProgram(name);
-		//glUniform1f(glGetUniformLocation(name, "t"), t);
-		glUniform1i(glGetUniformLocation(name, "s"), (int)t);
-		glUniform2f(glGetUniformLocation(name, "R"), w, h);
-		return true;
-	}
-
-	const Program& setUniform(const char *uname, int i) const {
-		glUniform1i(glGetUniformLocation(name, uname), i);
-		return *this;
-	}
-
-	const Program& setUniform(const char *uname, float f) const {
-		glUniform1f(glGetUniformLocation(name, uname), f);
-		return *this;
-	}
-
-	const Program& setUniform(const char *uname, float x, float y, float z, float w) const {
-		glUniform4f(glGetUniformLocation(name, uname), x, y, z, w);
-		return *this;
-	}
-
-	void compute() const {
-		glRects(-1, -1, 1, 1);
-	}
+	Program(Handle&& handle) : handle_(std::move(handle)) {}
 };
