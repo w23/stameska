@@ -106,7 +106,7 @@ class PolledFile::Impl {
 		std::vector<unsigned char> buffer;
 		buffer.resize(size);
 		DWORD bytes_read = 0;
-		if (!ReadFile(fh, buffer, size, &bytes_read, NULL) || bytes_read != size) {
+		if (!ReadFile(fh, buffer.data(), size, &bytes_read, NULL) || bytes_read != size) {
 			MSG("Cannot read %d bytes from file '%s'", size, filename);
 			bytes_read = 0;
 		}
@@ -138,7 +138,7 @@ class PolledFile::Impl {
 	}
 
 public:
-	Impl(const std::string_view& filename) : filename_(filename) {}
+	Impl(string_view filename) : filename_(filename) {}
 
 	bool poll() {
 		const Metadata new_metadata = readFileMetadata(filename_.c_str());
@@ -163,7 +163,7 @@ private:
 	Metadata metadata_;
 };
 
-PolledFile::PolledFile(const std::string_view& filename) : impl_(new Impl(filename)) {}
+PolledFile::PolledFile(string_view filename) : impl_(new Impl(filename)) {}
 PolledFile::~PolledFile() {}
 
 bool PolledFile::poll(unsigned int poll_seq) {

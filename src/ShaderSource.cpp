@@ -1,6 +1,6 @@
 #include "ShaderSource.h"
 
-static bool startsWithAtPos(const std::string_view& str, size_t pos, const std::string_view& substr) {
+static bool startsWithAtPos(string_view str, size_t pos, string_view substr) {
 	if (pos >= str.size())
 		return false;
 
@@ -28,7 +28,7 @@ Source::Source(std::string&& source, UniformsMap&& uniforms)
 {
 }
 
-Source Source::load(const std::string_view& raw_source) {
+Source Source::load(string_view raw_source) {
 	std::string source;
 	UniformsMap uniforms;
 
@@ -36,10 +36,10 @@ Source Source::load(const std::string_view& raw_source) {
 	// definitions will become uniforms and will be replaced by just "name".
 	// Everything in-between these definitions are chunks that will be copied
 	// as-is.
-	std::string_view::size_type chunk_begin = 0;
+	size_t chunk_begin = 0;
 	for (;;) {
-		const std::string_view::size_type chunk_end = raw_source.find("$(", chunk_begin);
-		const bool found = chunk_end != std::string_view::npos;
+		const size_t chunk_end = raw_source.find("$(", chunk_begin);
+		const bool found = chunk_end != std::string::npos;
 
 		// Copy chunk regardless of whether a new inline uniform was found
 		source.append(raw_source.cbegin() + chunk_begin,

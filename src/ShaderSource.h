@@ -1,8 +1,8 @@
 #pragma once
 
+#include "string_view.h"
 #include "utils.h"
 
-#include <string_view>
 #include <string>
 #include <map>
 #include <vector>
@@ -27,7 +27,7 @@ public:
 	~Source() {}
 	Source(Source&&) = default;
 
-	static Source load(const std::string_view& raw_source);
+	static Source load(string_view raw_source);
 
 	const std::string& source() const { return source_; }
 	const UniformsMap& uniforms() const { return uniforms_; }
