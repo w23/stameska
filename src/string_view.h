@@ -1,5 +1,10 @@
 #pragma once
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1910
+#include <string_view>
+using string_view = std::string_view;
+#else
+
 #include <string>
 #include <cstring>
 
@@ -70,3 +75,4 @@ private:
 	const char *begin_;
 	size_t length_;
 };
+#endif
