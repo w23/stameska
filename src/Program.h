@@ -12,6 +12,8 @@ public:
 	~Program() {}
 	Program(Program&&) = default;
 
+	bool valid() const { return handle_.valid(); }
+
 	static Program load(const shader::Sources& sources) {
 		return Program(createFragmentProgram(sources));
 	}
@@ -77,7 +79,7 @@ private:
 			return *this;
 		}
 
-		bool isValid() const { return name_ > 0; }
+		bool valid() const { return name_ > 0; }
 
 		GLuint name() const {
 			return name_;
@@ -101,7 +103,7 @@ private:
 	static Handle createSeparableProgram(GLenum type, const char* sources) {
 		Handle pid = Handle(glCreateShaderProgramv(type, 1, &sources));
 
-		if (!pid.isValid())
+		if (!pid.valid())
 			return Handle();
 
 		{
@@ -116,9 +118,6 @@ private:
 			if (!result)
 			{
 				MSG("Shader error: %s", info);
-#ifndef TOOL
-				ExitProcess(0);
-#endif
 				return Handle();
 			}
 		}

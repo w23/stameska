@@ -164,7 +164,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 		audio.samples = ftell(f) / (sizeof(float) * 2);
 		fseek(f, 0L, SEEK_SET);
 		audio.data = new float[audio.samples * 2];
-		fread(audio.data, sizeof(float) * 2, audio.samples, f);
+		audio.samples = fread(audio.data, sizeof(float) * 2, audio.samples, f);
 		fclose(f);
 	} else {
 		aAppMessage("No audio file given, continuing in silence");

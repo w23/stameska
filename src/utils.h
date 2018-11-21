@@ -18,11 +18,7 @@ public:
 	const T *ptr() const { return ptr_; }
 };
 
-#ifndef TOOL
-#define MSG(str) MessageBoxA(NULL, str, "Error", MB_OK)
-#else
 #include "atto/app.h"
 #define MSG(...) aAppDebugPrintf(__VA_ARGS__)
-#endif
 
 std::string format(const char* str, ...) __attribute__ ((format (printf, 1, 2)));

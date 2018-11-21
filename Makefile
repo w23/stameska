@@ -53,6 +53,7 @@ TOOL_SRCS = \
 	3p/atto/src/app_linux.c \
 	3p/atto/src/app_x11.c \
 	src/utils.cpp \
+	src/PolledFile.cpp \
 	src/ShaderSource.cpp \
 	src/video.cpp \
 	src/tool.cpp
