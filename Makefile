@@ -2,8 +2,7 @@
 .DEFAULT:
 MAKEFLAGS += -r --no-print-directory -j $(shell nproc)
 
-INTRO=example
-BUILDDIR ?= build
+BUILDDIR = build
 CC ?= cc
 CXX ?= c++
 CFLAGS += -Wall -Wextra -Werror -pedantic -I. -I3p/atto -I3p -Isrc
@@ -37,16 +36,9 @@ $(OBJDIR)/%.asm.obj: %.asm shaders/intro.inc shaders/blitter.inc
 	@mkdir -p $(dir $@)
 	nasm -f win32 -i4klang_win32/ $< -o $@
 
-$(OBJDIR)/%.c.o32: %.c
-	@mkdir -p $(dir $@)
-	$(COMPILE.c) -m32 -c $< -o $@
-
 $(OBJDIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(COMPILE.cc) -c $< -o $@
-
-$(OBJDIR)/4klang.o32: 4klang.asm ./4klang_linux/4klang.inc
-	nasm -f elf32 -I./4klang_linux/ 4klang.asm -o $@
 
 TOOL_EXE = $(OBJDIR)/tool
 TOOL_SRCS = \
@@ -83,6 +75,6 @@ run_test: $(TEST_EXE)
 	./$(TEST_EXE)
 
 clean:
-	rm $(BUILDDIR)
+	rm -rf build
 
 .PHONY: all clean
