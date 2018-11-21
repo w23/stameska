@@ -1,6 +1,6 @@
 .SUFFIXES:
 .DEFAULT:
-MAKEFLAGS += -r --no-print-directory -j $(shell nproc)
+MAKEFLAGS += -r --no-print-directory -j$(shell nproc)
 
 BUILDDIR = build
 CC ?= cc
@@ -47,6 +47,7 @@ TOOL_SRCS = \
 	src/utils.cpp \
 	src/PolledFile.cpp \
 	src/ShaderSource.cpp \
+	src/Timeline.cpp \
 	src/video.cpp \
 	src/tool.cpp
 
@@ -54,8 +55,11 @@ TOOL_OBJS = $(TOOL_SRCS:%=$(OBJDIR)/%.o)
 TOOL_DEPS = $(TOOL_OBJS:%=%.d)
 -include $(TOOL_DEPS)
 
-$(TOOL_EXE): $(TOOL_OBJS)
-	$(CXX) $(LIBS) $^ -o $@
+3p/rocket/lib/librocket.a:
+	MAKEFLAGS= make -C 3p/rocket lib/librocket.a
+
+$(TOOL_EXE): $(TOOL_OBJS) 3p/rocket/lib/librocket.a
+	$(CXX) $(LIBS) 3p/rocket/lib/librocket.a $^ -o $@
 
 tool: $(TOOL_EXE)
 

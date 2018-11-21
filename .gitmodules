@@ -1,3 +1,6 @@
 [submodule "tool/atto"]
 	path = 3p/atto
 	url = https://github.com/w23/atto.git
+[submodule "3p/rocket"]
+	path = 3p/rocket
+	url = https://github.com/rocket/rocket.git

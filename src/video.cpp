@@ -8,6 +8,7 @@
 
 #include "ShaderSource.h"
 #include "PolledFile.h"
+#include "Timeline.h"
 
 #include <memory>
 #include <vector>
@@ -83,6 +84,8 @@ public:
 	const Program& get() const { return program_; }
 	const Program& operator->() const { return program_; }
 
+	const shader::UniformsMap& uniforms() const { return source_->get().uniforms(); }
+
 private:
 	const std::shared_ptr<PolledShaderSource> source_;
 	Program program_;
@@ -115,7 +118,7 @@ void video_init(int w, int h, const char *shader) {
 	state.program.reset(new PolledShaderProgram(state.shader_source));
 }
 
-void video_paint(float tick) {
+void video_paint(float tick, Timeline &timeline) {
 	static unsigned int poll_seq = 0;
 	poll_seq++;
 
@@ -124,9 +127,31 @@ void video_paint(float tick) {
 	glClearColor(1, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (state.program->get().valid())
-		state.program->get().use()
-			.setUniform("R", state.output.w, state.output.h)
+	if (state.program->get().valid()) {
+		state.program->get().use();
+
+		const Program& p = state.program->get();
+
+		for (const auto it: state.program->uniforms()) {
+			const Value v = timeline.getValue(it.first, static_cast<int>(it.second.type) + 1);
+			switch (it.second.type) {
+				case shader::UniformType::Float:
+					p.setUniform(it.first.c_str(), v.x);
+					break;
+				case shader::UniformType::Vec2:
+					p.setUniform(it.first.c_str(), v.x, v.y);
+					break;
+				case shader::UniformType::Vec3:
+					p.setUniform(it.first.c_str(), v.x, v.y, v.z);
+					break;
+				case shader::UniformType::Vec4:
+					p.setUniform(it.first.c_str(), v.x, v.y, v.z, v.w);
+					break;
+			}
+		}
+
+		state.program->get().setUniform("R", state.output.w, state.output.h)
 			.setUniform("t", tick)
 			.compute();
+	}
 }

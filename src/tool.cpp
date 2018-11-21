@@ -1,14 +1,19 @@
-#include <stdio.h>
+#include "Timeline.h"
 
 #include "video.h"
-#include "atto/app.h"
-#include "atto/platform.h"
+#include "utils.h"
 #define AUDIO_IMPLEMENT
 #include "aud_io.h"
+#include "atto/app.h"
+#include "atto/platform.h"
 
-#define MSG(...) aAppDebugPrintf(__VA_ARGS__)
+#include <stdio.h>
+#include <string.h>
+#include <memory>
 
 #define SAMPLE_TYPE float
+
+static std::unique_ptr<Timeline> timeline;
 
 static struct {
 	int samples_per_tick;
@@ -55,7 +60,8 @@ static struct {
 } fpstat;
 
 static void paint(ATimeUs ts, float dt) {
-	(void)dt;
+	(void)ts; (void)dt;
+
 	const ATimeUs last_print_delta = ts - fpstat.last_print;
 	if (last_print_delta > 1000000) {
 		MSG("avg fps: %.1f", fpstat.frames * 1000000.f / last_print_delta);
@@ -65,11 +71,10 @@ static void paint(ATimeUs ts, float dt) {
 
 	++fpstat.frames;
 
-	(void)ts; (void)dt;
-	const int byte_pos = audio.pos * sizeof(SAMPLE_TYPE) * 2;
-	//video_paint((audio.pos /* + (loop.paused * rand() % audio.samples_per_tick / 2)*/) / (float)audio.samples_per_tick);// ts / 1e6f);
-	video_paint(byte_pos + (loop.paused * rand() % audio.samples_per_tick) * sizeof(SAMPLE_TYPE) * 2);
-	//video_paint(byte_pos);
+	const float time_row = (float)audio.pos / audio.samples_per_tick;
+	timeline->update(time_row);
+
+	video_paint(time_row, *timeline.get());
 }
 
 const int pattern_length = 64;
@@ -181,6 +186,19 @@ void attoAppInit(struct AAppProctable *proctable) {
 	audio.pos = loop.start;
 
 	MSG("float t = s / %f;", (float)audio.samples_per_tick * sizeof(SAMPLE_TYPE) * 2);
+
 	video_init(1920, 1080, shader_file);
+
+	timeline.reset(new Timeline(
+		[](int pause) {
+			loop.paused = pause;
+		},
+		[](int row) {
+			audio.pos = row * audio.samples_per_tick;
+		},
+		[]() {
+			return loop.paused;
+		}
+	));
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
 }
