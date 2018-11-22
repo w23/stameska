@@ -7,10 +7,14 @@
 #include "atto/app.h"
 #include "atto/platform.h"
 
+#include "json.hpp"
 #include <stdio.h>
 #include <string.h>
 #include <memory>
 #include <atomic>
+#include <fstream>
+
+using json = nlohmann::json;
 
 #define SAMPLE_TYPE float
 
@@ -143,28 +147,57 @@ static void key(ATimeUs ts, AKey key, int down) {
 	}
 }
 
-#define aAppMessage aAppDebugPrintf
+struct Arg {
+	const char *arg;
+	const char **ptr;
+	const char *info;
+};
 
-void attoAppInit(struct AAppProctable *proctable) {
-	proctable->resize = resize;
-	proctable->paint = paint;
-	proctable->key = key;
-
-	loop.set = 0;
-	fpstat.last_print = 0;
-
-	if (a_app_state->argc < 2) {
-		aAppMessage("Usage: %s shader.glsl", a_app_state->argv[0]);
-		aAppTerminate(1);
+static int parseArgs(int argc, const char * const *argv, const struct Arg *args, int nargs) {
+	int i = 1;
+	for (; i < argc; ++i) {
+		int j = 0;
+		for (; j < nargs; ++j) {
+			const struct Arg *a = args + j;
+			if (strcmp(argv[i], a->arg) == 0) {
+				++i;
+				if (i >= argc) {
+					MSG("Error: option %s requires an argument", a->arg);
+					return -1;
+				}
+				*a->ptr = argv[i];
+				break;
+			}
+		}
+		if (j == nargs)
+			return -i;
 	}
+	return i - 1;
+}
 
-	const char *shader_file = a_app_state->argv[1];
-	aAppMessage("using shader file %s", shader_file);
-	// TODO args
-	// FIXME args
-	audio.samples_per_tick = 5000;
+json readJson(const char *filename) {
+	try {
+		std::ifstream i(filename, std::ifstream::in);
+		json j;
+		i >> j;
+		return j;
+	} catch (const std::exception& e) {
+		MSG("Error reading file %s: %s", filename, e.what());
+		return json();
+	}
+}
 
-	FILE *f = fopen("audio.raw", "rb");
+bool loadAudio(const char *filename) {
+	MSG("Reading audio settings from file %s", filename);
+	json j = readJson(filename);
+	if (j.is_null())
+		j = json::object();
+
+	FILE *f = nullptr;
+	audio.samples_per_tick = j.value("samples_per_tick", 4096);
+	const std::string& raw_file = j.value("raw_file", "");
+	f = fopen(raw_file.c_str(), "rb");
+
 	if (f) {
 		fseek(f, 0L, SEEK_END);
 		audio.samples = ftell(f) / (sizeof(float) * 2);
@@ -173,8 +206,8 @@ void attoAppInit(struct AAppProctable *proctable) {
 		audio.samples = fread(audio.data, sizeof(float) * 2, audio.samples, f);
 		fclose(f);
 	} else {
-		aAppMessage("No audio file given, continuing in silence");
-		audio.samples = 44100 * 120;
+		MSG("No audio file given, continuing in silence");
+		audio.samples = 44100 * j.value("duration_sec", 120);
 		audio.data = NULL;
 	}
 
@@ -187,8 +220,39 @@ void attoAppInit(struct AAppProctable *proctable) {
 	audio.pos = loop.start;
 
 	MSG("float t = s / %f;", (float)audio.samples_per_tick * sizeof(SAMPLE_TYPE) * 2);
+	return true;
+}
 
-	video_init(1920, 1080, shader_file);
+void attoAppInit(struct AAppProctable *proctable) {
+	proctable->resize = resize;
+	proctable->paint = paint;
+	proctable->key = key;
+
+	loop.set = 0;
+	fpstat.last_print = 0;
+
+	const char *audio_config = NULL;
+	const char *video_config = NULL;
+
+	static const Arg args[] = {
+		{"-a", &audio_config, "Audio/sync configuration file" },
+		{"-v", &video_config, "Video configuration file" },
+	};
+
+	const int parsed = parseArgs(a_app_state->argc, a_app_state->argv, args, (int)COUNTOF(args));
+	if (parsed < 0 || !audio_config || !video_config) {
+		MSG("Usage: %s", a_app_state->argv[0]);
+		for (int i = 0; i < (int)COUNTOF(args); ++i)
+			MSG("\t%s\t-\t%s", args[i].arg, args[i].info);
+		aAppTerminate(1);
+	}
+
+	if (!loadAudio(audio_config)) {
+		aAppTerminate(2);
+	}
+
+	MSG("using shader file %s", video_config);
+	video_init(1920, 1080, video_config);
 
 	timeline.reset(new Timeline(
 		[](int pause) {
