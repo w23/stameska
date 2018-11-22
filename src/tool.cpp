@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory>
+#include <atomic>
 
 #define SAMPLE_TYPE float
 
@@ -19,11 +20,11 @@ static struct {
 	int samples_per_tick;
 	int samples;
 	float *data;
-	int pos;
+	std::atomic<int> pos;
 } audio;
 
 static struct {
-	int paused;
+	std::atomic<int> paused;
 	int start, end;
 	int set;
 } loop;
@@ -197,7 +198,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 			audio.pos = row * audio.samples_per_tick;
 		},
 		[]() {
-			return loop.paused;
+			return loop.paused.load();
 		}
 	));
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
