@@ -32,6 +32,7 @@
     <ClInclude Include="src\PolledFile.h" />
     <ClInclude Include="src\PolledResource.h" />
     <ClInclude Include="src\Program.h" />
+    <ClInclude Include="src\ProjectSettings.h" />
     <ClInclude Include="src\ShaderSource.h" />
     <ClInclude Include="src\string_view.h" />
     <ClInclude Include="src\Texture.h" />
@@ -44,6 +45,7 @@
     <ClCompile Include="3p\rocket\lib\device.c" />
     <ClCompile Include="3p\rocket\lib\track.c" />
     <ClCompile Include="src\PolledFile.cpp" />
+    <ClCompile Include="src\ProjectSettings.cpp" />
     <ClCompile Include="src\ShaderSource.cpp" />
     <ClCompile Include="src\Text.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
