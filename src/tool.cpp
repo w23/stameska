@@ -262,7 +262,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 			audio.pos = row * audio.samples_per_tick;
 		},
 		[]() {
-			return loop.paused.load();
+			return !loop.paused.load();
 		}
 	));
 	audioOpen(44100, 2, nullptr, audioCallback, nullptr, nullptr);
