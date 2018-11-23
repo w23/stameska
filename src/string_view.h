@@ -14,6 +14,8 @@ public:
 	string_view(const char *str, size_t len) : begin_(str), length_(len) {}
 	string_view(const std::string& str) : begin_(str.c_str()), length_(str.length()) {}
 
+	const char *data() const { return begin_; }
+
 	size_t size() const { return length_; }
 	size_t length() const { return length_; }
 

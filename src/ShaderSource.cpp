@@ -10,7 +10,9 @@ static bool startsWithAtPos(string_view str, size_t pos, string_view substr) {
 	return 0 == str.substr(pos, substr.size()).compare(substr);
 }
 
-static const char *uniformName(shader::UniformType type) {
+namespace shader {
+
+const char *uniformName(shader::UniformType type) {
 	switch(type) {
 		case shader::UniformType::Float: return "float";
 		case shader::UniformType::Vec2: return "vec2";
@@ -19,8 +21,6 @@ static const char *uniformName(shader::UniformType type) {
 		default: return "INVALID";
 	}
 }
-
-namespace shader {
 
 Source::Source(std::string&& source, UniformsMap&& uniforms)
 	: source_(std::move(source))
@@ -115,37 +115,6 @@ Source Source::load(string_view raw_source) {
 	} // for (;;) raw_source
 
 	return Source(std::move(source), std::move(uniforms));
-}
-
-Sources Sources::load(const std::vector<Source>& sources) {
-	UniformsMap uniforms;
-
-	// Merge all uniforms
-	for (const auto& src: sources) {
-		for (const auto& uni: src.uniforms()) {
-			const UniformsMap::const_iterator it = uniforms.find(uni.first);
-			if (it != uniforms.end()) {
-				if (it->second.type != uni.second.type)
-					throw std::runtime_error(format("Type mismatch for uniform %s: %s != %s",
-							uni.first.c_str(), uniformName(uni.second.type), uniformName(it->second.type)));
-			} else
-				uniforms[uni.first] = uni.second;
-		}
-	}
-
-	// Create unifor declaration header
-	std::string source;
-	for (const auto& uni: uniforms)
-		source += format("uniform %s %s;\n", uniformName(uni.second.type), uni.second.name.c_str());
-
-	MSG("%s", source.c_str());
-
-	for( const auto& src: sources) {
-		source += src.source();
-		source += "\n";
-	}
-
-	return Sources(std::move(source), std::move(uniforms));
 }
 
 Sources::Sources(std::string&& source, UniformsMap&& uniforms)

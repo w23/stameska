@@ -1,0 +1,7 @@
+{
+	"programs": {
+		"main": {
+			"sources": [ "simple.glsl" ]
+		}
+	}
+}

@@ -1,6 +1,6 @@
 {
 	"video": {
-		"config_file": "simple.glsl"
+		"config_file": "simple_video.json"
 	},
 	"audio": {
 		"samplerate": 44100,

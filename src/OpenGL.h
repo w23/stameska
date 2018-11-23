@@ -34,11 +34,11 @@
   X(PFNGLCHECKFRAMEBUFFERSTATUSPROC, CheckFramebufferStatus) \
 
 #ifdef _WIN32
-namespace {
-#define GL_DECLARE_FUNC(type, name) type gl ## name;
-	GL_FUNC_LIST(GL_DECLARE_FUNC)
+#ifndef GL_DECLARE_FUNC 
+#define GL_DECLARE_FUNC(type, name) extern type gl ## name;
+#endif
+GL_FUNC_LIST(GL_DECLARE_FUNC)
 #undef GL_DECLARE_FUNC
-}
 
 #define GL_LOAD_FUNC(type, name) gl ## name = (type)wglGetProcAddress("gl" # name);
 #define GL_LOAD_FUNCS GL_FUNC_LIST(GL_LOAD_FUNC)

@@ -39,6 +39,7 @@
     <ClInclude Include="src\Timeline.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\video.h" />
+    <ClInclude Include="src\VideoEngine.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3p\atto\src\app_windows.c" />
@@ -57,6 +58,7 @@
     <ClCompile Include="src\tool.cpp" />
     <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\video.cpp" />
+    <ClCompile Include="src\VideoEngine.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AA462482-D90E-49F9-8488-5348955A6ADB}</ProjectGuid>

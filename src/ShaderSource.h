@@ -14,6 +14,8 @@ enum class UniformType {
 	Float, Vec2, Vec3, Vec4
 };
 
+const char *uniformName(shader::UniformType type);
+
 struct UniformDeclaration {
 	UniformType type;
 	std::string name;
@@ -48,7 +50,35 @@ public:
 	~Sources() {}
 	Sources(Sources&&) = default;
 
-	static Sources load(const std::vector<Source>& source);
+	template <typename I>
+	static Sources load(I begin, I end) {
+		UniformsMap uniforms;
+
+		// Merge all uniforms
+		for (I src = begin; src < end; ++src) {
+			for (const auto &uni: src->uniforms()) {
+				const UniformsMap::const_iterator it = uniforms.find(uni.first);
+				if (it != uniforms.end()) {
+					if (it->second.type != uni.second.type)
+						throw std::runtime_error(format("Type mismatch for uniform %s: %s != %s",
+								uni.first.c_str(), uniformName(uni.second.type), uniformName(it->second.type)));
+				} else
+					uniforms[uni.first] = uni.second;
+			}
+		}
+
+		// Create unifor declaration header
+		std::string source;
+		for (const auto &uni: uniforms)
+			source += format("uniform %s %s;\n", uniformName(uni.second.type), uni.second.name.c_str());
+
+		for (I src = begin; src < end; ++src) {
+			source += src->source();
+			source += "\n";
+		}
+
+		return Sources(std::move(source), std::move(uniforms));
+	}
 
 	const std::string& source() const { return source_; }
 	const UniformsMap& uniforms() const { return uniforms_; }

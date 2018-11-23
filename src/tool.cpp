@@ -167,7 +167,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	MSG("float t = s / %f;", (float)settings.audio.samples_per_row * sizeof(float) * settings.audio.channels);
 
-	video_init(1920, 1080, settings.video.config_filename.c_str());
+	video_init(settings.video.config_filename.c_str());
 
 	timeline.reset(new Timeline(
 		[](int pause) {
