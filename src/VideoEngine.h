@@ -8,6 +8,7 @@
 using json = nlohmann::json;
 class Timeline;
 class PolledShaderSource;
+class PolledShaderSources;
 class PolledShaderProgram;
 
 class VideoEngine {
@@ -21,8 +22,10 @@ public:
 
 private:
 	void readPrograms(const json& j);
+	void readShaders(const json& j);
 
 private:
-	std::map<std::string, std::shared_ptr<PolledShaderSource>> shader_sources_;
-	std::map<std::string, std::unique_ptr<PolledShaderProgram>> programs_;
+	std::map<std::string, std::shared_ptr<PolledShaderSource>> shader_source_;
+	std::map<std::string, std::shared_ptr<PolledShaderSources>> shader_sources_;
+	std::map<std::string, std::unique_ptr<PolledShaderProgram>> program_;
 };

@@ -1,7 +1,13 @@
 {
+	"shaders": {
+		"simple": {
+			"version": 140,
+			"sources": [ "simple.glsl" ]
+		}
+	},
 	"programs": {
 		"main": {
-			"sources": [ "simple.glsl" ]
+			"fragment": "simple"
 		}
 	}
 }

@@ -55,9 +55,10 @@ private:
 
 class PolledShaderSources : public PolledResource {
 public:
-	PolledShaderSources(const std::vector<std::shared_ptr<PolledShaderSource>>& polled_sources)
+	PolledShaderSources(int version, const std::vector<std::shared_ptr<PolledShaderSource>>& polled_sources)
+		: version_(version)
 		// .... oh god
-		: polled_sources_([&polled_sources]() {
+		, polled_sources_([&polled_sources]() {
 		std::vector<PollMux<PolledShaderSource>> ps;
 		for (const auto& it : polled_sources) {
 			ps.emplace_back(PollMux<PolledShaderSource>(it));
@@ -76,7 +77,7 @@ public:
 				if (!need_update)
 					return false;
 
-				sources_ = shader::Sources::load(
+				sources_ = shader::Sources::load(version_,
 					MuxShaderConstIterator(polled_sources_.cbegin()),
 					MuxShaderConstIterator(polled_sources_.cend()));
 				return endUpdate();
@@ -104,6 +105,7 @@ private:
 	};
 
 private:
+	const int version_;
 	std::vector<PollMux<PolledShaderSource>> polled_sources_;
 	shader::Sources sources_;
 };
@@ -141,42 +143,59 @@ private:
 VideoEngine::VideoEngine(string_view config) {
 	const json root = json::parse(config.data(), config.data() + config.size());
 
+	readShaders(root.at("shaders"));
 	readPrograms(root.at("programs"));
 }
 
 VideoEngine::~VideoEngine() {}
 
+void VideoEngine::readShaders(const json& j) {
+	for (json::const_iterator it = j.begin(); it != j.end(); ++it) {
+		const std::string &name = it.key();
+		const json &jshader = it.value();
+		const int version = jshader.value("version", 450);
+		const json &jsources = jshader.at("sources");
+
+		std::vector<std::shared_ptr<PolledShaderSource>> sources;
+		for (const auto &jsrc: jsources) {
+			const std::string& source_file = jsrc.get<std::string>();
+			std::shared_ptr<PolledShaderSource> source;
+			const auto cached = shader_source_.find(name);
+			if (cached != shader_source_.end()) {
+				source = cached->second;
+			} else {
+				MSG("Adding shader file %s", source_file.c_str());
+				source.reset(new PolledShaderSource(std::shared_ptr<PolledFile>(new PolledFile(source_file))));
+				shader_source_[source_file] = source;
+			}
+			sources.emplace_back(std::move(source));
+		}
+
+		MSG("Adding shader %s", name.c_str());
+		shader_sources_[name]  = std::shared_ptr<PolledShaderSources>(new PolledShaderSources(version, std::move(sources)));
+	}
+}
+
 void VideoEngine::readPrograms(const json& j) {
 	for (json::const_iterator it = j.begin(); it != j.end(); ++it) {
 		const std::string& name = it.key();
 		const json& jprog = it.value();
-		std::vector<std::shared_ptr<PolledShaderSource>> sources;
-		const json& jsrcs = jprog.at("sources");
-		for (const auto &jt : jsrcs) {
-			const std::string& name = jt.get<std::string>();
-			std::shared_ptr<PolledShaderSource> source;
-			const auto cached = shader_sources_.find(name);
-			if (cached != shader_sources_.end()) {
-				source = cached->second;
-			} else {
-				source.reset(new PolledShaderSource(std::shared_ptr<PolledFile>(new PolledFile(name))));
-			}
-			sources.emplace_back(std::move(source));
-		}
-		std::shared_ptr<PolledShaderSources> polled_sources(new PolledShaderSources(std::move(sources)));
-		programs_[name] = std::move(std::unique_ptr<PolledShaderProgram>(new PolledShaderProgram(std::move(polled_sources))));
+
+		const std::string& shader_name = jprog.at("fragment");
+		MSG("Adding program %s with shader %s", name.c_str(), shader_name.c_str());
+		program_[name] = std::unique_ptr<PolledShaderProgram>(new PolledShaderProgram(shader_sources_[shader_name]));
 	}
 }
 
 void VideoEngine::poll(unsigned int poll_seq) {
-	for (auto &p : programs_)
+	for (auto &p : program_)
 		p.second->poll(poll_seq);
 }
 
 void VideoEngine::draw(int w, int h, float row, Timeline &timeline) {
-	const auto& main_program = programs_.find("main");
+	const auto& main_program = program_.find("main");
 
-	if (main_program == programs_.end())
+	if (main_program == program_.end())
 		return;
 
 	const Program& p = main_program->second->get();

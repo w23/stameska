@@ -51,7 +51,7 @@ public:
 	Sources(Sources&&) = default;
 
 	template <typename I>
-	static Sources load(I begin, I end) {
+	static Sources load(int version, I begin, I end) {
 		UniformsMap uniforms;
 
 		// Merge all uniforms
@@ -68,7 +68,7 @@ public:
 		}
 
 		// Create unifor declaration header
-		std::string source;
+		std::string source = format("#version %d\n", version);
 		for (const auto &uni: uniforms)
 			source += format("uniform %s %s;\n", uniformName(uni.second.type), uni.second.name.c_str());
 
