@@ -1,0 +1,13 @@
+{
+	"shaders": {
+		"testcube": {
+			"version": 140,
+			"sources": [ "testcube.glsl" ]
+		}
+	},
+	"programs": {
+		"main": {
+			"fragment": "testcube"
+		}
+	}
+}
