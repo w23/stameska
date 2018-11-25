@@ -1,7 +1,5 @@
 <sync rows="128">
 	<tracks>
-		<track name="R.x"/>
-		<track name="R.y"/>
 		<track name="radius">
 			<key interpolation="1" value="1" row="0"/>
 			<key interpolation="3" value="2" row="8"/>

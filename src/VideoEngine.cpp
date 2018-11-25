@@ -6,6 +6,7 @@
 #include "Timeline.h"
 
 #include <vector>
+#include <set>
 
 /* FIXME
 const GLuint Framebuffer::draw_buffers_[4] = {
@@ -192,6 +193,8 @@ void VideoEngine::poll(unsigned int poll_seq) {
 		p.second->poll(poll_seq);
 }
 
+static const std::set<std::string> internal_uniforms = {"R", "t"};
+
 void VideoEngine::draw(int w, int h, float row, Timeline &timeline) {
 	const auto& main_program = program_.find("main");
 
@@ -205,6 +208,9 @@ void VideoEngine::draw(int w, int h, float row, Timeline &timeline) {
 	p.use();
 
 	for (const auto &it: main_program->second->uniforms()) {
+		if (internal_uniforms.find(it.first) != internal_uniforms.end())
+			continue;
+
 		const Value v = timeline.getValue(it.first, static_cast<int>(it.second.type) + 1);
 		switch (it.second.type) {
 			case shader::UniformType::Float:
