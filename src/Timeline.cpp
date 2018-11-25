@@ -17,7 +17,6 @@ Timeline::Timeline(PauseCallback&& pause, SetRowCallback&& setRow, IsPlayingCall
 
 Timeline::~Timeline() {
 	sync_save_tracks(rocket_.get());
-	sync_destroy_device(rocket_.get());
 }
 
 void Timeline::update(float row) {
