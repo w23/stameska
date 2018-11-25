@@ -83,23 +83,24 @@ class PolledFile::Impl {
 		if (result == 0) {
 			metadata.size = st.st_size;
 			metadata.time = st.st_mtim;
-		}
+		} else
+			MSG("Cannot read %s stat: errno=%d", errno);
 		return metadata;
 #endif
 	}
 
-	static int readFileContents(const char *filename, std::vector<unsigned char>& out_buffer) {
+	static bool readFileContents(const char *filename, std::vector<unsigned char>& out_buffer) {
 #ifdef _WIN32
 		const HANDLE fh = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (fh == INVALID_HANDLE_VALUE) {
 			MSG("Cannot open file '%s'", filename);
-			return 0;
+			return false;
 		}
 
 		LARGE_INTEGER splurge_integer;
 		if (!GetFileSizeEx(fh, &splurge_integer) || splurge_integer.QuadPart > 1024 * 1024) {
 			MSG("Cannot get file '%s' size or size is too large", filename);
-			return 0;
+			return false;
 		}
 
 		const size_t size = splurge_integer.QuadPart;
@@ -118,11 +119,15 @@ class PolledFile::Impl {
 		const int fd = open(filename, O_RDONLY);
 		if (fd < 0) {
 			MSG("Cannot open file %s", filename);
-			return 0;
+			return false;
 		}
 
 		struct stat st;
-		stat(filename, &st);
+		const int result = stat(filename, &st);
+		if (result != 0) {
+			MSG("Cannot read %s stat: errno=%d", errno);
+			return false;
+		}
 
 		std::vector<unsigned char> buffer;
 		buffer.resize(st.st_size);
@@ -151,6 +156,7 @@ public:
 		if (!readFileContents(filename_.c_str(), buffer_))
 			return false;
 
+		MSG("Read file %s, %d bytes", filename_.c_str(), (int)buffer_.size());
 		metadata_ = new_metadata;
 		return true;
 	}
