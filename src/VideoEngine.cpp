@@ -1,8 +1,5 @@
 #include "VideoEngine.h"
 
-#include "PolledResource.h"
-#include "PolledFile.h"
-#include "Program.h"
 #include "Timeline.h"
 
 #include <vector>
@@ -27,119 +24,6 @@ static void initNoise(Texture &noise) {
 #endif
 */
 
-class PolledShaderSource : public PolledResource {
-public:
-	PolledShaderSource(const std::shared_ptr<PolledFile>& file)
-		: file_(file)
-	{
-	}
-
-	bool poll(unsigned int poll_seq) {
-		if (beginUpdate(poll_seq) && file_.poll(poll_seq)) {
-			try {
-				source_ = shader::Source::load(file_->string());
-				return endUpdate();
-			}	catch (const std::runtime_error& e) {
-				MSG("Error updating shader source: %s", e.what());
-			}
-		}
-
-		return false;
-	}
-
-	const shader::Source& source() const { return source_; }
-
-private:
-	PollMux<PolledFile> file_;
-	shader::Source source_;
-};
-
-class PolledShaderSources : public PolledResource {
-public:
-	PolledShaderSources(int version, const std::vector<std::shared_ptr<PolledShaderSource>>& polled_sources)
-		: version_(version)
-		// .... oh god
-		, polled_sources_([&polled_sources]() {
-		std::vector<PollMux<PolledShaderSource>> ps;
-		for (const auto& it : polled_sources) {
-			ps.emplace_back(PollMux<PolledShaderSource>(it));
-		}
-		return ps;}())
-	{
-	}
-
-	bool poll(unsigned int poll_seq) {
-		if (beginUpdate(poll_seq)) {
-			try {
-				bool need_update = false;
-				for (auto &it : polled_sources_)
-					need_update |= it.poll(poll_seq);
-
-				if (!need_update)
-					return false;
-
-				sources_ = shader::Sources::load(version_,
-					MuxShaderConstIterator(polled_sources_.cbegin()),
-					MuxShaderConstIterator(polled_sources_.cend()));
-				return endUpdate();
-
-			}	catch (const std::runtime_error& e) {
-				MSG("Error updating shader source: %s", e.what());
-			}
-		}
-
-		return false;
-	}
-
-	const shader::Sources& sources() const { return sources_; }
-private:
-	class MuxShaderConstIterator {
-	public:
-		typedef std::vector<PollMux<PolledShaderSource>>::const_iterator ParentIter;
-		MuxShaderConstIterator(ParentIter it) : it_(it) {}
-
-		const shader::Source *operator->() const { return &(*it_).operator->()->source(); }
-		bool operator<(const MuxShaderConstIterator& rhs) const { return it_ < rhs.it_;  }
-		MuxShaderConstIterator& operator++() { ++it_;  return *this; }
-	private:
-		ParentIter it_;
-	};
-
-private:
-	const int version_;
-	std::vector<PollMux<PolledShaderSource>> polled_sources_;
-	shader::Sources sources_;
-};
-
-class PolledShaderProgram : public PolledResource {
-public:
-	PolledShaderProgram(const std::shared_ptr<PolledShaderSources>& sources)
-		: sources_(sources)
-	{
-	}
-
-	bool poll(unsigned int poll_seq) {
-		if (beginUpdate(poll_seq) && sources_->poll(poll_seq)) {
-			try {
-				program_ = Program::load(sources_->sources());
-				return endUpdate();
-			} catch (const std::runtime_error& e) {
-				MSG("Error updating program: %s", e.what());
-			}
-		}
-
-		return false;
-	}
-
-	const Program& get() const { return program_; }
-	const Program& operator->() const { return program_; }
-
-	const shader::UniformsMap& uniforms() const { return sources_->sources().uniforms(); }
-
-private:
-	const std::shared_ptr<PolledShaderSources> sources_;
-	Program program_;
-};
 
 VideoEngine::VideoEngine(string_view config) {
 	const json root = json::parse(config.data(), config.data() + config.size());
@@ -201,13 +85,57 @@ void VideoEngine::draw(int w, int h, float row, Timeline &timeline) {
 	if (main_program == program_.end())
 		return;
 
+	useProgram(*main_program->second.get(), w, h, row, timeline);
 	const Program& p = main_program->second->get();
+	p.compute();
+}
+
+std::shared_ptr<PolledShaderProgram> VideoEngine::getFragmentProgramWithShaders(int version, const std::string &name, const std::vector<std::string> &shaders) {
+	std::vector<std::shared_ptr<PolledShaderSource>> sources;
+	for (const auto &s: shaders) {
+		std::shared_ptr<PolledShaderSource> source;
+		const auto cached = shader_source_.find(s);
+		if (cached != shader_source_.end()) {
+			source = cached->second;
+		} else {
+			MSG("Adding shader file %s", s.c_str());
+			source.reset(new PolledShaderSource(std::shared_ptr<PolledFile>(new PolledFile(s))));
+			shader_source_[s] = source;
+		}
+		sources.emplace_back(std::move(source));
+	}
+
+	std::shared_ptr<PolledShaderSources> polled_sources;
+	const auto cached_sources = shader_sources_.find(name);
+	if (cached_sources != shader_sources_.end()) {
+		polled_sources = cached_sources->second;
+	} else {
+		MSG("Adding shader %s", name.c_str());
+		polled_sources.reset(new PolledShaderSources(version, std::move(sources)));
+		shader_sources_[name]  = polled_sources;
+	}
+
+	std::shared_ptr<PolledShaderProgram> polled_program;
+	const auto cached_program = program_.find(name);
+	if (cached_program != program_.end()) {
+		polled_program = cached_program->second;
+	} else {
+		MSG("Adding program %s", name.c_str());
+		polled_program.reset(new PolledShaderProgram(polled_sources));
+		program_[name] = polled_program;
+	}
+
+	return polled_program;
+}
+
+void VideoEngine::useProgram(PolledShaderProgram& program, int w, int h, float row, Timeline &timeline) {
+	const Program& p = program.get();
 	if (!p.valid())
 		return;
 
 	p.use();
 
-	for (const auto &it: main_program->second->uniforms()) {
+	for (const auto &it: program.uniforms()) {
 		if (internal_uniforms.find(it.first) != internal_uniforms.end())
 			continue;
 
@@ -228,5 +156,5 @@ void VideoEngine::draw(int w, int h, float row, Timeline &timeline) {
 		}
 	}
 
-	p.setUniform("R", w, h).setUniform("t", row).compute();
+	p.setUniform("R", w, h).setUniform("t", row);
 }

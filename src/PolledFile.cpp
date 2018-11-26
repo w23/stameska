@@ -84,7 +84,7 @@ class PolledFile::Impl {
 			metadata.size = st.st_size;
 			metadata.time = st.st_mtim;
 		} else
-			MSG("Cannot read %s stat: errno=%d", errno);
+			MSG("Cannot read %s stat: errno=%d", filename, errno);
 		return metadata;
 #endif
 	}
@@ -125,7 +125,7 @@ class PolledFile::Impl {
 		struct stat st;
 		const int result = stat(filename, &st);
 		if (result != 0) {
-			MSG("Cannot read %s stat: errno=%d", errno);
+			MSG("Cannot read %s stat: errno=%d", filename, errno);
 			return false;
 		}
 

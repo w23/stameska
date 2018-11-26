@@ -1,6 +1,6 @@
 {
 	"video": {
-		"config_file": "dummy"
+		"config_file": "main.glsl"
 	},
 	"audio": {
 		"samplerate": 44100,
