@@ -249,3 +249,4 @@ _Pvt_Extensions
 audio.raw
 tags
 build/
+compile_commands.json
