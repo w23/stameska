@@ -14,6 +14,8 @@ public:
 
 	bool valid() const { return handle_.valid(); }
 
+	GLuint name() const { return handle_.name(); }
+
 	struct Sources {
 		const shader::Sources *vertex = nullptr;
 		const shader::Sources *fragment = nullptr;
@@ -127,7 +129,7 @@ private:
 				GLsizei length = 0;
 				char info[2048];
 				glGetShaderInfoLog(name_, COUNTOF(info), &length, info);
-				MSG("Shader compilation error: %s", info);
+				MSG("%s\nShader compilation error: %s", c_src, info);
 				glDeleteShader(name_);
 				name_ = 0;
 			}
