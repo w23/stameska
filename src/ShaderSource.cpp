@@ -117,6 +117,18 @@ Source Source::load(string_view raw_source) {
 	return Source(std::move(source), std::move(uniforms));
 }
 
+void appendUniforms(UniformsMap &uniforms, const UniformsMap &append) {
+	for (const auto &uni: append) {
+		const UniformsMap::const_iterator it = uniforms.find(uni.first);
+		if (it != uniforms.end()) {
+			if (it->second.type != uni.second.type)
+				throw std::runtime_error(format("Type mismatch for uniform %s: %s != %s",
+						uni.first.c_str(), uniformName(uni.second.type), uniformName(it->second.type)));
+		} else
+			uniforms[uni.first] = uni.second;
+	}
+}
+
 Sources::Sources(std::string&& source, UniformsMap&& uniforms)
 	: source_(std::move(source))
 	, uniforms_(std::move(uniforms))

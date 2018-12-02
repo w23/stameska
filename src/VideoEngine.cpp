@@ -90,9 +90,26 @@ void VideoEngine::draw(int w, int h, float row, Timeline &timeline) {
 	p.compute();
 }
 
-std::shared_ptr<PolledShaderProgram> VideoEngine::getFragmentProgramWithShaders(int version, const std::string &name, const std::vector<std::string> &shaders) {
+std::shared_ptr<PolledShaderProgram> VideoEngine::getFragmentProgramWithShaders(int version, const std::string &name,
+			const std::vector<std::string> &fragment) {
+	std::shared_ptr<PolledShaderProgram> polled_program;
+	const auto cached_program = program_.find(name);
+	if (cached_program != program_.end()) {
+		polled_program = cached_program->second;
+	} else {
+		MSG("Adding program %s", name.c_str());
+		polled_program.reset(new PolledShaderProgram(getPolledShaderForFiles(version, fragment)));
+		program_[name] = polled_program;
+	}
+
+	return polled_program;
+}
+
+std::shared_ptr<PolledShaderSources> VideoEngine::getPolledShaderForFiles(int version, const std::vector<std::string> &shaders) {
+	std::string name;
 	std::vector<std::shared_ptr<PolledShaderSource>> sources;
 	for (const auto &s: shaders) {
+		name += "!" + s;
 		std::shared_ptr<PolledShaderSource> source;
 		const auto cached = shader_source_.find(s);
 		if (cached != shader_source_.end()) {
@@ -115,13 +132,18 @@ std::shared_ptr<PolledShaderProgram> VideoEngine::getFragmentProgramWithShaders(
 		shader_sources_[name]  = polled_sources;
 	}
 
+	return polled_sources;
+}
+
+std::shared_ptr<PolledShaderProgram> VideoEngine::getProgramWithShaders(int version, const std::string &name,
+		const std::vector<std::string> &vertex, const std::vector<std::string> &fragment) {
 	std::shared_ptr<PolledShaderProgram> polled_program;
 	const auto cached_program = program_.find(name);
 	if (cached_program != program_.end()) {
 		polled_program = cached_program->second;
 	} else {
 		MSG("Adding program %s", name.c_str());
-		polled_program.reset(new PolledShaderProgram(polled_sources));
+		polled_program.reset(new PolledShaderProgram(getPolledShaderForFiles(version, vertex), getPolledShaderForFiles(version, fragment)));
 		program_[name] = polled_program;
 	}
 

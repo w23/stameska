@@ -14,6 +14,15 @@ public:
 
 	bool valid() const { return handle_.valid(); }
 
+	struct Sources {
+		const shader::Sources *vertex = nullptr;
+		const shader::Sources *fragment = nullptr;
+	};
+
+	static Program load(Sources sources) {
+		return Program(create(sources));
+	}
+
 	static Program load(const shader::Sources& sources) {
 		return Program(createFragmentProgram(sources));
 	}
@@ -95,6 +104,72 @@ private:
 	};
 
 	Handle handle_;
+
+	class Shader {
+	public:
+		Shader(const Shader&) = delete;
+
+		bool isValid() const { return name_ != 0; }
+
+		GLuint name() const { return name_; }
+
+		Shader(GLuint kind, const shader::Sources& src)
+			: name_(0)
+		{
+			name_ = glCreateShader(kind);
+			GLchar const * const c_src = src.source().c_str();
+			glShaderSource(name_, 1, &c_src, nullptr);
+			glCompileShader(name_);
+
+			GLint compiled = GL_FALSE;
+			glGetShaderiv(name_, GL_COMPILE_STATUS, &compiled);
+			if (compiled != GL_TRUE) {
+				GLsizei length = 0;
+				char info[2048];
+				glGetShaderInfoLog(name_, COUNTOF(info), &length, info);
+				MSG("Shader compilation error: %s", info);
+				glDeleteShader(name_);
+				name_ = 0;
+			}
+		}
+
+		~Shader() {
+			if (name_ != 0)
+				glDeleteShader(name_);
+		}
+
+	private:
+		GLuint name_;
+	};
+
+	static Handle create(Sources sources) {
+		Handle pid = Handle(glCreateProgram());
+		if (!sources.vertex || !sources.fragment)
+			return Handle();
+		Shader vertex(GL_VERTEX_SHADER, *sources.vertex);
+		if (!vertex.isValid())
+			return Handle();
+		Shader fragment(GL_FRAGMENT_SHADER, *sources.fragment);
+		if (!fragment.isValid())
+			return Handle();
+
+		glAttachShader(pid.name(), vertex.name());
+		glAttachShader(pid.name(), fragment.name());
+
+		glLinkProgram(pid.name());
+
+		GLint linked = GL_FALSE;
+		glGetProgramiv(pid.name(), GL_LINK_STATUS, &linked);
+		if (linked != GL_TRUE) {
+			GLsizei length = 0;
+			char info[2048];
+			glGetProgramInfoLog(pid.name(), COUNTOF(info), &length, info);
+			MSG("Program link error: %s", info);
+			return Handle();
+		}
+
+		return pid;
+	}
 
 	static Handle createFragmentProgram(const shader::Sources& sources) {
 		return createSeparableProgram(GL_FRAGMENT_SHADER, sources.source().c_str());

@@ -44,6 +44,8 @@ private:
 	UniformsMap uniforms_;
 };
 
+void appendUniforms(UniformsMap &uniforms, const UniformsMap &append);
+
 class Sources {
 public:
 	Sources() {}
@@ -55,17 +57,8 @@ public:
 		UniformsMap uniforms;
 
 		// Merge all uniforms
-		for (I src = begin; src < end; ++src) {
-			for (const auto &uni: src->uniforms()) {
-				const UniformsMap::const_iterator it = uniforms.find(uni.first);
-				if (it != uniforms.end()) {
-					if (it->second.type != uni.second.type)
-						throw std::runtime_error(format("Type mismatch for uniform %s: %s != %s",
-								uni.first.c_str(), uniformName(uni.second.type), uniformName(it->second.type)));
-				} else
-					uniforms[uni.first] = uni.second;
-			}
-		}
+		for (I src = begin; src < end; ++src)
+			appendUniforms(uniforms, src->uniforms());
 
 		// Create unifor declaration header
 		std::string source = format("#version %d\n", version);

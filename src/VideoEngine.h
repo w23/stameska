@@ -100,19 +100,43 @@ private:
 
 class PolledShaderProgram : public PolledResource {
 public:
-	PolledShaderProgram(const std::shared_ptr<PolledShaderSources>& sources)
-		: sources_(sources)
+	PolledShaderProgram(const std::shared_ptr<PolledShaderSources> &fragment)
+		: fragment_(fragment)
+	{
+	}
+
+	PolledShaderProgram(const std::shared_ptr<PolledShaderSources> &vertex, const std::shared_ptr<PolledShaderSources> &fragment)
+		: vertex_(vertex)
+		, fragment_(fragment)
 	{
 	}
 
 	bool poll(unsigned int poll_seq) {
-		if (beginUpdate(poll_seq) && sources_->poll(poll_seq)) {
-			try {
-				program_ = Program::load(sources_->sources());
-				return endUpdate();
-			} catch (const std::runtime_error& e) {
-				MSG("Error updating program: %s", e.what());
+		if (!beginUpdate(poll_seq))
+			return false;
+
+		bool need_update = fragment_->poll(poll_seq);
+		need_update |= vertex_ && vertex_->poll(poll_seq);
+		if (!need_update)
+			return false;
+
+		try {
+			if (!vertex_) {
+				program_ = Program::load(fragment_->sources());
+				uniforms_ = fragment_->sources().uniforms();
+			} else {
+				Program::Sources srcs;
+				srcs.vertex = &vertex_->sources();
+				srcs.fragment = &fragment_->sources();
+				Program &&new_program = Program::load(srcs);
+				shader::UniformsMap new_uniforms = vertex_->sources().uniforms();
+				appendUniforms(new_uniforms, fragment_->sources().uniforms());
+				program_ = std::move(new_program);
+				uniforms_ = std::move(new_uniforms);
 			}
+			return endUpdate();
+		} catch (const std::runtime_error& e) {
+			MSG("Error updating program: %s", e.what());
 		}
 
 		return false;
@@ -121,10 +145,11 @@ public:
 	const Program& get() const { return program_; }
 	const Program& operator->() const { return program_; }
 
-	const shader::UniformsMap& uniforms() const { return sources_->sources().uniforms(); }
+	const shader::UniformsMap& uniforms() const { return uniforms_; }
 
 private:
-	const std::shared_ptr<PolledShaderSources> sources_;
+	const std::shared_ptr<PolledShaderSources> vertex_, fragment_;
+	shader::UniformsMap uniforms_;
 	Program program_;
 };
 
@@ -138,12 +163,17 @@ public:
 
 	void draw(int w, int h, float row, Timeline &timeline);
 
-	std::shared_ptr<PolledShaderProgram> getFragmentProgramWithShaders(int version, const std::string &name, const std::vector<std::string> &shaders);
+	std::shared_ptr<PolledShaderProgram> getFragmentProgramWithShaders(int version, const std::string &name,
+			const std::vector<std::string> &fragment);
+	std::shared_ptr<PolledShaderProgram> getProgramWithShaders(int version, const std::string &name,
+			const std::vector<std::string> &vertex, const std::vector<std::string> &fragment);
 	void useProgram(PolledShaderProgram& program, int w, int h, float row, Timeline &timeline);
 
 private:
 	void readPrograms(const json& j);
 	void readShaders(const json& j);
+
+	std::shared_ptr<PolledShaderSources> getPolledShaderForFiles(int version, const std::vector<std::string> &vertex);
 
 private:
 	std::map<std::string, std::shared_ptr<PolledShaderSource>> shader_source_;
