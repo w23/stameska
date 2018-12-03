@@ -129,10 +129,13 @@ public:
 				srcs.vertex = &vertex_->sources();
 				srcs.fragment = &fragment_->sources();
 				Program &&new_program = Program::load(srcs);
+				if (!new_program.valid())
+					throw std::runtime_error("New program is not valid");
 				shader::UniformsMap new_uniforms = vertex_->sources().uniforms();
 				appendUniforms(new_uniforms, fragment_->sources().uniforms());
 				program_ = std::move(new_program);
 				uniforms_ = std::move(new_uniforms);
+				MSG("Built program %u", program_.name());
 			}
 			return endUpdate();
 		} catch (const std::runtime_error& e) {

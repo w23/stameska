@@ -13,34 +13,43 @@
 #include <GL/gl.h>
 #endif
 
-
 #define GL_FUNC_LIST(X) \
-  X(PFNGLCREATESHADERPROGRAMVPROC, CreateShaderProgramv) \
-  X(PFNGLUSEPROGRAMPROC, UseProgram) \
-  X(PFNGLDELETEPROGRAMPROC, DeleteProgram) \
-  X(PFNGLGETUNIFORMLOCATIONPROC, GetUniformLocation) \
-  X(PFNGLUNIFORM1IPROC, Uniform1i) \
-  X(PFNGLUNIFORM1FPROC, Uniform1f) \
-  X(PFNGLUNIFORM2FPROC, Uniform2f) \
-  X(PFNGLUNIFORM3FPROC, Uniform3f) \
-  X(PFNGLUNIFORM4FPROC, Uniform4f) \
-  X(PFNGLGENFRAMEBUFFERSPROC, GenFramebuffers) \
-  X(PFNGLBINDFRAMEBUFFERPROC, BindFramebuffer) \
-  X(PFNGLFRAMEBUFFERTEXTURE2DPROC, FramebufferTexture2D) \
-  X(PFNGLDRAWBUFFERSPROC, DrawBuffers) \
-  X(PFNGLACTIVETEXTUREPROC, ActiveTexture) \
-  X(PFNGLGETPROGRAMINFOLOGPROC, GetProgramInfoLog) \
-  X(PFNGLGETSHADERINFOLOGPROC, GetShaderInfoLog) \
-  X(PFNGLCHECKFRAMEBUFFERSTATUSPROC, CheckFramebufferStatus) \
+	X(CREATESHADERPROGRAMV, CreateShaderProgramv) \
+	X(CREATEPROGRAM, CreateProgram) \
+	X(CREATESHADER, CreateShader) \
+	X(SHADERSOURCE, ShaderSource) \
+	X(COMPILESHADER, CompileShader) \
+	X(GETSHADERIV, GetShaderiv) \
+	X(DELETESHADER, DeleteShader) \
+	X(USEPROGRAM, UseProgram) \
+	X(DELETEPROGRAM, DeleteProgram) \
+	X(GETUNIFORMLOCATION, GetUniformLocation) \
+	X(UNIFORM1I, Uniform1i) \
+	X(UNIFORM1F, Uniform1f) \
+	X(UNIFORM2F, Uniform2f) \
+	X(UNIFORM3F, Uniform3f) \
+	X(UNIFORM4F, Uniform4f) \
+	X(GENFRAMEBUFFERS, GenFramebuffers) \
+	X(BINDFRAMEBUFFER, BindFramebuffer) \
+	X(FRAMEBUFFERTEXTURE2D, FramebufferTexture2D) \
+	X(DRAWBUFFERS, DrawBuffers) \
+	X(ACTIVETEXTURE, ActiveTexture) \
+	X(GETPROGRAMINFOLOG, GetProgramInfoLog) \
+	X(GETSHADERINFOLOG, GetShaderInfoLog) \
+	X(CHECKFRAMEBUFFERSTATUS, CheckFramebufferStatus) \
+	X(DISABLEVERTEXATTRIBARRAY, DisableVertexAttribArray) \
+	X(ENABLEVERTEXATTRIBARRAY, EnableVertexAttribArray) \
+	X(GETATTRIBLOCATION, GetAttribLocation) \
+	X(VERTEXATTRIBPOINTER, VertexAttribPointer) \
 
 #ifdef _WIN32
-#ifndef GL_DECLARE_FUNC 
-#define GL_DECLARE_FUNC(type, name) extern type gl ## name;
+#ifndef GL_DECLARE_FUNC
+#define GL_DECLARE_FUNC(type, name) extern PFNGL ## type ## PROC gl ## name;
 #endif
 GL_FUNC_LIST(GL_DECLARE_FUNC)
 #undef GL_DECLARE_FUNC
 
-#define GL_LOAD_FUNC(type, name) gl ## name = (type)wglGetProcAddress("gl" # name);
+#define GL_LOAD_FUNC(type, name) gl ## name = (PFNGL ## type ## PROC)wglGetProcAddress("gl" # name);
 #define GL_LOAD_FUNCS GL_FUNC_LIST(GL_LOAD_FUNC)
 
 #else // ifndef _WIN32
