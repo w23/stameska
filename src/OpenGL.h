@@ -21,6 +21,9 @@
 	X(COMPILESHADER, CompileShader) \
 	X(GETSHADERIV, GetShaderiv) \
 	X(DELETESHADER, DeleteShader) \
+	X(ATTACHSHADER, AttachShader) \
+	X(LINKPROGRAM, LinkProgram) \
+	X(GETPROGRAMIV, GetProgramiv) \
 	X(USEPROGRAM, UseProgram) \
 	X(DELETEPROGRAM, DeleteProgram) \
 	X(GETUNIFORMLOCATION, GetUniformLocation) \
