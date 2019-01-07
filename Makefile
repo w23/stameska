@@ -6,6 +6,7 @@ include stameska.mk
 
 TEST_EXE = $(OBJDIR)/test_
 TEST_SRCS = \
+	src/utils.cpp \
 	src/ShaderSource.cpp \
 	test/ShaderSource.cpp
 

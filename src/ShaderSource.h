@@ -31,16 +31,28 @@ public:
 
 	static Source load(string_view raw_source);
 
-	const std::string& source() const { return source_; }
+	struct Chunk {
+		enum class Type {
+			String,
+			Include,
+		} type;
+
+		std::string value;
+
+		Chunk(Type type, string_view value) : type(type), value(value) {}
+		Chunk(Type type, std::string&& value) : type(type), value(std::move(value)) {}
+	};
+
+	const std::vector<Chunk> &chunks() const { return chunks_; }
 	const UniformsMap& uniforms() const { return uniforms_; }
 
 	Source& operator=(Source&& other) = default;
 
 private:
 	Source(const Source&) = delete;
-	Source(std::string&& source, UniformsMap&& uniforms);
+	Source(std::vector<Chunk>&& chunks, UniformsMap&& uniforms);
 
-	std::string source_;
+	std::vector<Chunk> chunks_;
 	UniformsMap uniforms_;
 };
 
