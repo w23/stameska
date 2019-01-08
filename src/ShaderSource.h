@@ -49,14 +49,13 @@ public:
 	const UniformsMap& uniforms() const { return uniforms_; }
 	int version() const { return version_; }
 
-
 	Source& operator=(Source&& other) = default;
 
 private:
 	Source(const Source&) = delete;
 	Source(std::vector<Chunk>&& chunks, UniformsMap&& uniforms);
 
-	int version_ = 130;
+	int version_ = 130; // FIXME read #version
 	std::vector<Chunk> chunks_;
 	UniformsMap uniforms_;
 };

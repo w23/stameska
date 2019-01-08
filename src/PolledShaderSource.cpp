@@ -77,10 +77,6 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 		header_ = std::move(header);
 		uniforms_ = std::move(uniforms);
 		version_ = version;
-
-		MSG("Updated polled shader source %p", this);
-		MSG("header=%s", header_.c_str());
-		MSG("source=%s", source_.c_str());
 	}	catch (const std::runtime_error& e) {
 		MSG("Error updating shader source: %s", e.what());
 		return false;

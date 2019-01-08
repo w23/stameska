@@ -50,8 +50,6 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/Timeline.cpp \
 	$(STAMESKA_BASEDIR)/src/tool.cpp
 
-#	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
-
 # TODO how to handle ../
 STAMESKA_OBJS = $(STAMESKA_SOURCES:%=$(OBJDIR)/%.o)
 STAMESKA_DEPS = $(STAMESKA_OBJS:%=%.d)
