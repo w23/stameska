@@ -42,11 +42,15 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/3p/atto/src/app_x11.c \
 	$(STAMESKA_BASEDIR)/src/utils.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
+	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \
+	$(STAMESKA_BASEDIR)/src/PolledShaderSource.cpp \
 	$(STAMESKA_BASEDIR)/src/ProjectSettings.cpp \
+	$(STAMESKA_BASEDIR)/src/Resources.cpp \
 	$(STAMESKA_BASEDIR)/src/ShaderSource.cpp \
 	$(STAMESKA_BASEDIR)/src/Timeline.cpp \
-	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 	$(STAMESKA_BASEDIR)/src/tool.cpp
+
+#	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 
 # TODO how to handle ../
 STAMESKA_OBJS = $(STAMESKA_SOURCES:%=$(OBJDIR)/%.o)

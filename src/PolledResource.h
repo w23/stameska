@@ -28,9 +28,12 @@ private:
 template <typename R>
 class PollMux : public PolledResource {
 public:
-	PollMux(const std::shared_ptr<R>& resource) : resource_(resource) {}
+	PollMux(const std::shared_ptr<R>& resource = std::shared_ptr<R>()) : resource_(resource) {}
 
 	bool poll(unsigned int poll_seq) {
+		if (!resource_)
+			return false;
+
 		if (beginUpdate(poll_seq) && (resource_->poll(poll_seq) || resource_->version() != last_version_)) {
 			last_version_ = resource_->version();
 			return endUpdate();
@@ -40,6 +43,9 @@ public:
 	}
 
 	const R* operator->() const { return resource_.get(); }
+	R* operator->() { return resource_.get(); }
+
+	operator bool() const { return !!resource_; }
 
 private:
 	unsigned int last_version_ = 0;

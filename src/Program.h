@@ -16,17 +16,8 @@ public:
 
 	GLuint name() const { return handle_.name(); }
 
-	struct Sources {
-		const shader::Sources *vertex = nullptr;
-		const shader::Sources *fragment = nullptr;
-	};
-
-	static Program load(Sources sources) {
-		return Program(create(sources));
-	}
-
-	static Program load(const shader::Sources& sources) {
-		return Program(createFragmentProgram(sources));
+	static Program load(const std::string& fragment, const std::string &vertex = "") {
+		return vertex.empty() ? Program(createFragmentProgram(fragment)) : Program(create(vertex, fragment));
 	}
 
 	const Program& use() const {
@@ -115,11 +106,11 @@ private:
 
 		GLuint name() const { return name_; }
 
-		Shader(GLuint kind, const shader::Sources& src)
+		Shader(GLuint kind, const std::string& src)
 			: name_(0)
 		{
 			name_ = glCreateShader(kind);
-			GLchar const * const c_src = src.source().c_str();
+			GLchar const * const c_src = src.c_str();
 			glShaderSource(name_, 1, &c_src, nullptr);
 			glCompileShader(name_);
 
@@ -144,14 +135,14 @@ private:
 		GLuint name_;
 	};
 
-	static Handle create(Sources sources) {
+	static Handle create(const std::string &vertex_src, const std::string &fragment_src) {
 		Handle pid = Handle(glCreateProgram());
-		if (!sources.vertex || !sources.fragment)
+		if (vertex_src.empty() || fragment_src.empty())
 			return Handle();
-		Shader vertex(GL_VERTEX_SHADER, *sources.vertex);
+		Shader vertex(GL_VERTEX_SHADER, vertex_src);
 		if (!vertex.isValid())
 			return Handle();
-		Shader fragment(GL_FRAGMENT_SHADER, *sources.fragment);
+		Shader fragment(GL_FRAGMENT_SHADER, fragment_src);
 		if (!fragment.isValid())
 			return Handle();
 
@@ -173,8 +164,8 @@ private:
 		return pid;
 	}
 
-	static Handle createFragmentProgram(const shader::Sources& sources) {
-		return createSeparableProgram(GL_FRAGMENT_SHADER, sources.source().c_str());
+	static Handle createFragmentProgram(const std::string& source) {
+		return createSeparableProgram(GL_FRAGMENT_SHADER, source.c_str());
 	}
 
 	static Handle createSeparableProgram(GLenum type, const char* sources) {

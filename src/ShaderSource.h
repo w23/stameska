@@ -23,6 +23,8 @@ struct UniformDeclaration {
 
 typedef std::map<std::string, UniformDeclaration> UniformsMap;
 
+void appendUniforms(UniformsMap &uniforms, const UniformsMap &append);
+
 class Source {
 public:
 	Source() {}
@@ -45,6 +47,8 @@ public:
 
 	const std::vector<Chunk> &chunks() const { return chunks_; }
 	const UniformsMap& uniforms() const { return uniforms_; }
+	int version() const { return version_; }
+
 
 	Source& operator=(Source&& other) = default;
 
@@ -52,49 +56,8 @@ private:
 	Source(const Source&) = delete;
 	Source(std::vector<Chunk>&& chunks, UniformsMap&& uniforms);
 
+	int version_ = 130;
 	std::vector<Chunk> chunks_;
-	UniformsMap uniforms_;
-};
-
-void appendUniforms(UniformsMap &uniforms, const UniformsMap &append);
-
-class Sources {
-public:
-	Sources() {}
-	~Sources() {}
-	Sources(Sources&&) = default;
-
-	template <typename I>
-	static Sources load(int version, I begin, I end) {
-		UniformsMap uniforms;
-
-		// Merge all uniforms
-		for (I src = begin; src < end; ++src)
-			appendUniforms(uniforms, src->uniforms());
-
-		// Create unifor declaration header
-		std::string source = format("#version %d\n", version);
-		for (const auto &uni: uniforms)
-			source += format("uniform %s %s;\n", uniformName(uni.second.type), uni.second.name.c_str());
-
-		for (I src = begin; src < end; ++src) {
-			source += src->source();
-			source += "\n";
-		}
-
-		return Sources(std::move(source), std::move(uniforms));
-	}
-
-	const std::string& source() const { return source_; }
-	const UniformsMap& uniforms() const { return uniforms_; }
-
-	Sources& operator=(Sources&& other) = default;
-
-private:
-	Sources(const Sources&) = delete;
-	Sources(std::string&& source, UniformsMap&& uniforms);
-
-	std::string source_;
 	UniformsMap uniforms_;
 };
 

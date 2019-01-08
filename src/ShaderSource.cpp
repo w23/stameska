@@ -114,10 +114,4 @@ void appendUniforms(UniformsMap &uniforms, const UniformsMap &append) {
 	}
 }
 
-Sources::Sources(std::string&& source, UniformsMap&& uniforms)
-	: source_(std::move(source))
-	, uniforms_(std::move(uniforms))
-{
-}
-
 } // namespace shader
