@@ -53,9 +53,9 @@ public:
 
 private:
 	Source(const Source&) = delete;
-	Source(std::vector<Chunk>&& chunks, UniformsMap&& uniforms);
+	Source(int version, std::vector<Chunk>&& chunks, UniformsMap&& uniforms);
 
-	int version_ = 130; // FIXME read #version
+	int version_ = 0;
 	std::vector<Chunk> chunks_;
 	UniformsMap uniforms_;
 };

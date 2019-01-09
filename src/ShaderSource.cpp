@@ -13,93 +13,106 @@ const char *uniformName(shader::UniformType type) {
 	}
 }
 
-Source::Source(std::vector<Chunk>&& chunks, UniformsMap&& uniforms)
-	: chunks_(std::move(chunks))
+Source::Source(int version, std::vector<Chunk>&& chunks, UniformsMap&& uniforms)
+	: version_(version)
+	, chunks_(std::move(chunks))
 	, uniforms_(std::move(uniforms))
 {
 }
 
-static const std::regex reg_inluniforms("#(\\w+)\\s+(\\w+)");
-static const std::regex reg_includes("#include \"(.*)\"");
+static const std::regex reg_preprocessor("#(\\w+)\\s+((\\w+)|(\"[^\"]+\"))");
 
 using svregex_iterator = std::regex_iterator<string_view::const_iterator>;
 using svmatch = std::match_results<string_view::const_iterator>;
-
-static std::string extractInlineUniforms(string_view chunk, UniformsMap &uniforms) {
-	std::string ret;
-
-	const auto uniforms_begin = svregex_iterator(chunk.begin(), chunk.end(), reg_inluniforms);
-	const auto uniforms_end = svregex_iterator();
-	auto uniform_chunk_begin = chunk.begin();
-	for (auto uni = uniforms_begin; uni != uniforms_end; ++uni) {
-		const svmatch &um = *uni;
-		const auto uniform_chunk_end = chunk.begin() + um.position(0);
-		ret.append(uniform_chunk_begin, uniform_chunk_end);
-		uniform_chunk_begin = uniform_chunk_end + um.length(0);
-
-		const string_view found_type = um.str(1);
-		UniformType type;
-		if (0 == found_type.compare("float")) {
-			type = UniformType::Float;
-		} else if (0 == found_type.compare("vec2")) {
-			type = UniformType::Vec2;
-		} else if (0 == found_type.compare("vec3")) {
-			type = UniformType::Vec3;
-		} else if (0 == found_type.compare("vec4")) {
-			type = UniformType::Vec4;
-		} else
-			throw std::runtime_error(format("Unexpected type at %s",  um.str(0).c_str()));
-
-		// Store new inline uniform in table
-		const std::string name = um.str(2);
-		const UniformsMap::const_iterator it = uniforms.find(name);
-		if (it != uniforms.end()) {
-			if (it->second.name != name || it->second.type != type)
-				throw std::runtime_error(format("Type mismatch for variable %s at %s", name.c_str(), um.str(0).c_str()));
-		} else {
-			uniforms[name] = UniformDeclaration{type, name};
-		}
-
-		ret.append(name);
-	} // for all inline uniforms
-
-	const auto uniform_chunk_end = chunk.end();
-	ret.append(uniform_chunk_begin, uniform_chunk_end);
-
-	return ret;
-}
 
 Source Source::load(string_view raw_source) {
 	std::string chunk_source;
 	UniformsMap uniforms;
 	std::vector<Chunk> chunks;
+	int version = 0;
 
 	// Read the entire source looking for preprocessor patterns:
 	// - '#type name' for inline uniform definitions. These will be replaced by
 	//   just "name" and stored in uniforms map.
 	// - '#include "filename"' for external file includes
+	// - '#version ver' to specify min version (will be propagated to program)
 	// Everything else and in-between will be stored as string chunks as-is.
 
-	const auto includes_begin = svregex_iterator(raw_source.begin(), raw_source.end(), reg_includes);
+	const auto includes_begin = svregex_iterator(raw_source.begin(), raw_source.end(), reg_preprocessor);
 	const auto includes_end = svregex_iterator();
 
-	auto chunk_begin = raw_source.begin();
+	std::string current_chunk;
+	auto subchunk_begin = raw_source.begin();
 	for (auto inc = includes_begin; inc != includes_end; ++inc) {
 		const svmatch &m = *inc;
-		const auto chunk_end = raw_source.begin() + m.position(0);
-		std::string chunk = extractInlineUniforms(string_view(chunk_begin, chunk_end - chunk_begin), uniforms);
-		chunk_begin = chunk_end + m.length(0);
+		const auto pcmd_start = raw_source.begin() + m.position(0);
+		const auto pcmd_end = pcmd_start + m.length(0);
 
-		chunks.emplace_back(Chunk::Type::String, std::move(chunk));
-		chunks.emplace_back(Chunk::Type::Include, std::move(m.str(1)));
-	} // for all #includes
+		current_chunk += string_view(subchunk_begin, pcmd_start - subchunk_begin);
+		subchunk_begin = pcmd_end;
 
-	const auto chunk_end = raw_source.end();
-	std::string chunk = extractInlineUniforms(string_view(chunk_begin, chunk_end - chunk_begin), uniforms);
+		// check for preprocessor definition kind
+		const string_view pcmd = m.str(1);
+		UniformType uniform_type;
+		enum class PcmdKind {
+			Skip, Uniform, Include
+		} pcmd_kind = PcmdKind::Skip;
+		if (0 == pcmd.compare("float")) {
+			uniform_type = UniformType::Float;
+			pcmd_kind = PcmdKind::Uniform;
+		} else if (0 == pcmd.compare("vec2")) {
+			uniform_type = UniformType::Vec2;
+			pcmd_kind = PcmdKind::Uniform;
+		} else if (0 == pcmd.compare("vec3")) {
+			uniform_type = UniformType::Vec3;
+			pcmd_kind = PcmdKind::Uniform;
+		} else if (0 == pcmd.compare("vec4")) {
+			uniform_type = UniformType::Vec4;
+			pcmd_kind = PcmdKind::Uniform;
+		} else if (0 == pcmd.compare("include")) {
+			pcmd_kind = PcmdKind::Include;
+		} else if (0 == pcmd.compare("version")) {
+			const std::string sver = m.str(2);
+			size_t pos = 0;
+			version = std::stoi(sver, &pos);
+			if (pos != sver.length())
+				throw std::runtime_error(format("Unexpected #version number %s", sver.c_str()));
+		} else {
+			current_chunk += string_view(pcmd_start, pcmd_end - pcmd_start);
+		}
 
-	chunks.emplace_back(Chunk::Type::String, std::move(chunk));
+		if (pcmd_kind == PcmdKind::Uniform) {
+			// Store new inline uniform in table
+			const std::string name = m.str(2);
+			const UniformsMap::const_iterator it = uniforms.find(name);
+			if (it != uniforms.end()) {
+				if (it->second.name != name || it->second.type != uniform_type)
+					throw std::runtime_error(format("Type mismatch for variable %s at %s", name.c_str(), m.str(0).c_str()));
+			} else {
+				uniforms[name] = UniformDeclaration{uniform_type, name};
+			}
 
-	return Source(std::move(chunks), std::move(uniforms));
+			current_chunk += name;
+		}
+
+		if (pcmd_kind == PcmdKind::Include) {
+			std::string chunk;
+			std::swap(chunk, current_chunk);
+			chunks.emplace_back(Chunk::Type::String, std::move(chunk));
+
+			const auto filename = m.str(2);
+			if (filename[0] != '"' || filename[filename.size()-1] != '"')
+				throw std::runtime_error(format("#include filename must be in quotes: \"%s\"", filename.c_str()));
+			chunks.emplace_back(Chunk::Type::Include, std::string(filename.begin() + 1, filename.end() - 1));
+		}
+
+	} // for all preprocessor commands 
+
+	const auto subchunk_end = raw_source.end();
+	current_chunk += string_view(subchunk_begin, subchunk_end - subchunk_begin);
+	chunks.emplace_back(Chunk::Type::String, std::move(current_chunk));
+
+	return Source(version, std::move(chunks), std::move(uniforms));
 }
 
 void appendUniforms(UniformsMap &uniforms, const UniformsMap &append) {

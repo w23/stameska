@@ -30,5 +30,17 @@ int main() {
 	assert(t3.uniforms().size() == 1);
 	assert(t3.uniforms().find("not")->second.type == shader::UniformType::Vec3);
 
+	const auto t4 = shader::Source::load("lo#version 31337\nl #include \"kek\"sim#vec3 not ple");
+	assert(t4.version() == 31337);
+	assert(t4.chunks().size() == 3);
+	assert(t4.chunks()[0].type == shader::Source::Chunk::Type::String);
+	assert(t4.chunks()[0].value == "lo\nl ");
+	assert(t4.chunks()[1].type == shader::Source::Chunk::Type::Include);
+	assert(t4.chunks()[1].value == "kek");
+	assert(t4.chunks()[2].type == shader::Source::Chunk::Type::String);
+	assert(t4.chunks()[2].value == "simnot ple");
+	assert(t4.uniforms().size() == 1);
+	assert(t4.uniforms().find("not")->second.type == shader::UniformType::Vec3);
+
 	return 0;
 }
