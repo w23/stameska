@@ -1,6 +1,4 @@
 STAMESKA_BASEDIR = .
-STAMESKA_SOURCES = \
-	src/video.cpp \
 
 include stameska.mk
 

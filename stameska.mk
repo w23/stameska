@@ -48,6 +48,8 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/Resources.cpp \
 	$(STAMESKA_BASEDIR)/src/ShaderSource.cpp \
 	$(STAMESKA_BASEDIR)/src/Timeline.cpp \
+	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
+	$(STAMESKA_BASEDIR)/src/video.cpp \
 	$(STAMESKA_BASEDIR)/src/tool.cpp
 
 # TODO how to handle ../
