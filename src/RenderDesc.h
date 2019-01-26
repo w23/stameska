@@ -151,7 +151,6 @@ struct Pipeline {
 /*
 	framebuffer: part
 		size: [512, 512]
-		pingpong: 1
 		textures:
 			- pos: rgba32f
 			- vel: rgba32f

@@ -4,3 +4,6 @@
 [submodule "3p/rocket"]
 	path = 3p/rocket
 	url = https://github.com/rocket/rocket.git
+[submodule "3p/libyaml"]
+	path = 3p/libyaml
+	url = https://github.com/yaml/libyaml.git

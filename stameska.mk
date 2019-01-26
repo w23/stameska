@@ -9,6 +9,20 @@ CFLAGS += -Wall -Wextra -Werror -pedantic -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BAS
 CXXFLAGS += -std=c++17 $(CFLAGS)
 LIBS = -lX11 -lXfixes -lGL -lasound -lm -pthread
 
+YAML_MAJOR=0
+YAML_MINOR=2
+YAML_PATCH=1
+
+CFLAGS += \
+	-I3p/libyaml/include \
+	-DYAML_MAJOR=$(YAML_MAJOR) \
+	-DYAML_MINOR=$(YAML_MINOR) \
+	-DYAML_PATCH=$(YAML_PATCH) \
+	-DYAML_VERSION_MAJOR=$(YAML_MAJOR) \
+	-DYAML_VERSION_MINOR=$(YAML_MINOR) \
+	-DYAML_VERSION_PATCH=$(YAML_PATCH) \
+	-DYAML_VERSION_STRING="\"$(YAML_MAJOR).$(YAML_MINOR).$(YAML_PATCH)\""
+
 ifeq ($(DEBUG), 1)
 	CONFIG = dbg
 	CFLAGS += -O0 -g
@@ -40,7 +54,11 @@ STAMESKA_EXE = $(OBJDIR)/stameska
 STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/3p/atto/src/app_linux.c \
 	$(STAMESKA_BASEDIR)/3p/atto/src/app_x11.c \
-	$(STAMESKA_BASEDIR)/src/utils.cpp \
+	$(STAMESKA_BASEDIR)/3p/libyaml/src/api.c \
+	$(STAMESKA_BASEDIR)/3p/libyaml/src/loader.c \
+	$(STAMESKA_BASEDIR)/3p/libyaml/src/parser.c \
+	$(STAMESKA_BASEDIR)/3p/libyaml/src/reader.c \
+	$(STAMESKA_BASEDIR)/3p/libyaml/src/scanner.c \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderSource.cpp \
@@ -49,8 +67,10 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/ShaderSource.cpp \
 	$(STAMESKA_BASEDIR)/src/Timeline.cpp \
 	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
+	$(STAMESKA_BASEDIR)/src/YamlParser.cpp \
+	$(STAMESKA_BASEDIR)/src/tool.cpp \
+	$(STAMESKA_BASEDIR)/src/utils.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \
-	$(STAMESKA_BASEDIR)/src/tool.cpp
 
 # TODO how to handle ../
 STAMESKA_OBJS = $(STAMESKA_SOURCES:%=$(OBJDIR)/%.o)
