@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <string_view>
 
 namespace yaml {
 
@@ -14,6 +15,13 @@ class ParserContext;
 
 class Mapping {
 public:
+	bool hasKey(const std::string &name) const {
+		return map_.find(name) != map_.end();
+	}
+
+	using KeyValue = std::map<std::string, Value>;
+	const KeyValue &map() const { return map_; }
+
 	const Mapping &getMapping(const std::string &name) const;
 	const Sequence &getSequence(const std::string &name) const;
 	const std::string &getString(const std::string &name) const;
@@ -32,7 +40,7 @@ private:
 
 	const Value &getValue(const std::string &name) const;
 
-	std::map<std::string, Value> map_;
+	KeyValue map_;
 };
 
 class Value {
@@ -67,6 +75,8 @@ public:
 		return ret;
 	}
 
+	bool isString() const { return type_ == Type::String; }
+
 	Value(std::string &&s) : type_(Type::String), string_(std::move(s)) {}
 	Value(Mapping &&mapping) : type_(Type::Mapping), mapping_(std::move(mapping)) {}
 	Value(Sequence &&sequence) : type_(Type::Sequence), sequence_(std::move(sequence)) {}
@@ -85,6 +95,7 @@ private:
 };
 
 Value parse(const char *filename);
+Value parse(std::string_view s);
 
 } // namespace yaml
 
