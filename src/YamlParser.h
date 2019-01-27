@@ -67,7 +67,7 @@ public:
 		return ret;
 	}
 
-	Value(const char *s) : type_(Type::String), string_(s) {}
+	Value(std::string &&s) : type_(Type::String), string_(std::move(s)) {}
 	Value(Mapping &&mapping) : type_(Type::Mapping), mapping_(std::move(mapping)) {}
 	Value(Sequence &&sequence) : type_(Type::Sequence), sequence_(std::move(sequence)) {}
 

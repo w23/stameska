@@ -9,94 +9,48 @@
 namespace yaml {
 
 class ParserContext {
-#if 0
-	std::vector<yaml::Value> stack_;
+	yaml_parser_t parser_;
 
-	void doEnd() {
-		popContext();
-	}
+	struct YamlEvent {
+		yaml_event_type_t type;
+		std::string value;
 
-	void popContext() {
-		if (context_stack.empty())
-			throw std::runtime_error("Context stack underflow");
-		context_stack.pop_back();
-	}
+		YamlEvent(const yaml_event_t &event)
+			: type(event.type)
+			, value(event.type == YAML_SCALAR_EVENT ? (const char*)event.data.scalar.value : "")
+		{
+		}
+	};
 
-public:
-	ParserContext(yaml::Value &value) : context_stack({&top_context}) {}
-	~ParserContext()
-	{
-		/*
-		if (!context_stack.empty())
-			throw std::runtime_error("Unbalanced context stack");
-		*/
-	}
-
-	const Context *top() const {
-		if (context_stack.empty())
-			throw std::runtime_error("Context context stack is empty");
-
-		return context_stack.back();
-	}
-
-	void handleSequenceStart() {
-		doAction(top()->sequence.action);
-	}
-
-	void handleSequenceEnd() {
-		doEnd();
-	}
-
-	void handleMappingStart() {
-		doAction(top()->mapping.action);
-	}
-
-	void handleMappingEnd() {
-		doEnd();
-	}
-
-	void handleScalar(const char *scalar) {
-		const Context *c = top();
-		const auto it = c->scalar.map.find(scalar);
-		doAction((it == c->scalar.map.end()) ? c->scalar.default_action : it->second, scalar);
-		popContext();
-	}
-#endif
-
-	using YamlEventPtr = std::unique_ptr<yaml_event_t, decltype(&yaml_event_delete)>;
-
-	yaml_parser_t &parser_;
-
-	void getNextEvent(yaml_event_t &event) {
+	YamlEvent getNextEvent() {
+		yaml_event_t event;
 		if (!yaml_parser_parse(&parser_, &event)) {
 			throw std::runtime_error(format("Error parsing yaml %d@%d: %s",
 				(int)parser_.problem_mark.line, (int)parser_.problem_mark.column,
 				parser_.problem));
 		}
+		using YamlEventPtr = std::unique_ptr<yaml_event_t, decltype(&yaml_event_delete)>;
+		const auto event_holder = YamlEventPtr(&event, &yaml_event_delete);
+
+		return YamlEvent(event);
 	}
 
 	Sequence readSequence() {
 		Sequence seq;
 		for (;;) {
-			yaml_event_t event;
-			getNextEvent(event);
-			const auto event_holder = YamlEventPtr(&event, &yaml_event_delete);
+			YamlEvent event = getNextEvent();
 
 			switch (event.type) {
 				case YAML_SCALAR_EVENT:
-					MSG("YAML_SCALAR_EVENT: value=%s length=%d style=%d",
-						event.data.scalar.value,
-						(int)event.data.scalar.length, event.data.scalar.style);
-					seq.emplace_back((const char*)event.data.scalar.value);
+					MSG("YAML_SCALAR_EVENT: value=%s", event.value.c_str());
+					seq.emplace_back(std::move(event.value));
 					break;
 				case YAML_SEQUENCE_START_EVENT:
-					MSG("YAML_SEQUENCE_START_EVENT: anchor=%s",
-							event.data.sequence_start.anchor);
+					MSG("YAML_SEQUENCE_START_EVENT");
 					seq.emplace_back(readSequence());
 					break;
 				case YAML_MAPPING_START_EVENT:
-					MSG("YAML_MAPPING_START_EVENT: anchor=%s",
-							event.data.mapping_start.anchor);
+					MSG("YAML_MAPPING_START_EVENT");
 					seq.emplace_back(readMapping());
 					break;
 				case YAML_SEQUENCE_END_EVENT:
@@ -113,16 +67,12 @@ public:
 		for (;;) {
 			std::string key;
 			{
-				yaml_event_t event;
-				getNextEvent(event);
-				const auto event_holder = YamlEventPtr(&event, &yaml_event_delete);
+				YamlEvent event = getNextEvent();
 
 				switch (event.type) {
 					case YAML_SCALAR_EVENT:
-						MSG("YAML_SCALAR_EVENT: value=%s length=%d style=%d",
-							event.data.scalar.value,
-							(int)event.data.scalar.length, event.data.scalar.style);
-						key = (const char*)event.data.scalar.value;
+						MSG("YAML_SCALAR_EVENT: value=%s", event.value.c_str());
+						key = std::move(event.value);
 						break;
 					case YAML_MAPPING_END_EVENT:
 						MSG("YAML_MAPPING_END_EVENT");
@@ -133,25 +83,19 @@ public:
 			}
 
 			{
-				yaml_event_t event;
-				getNextEvent(event);
-				const auto event_holder = YamlEventPtr(&event, &yaml_event_delete);
+				YamlEvent event = getNextEvent();
 				
 				switch (event.type) {
 					case YAML_SCALAR_EVENT:
-						MSG("YAML_SCALAR_EVENT: value=%s length=%d style=%d",
-							event.data.scalar.value,
-							(int)event.data.scalar.length, event.data.scalar.style);
-						mapping.map_.emplace(std::move(key), (const char*)event.data.scalar.value);
+						MSG("YAML_SCALAR_EVENT: value=%s", event.value.c_str());
+						mapping.map_.emplace(std::move(key), std::move(event.value));
 						break;
 					case YAML_SEQUENCE_START_EVENT:
-						MSG("YAML_SEQUENCE_START_EVENT: anchor=%s",
-								event.data.sequence_start.anchor);
+						MSG("YAML_SEQUENCE_START_EVENT");
 						mapping.map_.emplace(std::move(key), readSequence());
 						break;
 					case YAML_MAPPING_START_EVENT:
-						MSG("YAML_MAPPING_START_EVENT: anchor=%s",
-								event.data.mapping_start.anchor);
+						MSG("YAML_MAPPING_START_EVENT");
 						mapping.map_.emplace(std::move(key), readMapping());
 						break;
 					default:
@@ -162,27 +106,52 @@ public:
 	}
 
 public:
-	ParserContext(yaml_parser_t &parser) : parser_(parser) {
+	ParserContext(FILE &f) {
+		yaml_parser_initialize(&parser_);
+		yaml_parser_set_input_file(&parser_, &f);
+
+		enum class State {
+			Init,
+			StreamStarted,
+			DocumentStarted,
+		};
+
+		for(State state = State::Init; state != State::DocumentStarted;) {
+			const YamlEvent event = getNextEvent();
+
+			switch (event.type) {
+				case YAML_STREAM_START_EVENT:
+					if (state != State::Init)
+						throw std::runtime_error("Unexpected YAML_STREAM_START_EVENT");
+					state = State::StreamStarted;
+					break;
+				case YAML_DOCUMENT_START_EVENT:
+					if (state != State::StreamStarted)
+						throw std::runtime_error("Unexpected YAML_DOCUMENT_START_EVENT");
+					state = State::DocumentStarted;
+					break;
+				default:
+					throw std::runtime_error(format("Unexpected event %d", event.type));
+			} // switch (event.type)
+		} // for(state != DocumentStarted)
+	}
+
+	~ParserContext() {
+		yaml_parser_delete(&parser_);
 	}
 
 	Value readAnyValue() {
-		yaml_event_t event;
-		getNextEvent(event);
-		const auto event_holder = YamlEventPtr(&event, &yaml_event_delete);
+		YamlEvent event = getNextEvent();
 
 		switch (event.type) {
 			case YAML_SCALAR_EVENT:
-				MSG("YAML_SCALAR_EVENT: value=%s length=%d style=%d",
-					event.data.scalar.value,
-					(int)event.data.scalar.length, event.data.scalar.style);
-				return Value((const char*)event.data.scalar.value);
+				MSG("YAML_SCALAR_EVENT: value=%s", event.value.c_str());
+				return Value(std::move(event.value));
 			case YAML_SEQUENCE_START_EVENT:
-				MSG("YAML_SEQUENCE_START_EVENT: anchor=%s",
-						event.data.sequence_start.anchor);
+				MSG("YAML_SEQUENCE_START_EVENT");
 				return Value(readSequence());
 			case YAML_MAPPING_START_EVENT:
-				MSG("YAML_MAPPING_START_EVENT: anchor=%s",
-						event.data.mapping_start.anchor);
+				MSG("YAML_MAPPING_START_EVENT");
 				return Value(readMapping());
 			default:
 				throw std::runtime_error(format("Unexpected event %d", event.type));
@@ -203,89 +172,10 @@ Value parse(const char *filename) {
 		throw std::runtime_error(format("Cannot open file %s: %d(%s)", filename, err, strerr));
 	}
 
-	yaml_parser_t parser;
-
-	// wat
-	const auto parser_holder =
-		std::unique_ptr<yaml_parser_t, decltype(&yaml_parser_delete)>(
-			&parser, &yaml_parser_delete);
-
-	yaml_parser_initialize(&parser);
-	yaml_parser_set_input_file(&parser, f.get());
-
-	enum class State {
-		Init,
-		StreamStarted,
-		DocumentStarted,
-		DocumentEnded,
-		StreamEnded
-	};
-
-	ParserContext ctx(parser);
-
-	for(State state = State::Init; state != State::DocumentStarted;) {//StreamEnded;) {
-		yaml_event_t event;
-		if (!yaml_parser_parse(&parser, &event)) {
-			throw std::runtime_error(format("Error parsing yaml %s:%d@%d: %s",
-				filename, (int)parser.problem_mark.line, (int)parser.problem_mark.column,
-				parser.problem));
-		}
-
-		const auto event_holder =
-			std::unique_ptr<yaml_event_t, decltype(&yaml_event_delete)>(
-				&event, &yaml_event_delete);
-
-		switch (event.type) {
-			case YAML_NO_EVENT:
-				throw std::runtime_error("YAML_NO_EVENT");
-			case YAML_STREAM_START_EVENT:
-				if (state != State::Init)
-					throw std::runtime_error("Unexpected YAML_STREAM_START_EVENT");
-				state = State::StreamStarted;
-				break;
-			case YAML_STREAM_END_EVENT:
-				if (state != State::DocumentEnded)
-					throw std::runtime_error("Unexpected YAML_STREAM_END_EVENT");
-				state = State::StreamEnded;
-				break;
-			case YAML_DOCUMENT_START_EVENT:
-				if (state != State::StreamStarted)
-					throw std::runtime_error("Unexpected YAML_DOCUMENT_START_EVENT");
-				state = State::DocumentStarted;
-				break;
-			case YAML_DOCUMENT_END_EVENT:
-				if (state != State::DocumentStarted)
-					throw std::runtime_error("Unexpected YAML_DOCUMENT_END_EVENT");
-				state = State::DocumentEnded;
-				break;
-			case YAML_ALIAS_EVENT:
-				throw std::runtime_error(
-					format("Unsupported YAML_ALIAS_EVENT: anchor=%s",
-						event.data.alias.anchor));
-				break;
-			default:
-				throw std::runtime_error(format("Unexpected event %d", event.type));
-		} // switch (event.type)
-	} // for(state != StreamEnded)
+	ParserContext ctx(*f);
 
 	return ctx.readAnyValue();
 }
-
-/*
-template <>
-const Mapping &Value::get() const {
-	if (type_ != Type::Mapping)
-		throw std::runtime_error("Value is not of Mapping type");
-	return mapping_;
-}
-
-template <>
-const Sequence &Value::get() const {
-	if (type_ != Type::Mapping)
-		throw std::runtime_error("Value is not of Sequence type");
-	return sequence_;
-}
-*/
 
 const Value &Mapping::getValue(const std::string &name) const {
 	const auto it = map_.find(name);
