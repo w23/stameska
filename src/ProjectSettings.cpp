@@ -1,56 +1,48 @@
 #include "ProjectSettings.h"
+#include "YamlParser.h"
 #include "utils.h"
-#include "json.hpp"
-#include <fstream>
 
-using json = nlohmann::json;
-
-static json readJsonFromFile(const char *filename) {
-	try {
-		std::ifstream i(filename, std::ifstream::in);
-		json j;
-		i >> j;
-		return j;
-	} catch (const std::exception& e) {
-		MSG("Error reading file %s: %s", filename, e.what());
-		return json();
-	}
-}
+#include <stdio.h>
+#include <string.h>
 
 void ProjectSettings::readFromFile(const char *filename) {
 	MSG("Reading project settings from file %s", filename);
-	json j = readJsonFromFile(filename);
-	if (j.is_null())
-		j = json::object();
 
-	const json& jvideo = j.at("video");
-	video.config_filename = jvideo.at("config_file");
+	const yaml::Value top = yaml::parse(filename);
+	const yaml::Mapping &config = top.getMapping();
 
-	const json& jaudio = j.at("audio");
+	video.config_filename = config.getMapping("video").getString("config_file");
 
-	audio.samplerate = jaudio.at("samplerate");
-	audio.channels = jaudio.at("channels");
-	audio.samples_per_row = audio.samplerate * 60 / (jaudio.at("bpm").get<int>() * jaudio.at("rows_per_beat").get<int>());
+	const yaml::Mapping &yaudio = config.getMapping("audio");
+	audio.samplerate = yaudio.getInt("samplerate");
+	audio.channels = yaudio.getInt("channels", 2);
+
+	const int duration_sec = yaudio.getInt("duration_sec", 120);
+	const int bpm = yaudio.getInt("bpm", 60);
+	const int rows_per_beat = yaudio.getInt("rows_per_beat", 8);
+	const std::string raw_file = yaudio.getString("raw_file", "");
+
+	audio.samples_per_row = audio.samplerate * 60 / (bpm * rows_per_beat);
 	audio.samples = 0;
 
-	FILE *f = nullptr;
-	const std::string& raw_file = jaudio.value("raw_file", "");
-	f = fopen(raw_file.c_str(), "rb");
-	if (f) {
-		fseek(f, 0L, SEEK_END);
-		audio.samples = ftell(f) / (sizeof(float) * audio.channels);
-		fseek(f, 0L, SEEK_SET);
-		audio.data = new float[audio.samples * 2];
-		const int samples_read = fread(audio.data, sizeof(float) * audio.channels, audio.samples, f);
-		if (audio.samples != samples_read || !audio.samples) {
-			delete[] audio.data;
-			audio.data = nullptr;
+	if (!raw_file.empty()) {
+		FILE *f = fopen(raw_file.c_str(), "rb");
+		if (f) {
+			fseek(f, 0L, SEEK_END);
+			audio.samples = ftell(f) / (sizeof(float) * audio.channels);
+			fseek(f, 0L, SEEK_SET);
+			audio.data = new float[audio.samples * 2];
+			const int samples_read = fread(audio.data, sizeof(float) * audio.channels, audio.samples, f);
+			if (audio.samples != samples_read || !audio.samples) {
+				delete[] audio.data;
+				audio.data = nullptr;
+			}
+			fclose(f);
 		}
-		fclose(f);
 	}
 
 	if (!audio.data) {
 		MSG("No raw audio available, continuing in silence");
-		audio.samples = audio.samplerate * j.value("duration_sec", 120);
+		audio.samples = audio.samplerate * duration_sec;
 	}
 }

@@ -67,6 +67,10 @@ GL_FUNC_LIST(GL_DECLARE_FUNC)
 #define GL(f) f
 #define glGetError()
 #else
+#ifndef _WIN32
+#include <stdio.h>
+#include <stdlib.h>
+#endif
 static const char *a__GlPrintError(int error) {
 	const char *errstr = "UNKNOWN";
 	switch (error) {
@@ -99,7 +103,7 @@ static void GLCHECK(const char *func) {
 		MessageBoxA(NULL, a__GlPrintError(glerror), func, 0);
 		ExitProcess(0);
 #else
-		printf("%s\n", a__GlPrintError(glerror));
+		printf("%s: %s\n", func, a__GlPrintError(glerror));
 		abort();
 #endif
 	};
