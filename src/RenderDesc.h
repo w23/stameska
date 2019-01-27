@@ -9,8 +9,8 @@ struct Texture {
 	int w, h;
 	enum PixelType {
 		RGBA8,
-		RGBA32F,
 		RGBA16F,
+		RGBA32F,
 		//Depth24,
 	} pixel_type;
 
@@ -146,50 +146,52 @@ struct Pipeline {
 	std::vector<Program> programs;
 
 	std::vector<Command> commands;
+
+	static Pipeline loadFromString(std::string_view s);
 };
 
 /*
-	framebuffer: part
+framebuffers:
+	- name: part
+		pingpong: 1
 		size: [512, 512]
 		textures:
-			- pos: rgba32f
-			- vel: rgba32f
-			- col: rgba32f
-	framebuffer: frame
+			pos: rgba32f
+			vel: rgba32f
+			col: rgba32f
+	- name: frame
 		size: [$width, $height]
 		textures:
-			- color: rgba16f
-			- depth: d24
-	programs:
-		- particle_update:
-			fragment: pufrg.glsl
-			vertex: puvtx.glsl
-		... 
-	
-	paint:
-		- bindFramebuffer: part
-		- useProgram: particle_update
-		- bindTextures:
-			pp: part.pos
-			pv: part.vel
-			pc: part.col
-		- drawFullscreen
-		- bindFramebuffer: frame
-		- clear: 
+			color: rgba16f
+			depth: d24
+programs:
+	particle_update:
+		fragment: pufrg.glsl
+		vertex: puvtx.glsl
+paint:
+	- bindFramebuffer: part_ping
+	- useProgram: particle_update
+	- bindTextures:
+			pp: part_pong.pos
+			pv: part_pong.vel
+			pc: part_pong.col
+	- drawFullscreen
+	- bindFramebuffer: frame
+	- clear: 
 			color: [0, 0, 0, 0]
 			depth: 1
-		- enable: depth
-		- useProgram: particles_draw
-		- bindTextures:
-			pp: part.pos
-			pv: part.vel
-			pc: part.col
-		- drawArrays: { start: 0, count: part.pixel_count}
-		- bindFramebuffer: 0 
-		- useProgram: postfx
-		- setUniforms:
+	- enable: depth
+	- useProgram: particles_draw
+	- bindTextures:
+			pp: part_ping.pos
+			pv: part_ping.vel
+			pc: part_ping.col
+	- drawArrays: { start: 0, count: $part.pixel_count}
+	- bindFramebuffer: 0 
+	- useProgram: postfx
+	- setUniforms:
 			frame: [sampler2D, frame.color]
-		- drawFullscreen
+	- drawFullscreen
 */
 
 } // namespace renderdesc 
