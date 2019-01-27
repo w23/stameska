@@ -6,6 +6,11 @@
 #include <stdexcept>
 #include <memory>
 
+#ifndef DEBUG
+#undef MSG
+#define MSG(...)
+#endif
+
 namespace yaml {
 
 class ParserContext {

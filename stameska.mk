@@ -25,7 +25,7 @@ CFLAGS += \
 
 ifeq ($(DEBUG), 1)
 	CONFIG = dbg
-	CFLAGS += -O0 -g
+	CFLAGS += -O0 -g -DDEBUG
 else
 	CONFIG = rel
 	CFLAGS += -O3
