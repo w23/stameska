@@ -15,9 +15,7 @@ class ParserContext;
 
 class Mapping {
 public:
-	bool hasKey(const std::string &name) const {
-		return map_.find(name) != map_.end();
-	}
+	bool hasKey(const std::string &name) const;
 
 	using KeyValue = std::map<std::string, Value>;
 	const KeyValue &map() const { return map_; }
@@ -52,7 +50,7 @@ public:
 	}
 
 	const Sequence &getSequence() const {
-		if (type_ != Type::Mapping)
+		if (type_ != Type::Sequence)
 			throw std::runtime_error("Value is not of Sequence type");
 		return sequence_;
 	}
@@ -67,12 +65,7 @@ public:
 		if (type_ != Type::String)
 			throw std::runtime_error("Value is not of String type");
 
-		char *endptr = nullptr;
-		const long int ret = strtol(string_.c_str(), &endptr, 10);
-		if (string_.empty() || endptr[0] != '\0')
-			throw std::runtime_error(format("Cannot convert '%string_' to int", string_.c_str()));
-
-		return ret;
+		return intFromString(string_);
 	}
 
 	bool isString() const { return type_ == Type::String; }

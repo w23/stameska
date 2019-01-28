@@ -7,7 +7,6 @@
 namespace renderdesc {
 
 static Texture::PixelType pixelTypeFromString(const std::string &s) {
-	// TODO case insensitivity
 	if (s == "RGBA8") return Texture::PixelType::RGBA8;
 	if (s == "RGBA16F") return Texture::PixelType::RGBA16F;
 	if (s == "RGBA32F") return Texture::PixelType::RGBA32F;
@@ -16,11 +15,15 @@ static Texture::PixelType pixelTypeFromString(const std::string &s) {
 }
 
 static Command::Flag flagFromString(const std::string &s) {
+	if (s == "DepthTest") return Command::Flag::DepthTest;
+	if (s == "VertexProgramPointSize") return Command::Flag::VertexProgramPointSize;
+
+	throw std::runtime_error(format("Unknown flag %s", s.c_str()));
 }
 
 class Loader {
+	Pipeline &pipeline_;
 	const yaml::Mapping &root_;
-	Pipeline pipeline_;
 	struct {
 		std::vector<std::string> framebuffer;
 		std::vector<std::string> texture;
@@ -29,6 +32,32 @@ class Loader {
 	} names_;
 
 	int readVariable(const std::string &s) {
+		// FIXME read actual variable
+		return intFromString(s);
+	}
+
+	Command::Index getFramebufferIndex(const std::string &s) {
+		const auto it = std::find(names_.framebuffer.begin(), names_.framebuffer.end(), s);
+		if (it == names_.framebuffer.end())
+			throw std::runtime_error(format("Unknown framebuffer %s", s.c_str()));
+
+		return (int)(it - names_.framebuffer.begin());
+	}
+
+	Command::Index getProgramIndex(const std::string &s) {
+		const auto it = std::find(names_.program.begin(), names_.program.end(), s);
+		if (it == names_.program.end())
+			throw std::runtime_error(format("Unknown program %s", s.c_str()));
+
+		return (int)(it - names_.program.begin());
+	}
+
+	Command::Index getTextureIndex(const std::string &s) {
+		const auto it = std::find(names_.texture.begin(), names_.texture.end(), s);
+		if (it == names_.texture.end())
+			throw std::runtime_error(format("Unknown texture %s", s.c_str()));
+
+		return (int)(it - names_.texture.begin());
 	}
 
 	int getShaderIndex(const std::string &s) {
@@ -38,9 +67,9 @@ class Loader {
 
 		const int ret = (int)names_.shader.size();
 		names_.shader.push_back(s);
+		pipeline_.shader_filenames.push_back(s);
 		return ret;
 	}
-
 
 	void loadFramebuffers() {
 		// TODO should framebuffers be mapping not sequence?
@@ -144,23 +173,26 @@ class Loader {
 	}
 
 public:
-	Loader(const yaml::Mapping &root) : root_(root) {}
+	Loader(Pipeline &pipeline, const yaml::Mapping &root)
+		: pipeline_(pipeline)
+		, root_(root)
+	{
+	}
 
-	Pipeline load() {
+	void load() {
 		if (root_.hasKey("framebuffers"))
 			loadFramebuffers();
 
 		loadPrograms();
 
 		loadCommands();
-
-		return std::move(pipeline_);
 	}
 };
 
-Pipeline Pipeline::loadFromString(std::string_view s) {
-	Loader loader(yaml::parse(s).getMapping());
-	return loader.load();
+Pipeline::Pipeline(std::string_view s) {
+	const auto root = yaml::parse(s);
+	Loader loader(*this, root.getMapping());
+	loader.load();
 }
 
 } // namespace renderdesc

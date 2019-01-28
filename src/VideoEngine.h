@@ -16,7 +16,7 @@ public:
 	VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline);
 	~VideoEngine();
 
-	void paint(int w, int h, float row, Timeline &timeline);
+	void paint(unsigned int frame_seq, int w, int h, float row, Timeline &timeline);
 
 private:
 	struct Framebuffer {

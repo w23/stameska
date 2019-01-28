@@ -193,6 +193,10 @@ Value parse(std::string_view s) {
 	return ctx.readAnyValue();
 }
 
+bool Mapping::hasKey(const std::string &name) const {
+	return map_.find(name) != map_.end();
+}
+
 const Value &Mapping::getValue(const std::string &name) const {
 	const auto it = map_.find(name);
 	if (it == map_.end())

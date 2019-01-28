@@ -122,10 +122,8 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 	p.setUniform("R", w, h).setUniform("t", row);
 }
 
-void VideoEngine::paint(int w, int h, float row, Timeline &timeline) {
-	static unsigned int frame_seq = 0;
+void VideoEngine::paint(unsigned int frame_seq, int w, int h, float row, Timeline &timeline) {
 	const int pingpong[3] = {0, (int)(frame_seq & 1), (int)((frame_seq + 1) & 1)};
-	frame_seq++;
 
 	for (auto &p: programs_)
 		p.poll(frame_seq);

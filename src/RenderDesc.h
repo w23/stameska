@@ -139,7 +139,8 @@ public:
 #undef X
 };
 
-struct Pipeline {
+class Pipeline {
+public:
 	std::vector<Texture> textures;
 	std::vector<Framebuffer> framebuffers;
 	std::vector<std::string> shader_filenames;
@@ -147,7 +148,7 @@ struct Pipeline {
 
 	std::vector<Command> commands;
 
-	static Pipeline loadFromString(std::string_view s);
+	Pipeline(std::string_view s);
 };
 
 /*
