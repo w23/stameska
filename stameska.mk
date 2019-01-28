@@ -31,6 +31,12 @@ else
 	CFLAGS += -O3
 endif
 
+ifeq ($(ASAN), 1)
+	CONFIG:=$(CONFIG)-asan
+	CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+	LIBS += -fsanitize=address
+endif
+
 PLATFORM=linux-x11
 COMPILER ?= $(CC)
 
