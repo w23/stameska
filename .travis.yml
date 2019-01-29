@@ -1,0 +1,25 @@
+language: cpp
+dist: xenial
+script: make
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
+      - libxfixes-dev
+      - mesa-common-dev
+      - libasound2-dev
+      - libgl1-mesa-dev
+
+matrix:
+  include:
+    - name: gcc-release
+      env:
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+    - name: clang-release
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+
+before_install:
+    - eval "${MATRIX_EVAL}"
