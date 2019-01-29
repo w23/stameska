@@ -30,6 +30,10 @@ class Loader {
 		std::vector<std::string> program;
 		std::vector<std::string> shader;
 	} names_;
+	struct {
+		std::vector<Command::Index> framebuffer;
+		std::vector<Command::Index> texture;
+	} indexes_;
 
 	int readVariable(const std::string &s) {
 		// FIXME read actual variable
@@ -44,7 +48,7 @@ class Loader {
 		if (it == names_.framebuffer.end())
 			throw std::runtime_error(format("Unknown framebuffer %s", s.c_str()));
 
-		return (int)(it - names_.framebuffer.begin());
+		return indexes_.framebuffer[it - names_.framebuffer.begin()];
 	}
 
 	Command::Index getProgramIndex(const std::string &s) {
@@ -52,7 +56,7 @@ class Loader {
 		if (it == names_.program.end())
 			throw std::runtime_error(format("Unknown program %s", s.c_str()));
 
-		return (int)(it - names_.program.begin());
+		return indexes_.framebuffer[it - names_.program.begin()];
 	}
 
 	Command::Index getTextureIndex(const std::string &s) {
@@ -74,6 +78,13 @@ class Loader {
 		return ret;
 	}
 
+	void addTexture(Command::Index::Pingpong pp, const std::string &name, int width, int height, Texture::PixelType tex_type) {
+		const int index = (int)names_.texture.size();
+		names_.texture.emplace_back(name);
+		pipeline_.textures.emplace_back(width, height, tex_type);
+		indexes_.texture.emplace_back(Command::Index(index, pp));
+	}
+
 	void loadFramebuffers() {
 		const yaml::Mapping &yfbs = root_.getMapping("framebuffers");
 		for (const auto &[name, yfbv]: yfbs.map()) {
@@ -86,6 +97,8 @@ class Loader {
 			assert(framebuffer_index == pipeline_.framebuffers.size());
 
 			const yaml::Sequence &size = yfb.getSequence("size");
+
+			const bool pingpong = yfb.hasKey("pingpong") && yfb.getInt("pingpong");
 
 			const int width = readVariable(size.at(0).getString());
 			const int height = readVariable(size.at(1).getString());
@@ -103,15 +116,39 @@ class Loader {
 				const size_t tex_index = names_.texture.size();
 				assert(tex_index == pipeline_.textures.size());
 
-				names_.texture.emplace_back(name + "." + tex_name);
-				pipeline_.textures.emplace_back(width, height, tex_type);
+				if (pingpong) {
+					addTexture(Command::Index::Pingpong::Ping, name + "@ping." + tex_name, width, height, tex_type);
+					addTexture(Command::Index::Pingpong::Pong, name + "@pong." + tex_name, width, height, tex_type);
+				} else {
+					addTexture(Command::Index::Pingpong::Fixed, name + "." + tex_name, width, height, tex_type);
+				}
 
 				fb.textures[fb.textures_count] = (int)tex_index;
 				++fb.textures_count;
 			}
 
-			pipeline_.framebuffers.push_back(std::move(fb));
-			names_.framebuffer.push_back(name);
+			if (pingpong) {
+				{
+					const int index = (int)pipeline_.framebuffers.size();
+					pipeline_.framebuffers.push_back(fb);
+					names_.framebuffer.push_back(name + "@ping");
+					indexes_.framebuffer.emplace_back(Command::Index(index, Command::Index::Pingpong::Ping));
+				}
+
+				for (int i = 0; i < fb.textures_count; ++i)
+					fb.textures[i] += 1;
+				{
+					const int index = (int)pipeline_.framebuffers.size();
+					pipeline_.framebuffers.push_back(fb);
+					names_.framebuffer.push_back(name + "@pong");
+					indexes_.framebuffer.emplace_back(Command::Index(index, Command::Index::Pingpong::Pong));
+				}
+			} else {
+				const int index = (int)pipeline_.framebuffers.size();
+				pipeline_.framebuffers.push_back(fb);
+				names_.framebuffer.push_back(name);
+				indexes_.framebuffer.emplace_back(Command::Index(index));
+			}
 		}
 	}
 
@@ -170,7 +207,8 @@ class Loader {
 						readVariable(ymap.getString("count"))
 					)
 				);
-			}
+			} else
+				throw std::runtime_error(format("Unknown command %s", op.c_str()));
 		}
 	}
 
