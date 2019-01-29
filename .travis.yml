@@ -1,10 +1,6 @@
 language: c
 dist: xenial
 script: make
-compiler:
-  - clang
-  - gcc
-
 addons:
   apt:
     sources:
@@ -16,5 +12,11 @@ addons:
       - libasound2-dev
       - libgl1-mesa-dev
 
-install:
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 90
+matrix:
+  include:
+    - name: gcc-release
+      env:
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+    - name: clang-release
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
