@@ -37,6 +37,9 @@ class Loader {
 	}
 
 	Command::Index getFramebufferIndex(const std::string &s) {
+		if (s == "SCREEN")
+			return -1;
+
 		const auto it = std::find(names_.framebuffer.begin(), names_.framebuffer.end(), s);
 		if (it == names_.framebuffer.end())
 			throw std::runtime_error(format("Unknown framebuffer %s", s.c_str()));
@@ -72,13 +75,12 @@ class Loader {
 	}
 
 	void loadFramebuffers() {
-		// TODO should framebuffers be mapping not sequence?
-		const yaml::Sequence &fbs = root_.getSequence("framebuffers");
-		for (const auto &fb_value: fbs) {
-			const yaml::Mapping &yfb = fb_value.getMapping();
-			const std::string &name = yfb.getString("name");
+		const yaml::Mapping &yfbs = root_.getMapping("framebuffers");
+		for (const auto &[name, yfbv]: yfbs.map()) {
 			if (std::find(names_.framebuffer.begin(), names_.framebuffer.end(), name) != names_.framebuffer.end())
 				throw std::runtime_error(format("Framebuffer '%s' is not unique", name.c_str()));
+
+			const yaml::Mapping &yfb = yfbv.getMapping();
 
 			const size_t framebuffer_index = names_.framebuffer.size();
 			assert(framebuffer_index == pipeline_.framebuffers.size());
@@ -107,7 +109,7 @@ class Loader {
 				fb.textures[fb.textures_count] = (int)tex_index;
 				++fb.textures_count;
 			}
-	
+
 			pipeline_.framebuffers.push_back(std::move(fb));
 			names_.framebuffer.push_back(name);
 		}

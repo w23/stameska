@@ -151,48 +151,4 @@ public:
 	Pipeline(std::string_view s);
 };
 
-/*
-framebuffers:
-	- name: part
-		pingpong: 1
-		size: [512, 512]
-		textures:
-			pos: rgba32f
-			vel: rgba32f
-			col: rgba32f
-	- name: frame
-		size: [$width, $height]
-		textures:
-			color: rgba16f
-			depth: d24
-programs:
-	particle_update:
-		fragment: pufrg.glsl
-		vertex: puvtx.glsl
-paint:
-	- bindFramebuffer: part_ping
-	- useProgram: particle_update
-	- bindTextures:
-			pp: part_pong.pos
-			pv: part_pong.vel
-			pc: part_pong.col
-	- drawFullscreen
-	- bindFramebuffer: frame
-	- clear: 
-			color: [0, 0, 0, 0]
-			depth: 1
-	- enable: depth
-	- useProgram: particles_draw
-	- bindTextures:
-			pp: part_ping.pos
-			pv: part_ping.vel
-			pc: part_ping.col
-	- drawArrays: { start: 0, count: $part.pixel_count}
-	- bindFramebuffer: 0 
-	- useProgram: postfx
-	- setUniforms:
-			frame: [sampler2D, frame.color]
-	- drawFullscreen
-*/
-
-} // namespace renderdesc 
+} // namespace renderdesc
