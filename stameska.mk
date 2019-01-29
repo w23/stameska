@@ -89,7 +89,7 @@ $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a:
 	MAKEFLAGS= make -C $(STAMESKA_BASEDIR)/3p/rocket lib/librocket.a
 
 $(STAMESKA_EXE): $(STAMESKA_OBJS) $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a
-	$(CXX) $(LIBS) $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a $^ -o $@
+	$(CXX) $^ $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a $(LIBS) -o $@
 
 stameska: $(STAMESKA_EXE)
 
