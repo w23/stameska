@@ -10,5 +10,5 @@ before_install:
   - sudo apt-get update -qq
 
 install: 
-  - sudo apt-get install -qq g++-6 libxfixes-dev
+  - sudo apt-get install -qq g++-6 libxfixes-dev mesa-common-dev
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 90
