@@ -1,0 +1,24 @@
+framebuffers:
+  frame:
+    size: [1280, 720]
+    textures:
+      color: RGBA32F
+    pingpong: 1
+programs:
+  feedback:
+    vertex: vertex.glsl
+    fragment: feedback.glsl
+  post:
+    vertex: vertex.glsl
+    fragment: post.glsl
+paint:
+  - bindFramebuffer: frame@ping
+  - useProgram: feedback
+  - bindTexture:
+      prev: frame@pong.color
+  - drawFullscreen
+  - bindFramebuffer: SCREEN
+  - useProgram: post
+  - bindTexture:
+      frame: frame@ping.color
+  - drawFullscreen
