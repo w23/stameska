@@ -114,7 +114,18 @@ public:
 	ParserContext(FILE &f) {
 		yaml_parser_initialize(&parser_);
 		yaml_parser_set_input_file(&parser_, &f);
+	}
 
+	ParserContext(std::string_view s) {
+		yaml_parser_initialize(&parser_);
+		yaml_parser_set_input_string(&parser_, (const unsigned char*)s.data(), s.size());
+	}
+
+	~ParserContext() {
+		yaml_parser_delete(&parser_);
+	}
+
+	Value readAnyValue() {
 		enum class State {
 			Init,
 			StreamStarted,
@@ -139,13 +150,7 @@ public:
 					throw std::runtime_error(format("Unexpected event %d", event.type));
 			} // switch (event.type)
 		} // for(state != DocumentStarted)
-	}
 
-	~ParserContext() {
-		yaml_parser_delete(&parser_);
-	}
-
-	Value readAnyValue() {
 		YamlEvent event = getNextEvent();
 
 		switch (event.type) {
@@ -180,6 +185,16 @@ Value parse(const char *filename) {
 	ParserContext ctx(*f);
 
 	return ctx.readAnyValue();
+}
+
+Value parse(std::string_view s) {
+	ParserContext ctx(s);
+
+	return ctx.readAnyValue();
+}
+
+bool Mapping::hasKey(const std::string &name) const {
+	return map_.find(name) != map_.end();
 }
 
 const Value &Mapping::getValue(const std::string &name) const {

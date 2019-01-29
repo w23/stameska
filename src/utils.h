@@ -28,3 +28,5 @@ public:
 #endif
 
 std::string format(const char* str, ...) PRINTF_ATTR(1, 2);
+
+long int intFromString(const std::string &s);

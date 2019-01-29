@@ -31,6 +31,12 @@ else
 	CFLAGS += -O3
 endif
 
+ifeq ($(ASAN), 1)
+	CONFIG:=$(CONFIG)-asan
+	CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+	LIBS += -fsanitize=address
+endif
+
 PLATFORM=linux-x11
 COMPILER ?= $(CC)
 
@@ -60,9 +66,11 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/reader.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/scanner.c \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
+	$(STAMESKA_BASEDIR)/src/PolledPipelineDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderSource.cpp \
 	$(STAMESKA_BASEDIR)/src/ProjectSettings.cpp \
+	$(STAMESKA_BASEDIR)/src/RenderDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/Resources.cpp \
 	$(STAMESKA_BASEDIR)/src/ShaderSource.cpp \
 	$(STAMESKA_BASEDIR)/src/Timeline.cpp \

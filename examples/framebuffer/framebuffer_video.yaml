@@ -1,0 +1,21 @@
+framebuffers:
+  frame:
+    size: [1280, 720]
+    textures:
+      color: RGBA32F
+programs:
+  raymarch:
+    vertex: vertex.glsl
+    fragment: fragment.glsl
+  post:
+    vertex: vertex.glsl
+    fragment: post.glsl
+paint:
+  - bindFramebuffer: frame
+  - useProgram: raymarch
+  - drawFullscreen
+  - bindFramebuffer: SCREEN
+  - useProgram: post
+  - bindTextues:
+      frame: frame.color
+  - drawFullscreen

@@ -52,26 +52,27 @@ Source Source::load(string_view raw_source) {
 		subchunk_begin = pcmd_end;
 
 		// check for preprocessor definition kind
-		const string_view pcmd = m.str(1);
+		// m.str(1) unfortunately returns string, not string_view to a range within raw_source ;_;
+		const std::string pcmd = m.str(1);
 		UniformType uniform_type;
 		enum class PcmdKind {
 			Skip, Uniform, Include
 		} pcmd_kind = PcmdKind::Skip;
-		if (0 == pcmd.compare("float")) {
+		if (pcmd == "float") {
 			uniform_type = UniformType::Float;
 			pcmd_kind = PcmdKind::Uniform;
-		} else if (0 == pcmd.compare("vec2")) {
+		} else if (pcmd == "vec2") {
 			uniform_type = UniformType::Vec2;
 			pcmd_kind = PcmdKind::Uniform;
-		} else if (0 == pcmd.compare("vec3")) {
+		} else if (pcmd == "vec3") {
 			uniform_type = UniformType::Vec3;
 			pcmd_kind = PcmdKind::Uniform;
-		} else if (0 == pcmd.compare("vec4")) {
+		} else if (pcmd == "vec4") {
 			uniform_type = UniformType::Vec4;
 			pcmd_kind = PcmdKind::Uniform;
-		} else if (0 == pcmd.compare("include")) {
+		} else if (pcmd == "include") {
 			pcmd_kind = PcmdKind::Include;
-		} else if (0 == pcmd.compare("version")) {
+		} else if (pcmd == "version") {
 			const std::string sver = m.str(2);
 			size_t pos = 0;
 			version = std::stoi(sver, &pos);
@@ -106,7 +107,7 @@ Source Source::load(string_view raw_source) {
 			chunks.emplace_back(Chunk::Type::Include, std::string(filename.begin() + 1, filename.end() - 1));
 		}
 
-	} // for all preprocessor commands 
+	} // for all preprocessor commands
 
 	const auto subchunk_end = raw_source.end();
 	current_chunk += string_view(subchunk_begin, subchunk_end - subchunk_begin);

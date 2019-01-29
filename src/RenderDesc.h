@@ -9,8 +9,8 @@ struct Texture {
 	int w, h;
 	enum PixelType {
 		RGBA8,
-		RGBA32F,
 		RGBA16F,
+		RGBA32F,
 		//Depth24,
 	} pixel_type;
 
@@ -139,57 +139,16 @@ public:
 #undef X
 };
 
-struct Pipeline {
+class Pipeline {
+public:
 	std::vector<Texture> textures;
 	std::vector<Framebuffer> framebuffers;
 	std::vector<std::string> shader_filenames;
 	std::vector<Program> programs;
 
 	std::vector<Command> commands;
+
+	Pipeline(std::string_view s);
 };
 
-/*
-	framebuffer: part
-		size: [512, 512]
-		textures:
-			- pos: rgba32f
-			- vel: rgba32f
-			- col: rgba32f
-	framebuffer: frame
-		size: [$width, $height]
-		textures:
-			- color: rgba16f
-			- depth: d24
-	programs:
-		- particle_update:
-			fragment: pufrg.glsl
-			vertex: puvtx.glsl
-		... 
-	
-	paint:
-		- bindFramebuffer: part
-		- useProgram: particle_update
-		- bindTextures:
-			pp: part.pos
-			pv: part.vel
-			pc: part.col
-		- drawFullscreen
-		- bindFramebuffer: frame
-		- clear: 
-			color: [0, 0, 0, 0]
-			depth: 1
-		- enable: depth
-		- useProgram: particles_draw
-		- bindTextures:
-			pp: part.pos
-			pv: part.vel
-			pc: part.col
-		- drawArrays: { start: 0, count: part.pixel_count}
-		- bindFramebuffer: 0 
-		- useProgram: postfx
-		- setUniforms:
-			frame: [sampler2D, frame.color]
-		- drawFullscreen
-*/
-
-} // namespace renderdesc 
+} // namespace renderdesc
