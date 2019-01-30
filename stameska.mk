@@ -14,7 +14,7 @@ YAML_MINOR=2
 YAML_PATCH=1
 
 CFLAGS += \
-	-I3p/libyaml/include \
+	-I$(STAMESKA_BASEDIR)/3p/libyaml/include \
 	-DYAML_MAJOR=$(YAML_MAJOR) \
 	-DYAML_MINOR=$(YAML_MINOR) \
 	-DYAML_PATCH=$(YAML_PATCH) \
