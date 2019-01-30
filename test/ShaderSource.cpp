@@ -5,7 +5,7 @@
 #endif
 #include <assert.h>
 
-int main() {
+int testShaderSource() {
 	const auto t1 = shader::Source::load("simple");
 	assert(t1.chunks().size() == 1);
 	assert(t1.chunks()[0].type == shader::Source::Chunk::Type::String);

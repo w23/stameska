@@ -56,7 +56,7 @@ class Loader {
 		if (it == names_.program.end())
 			throw std::runtime_error(format("Unknown program %s", s.c_str()));
 
-		return indexes_.framebuffer[it - names_.program.begin()];
+		return it - names_.program.begin();
 	}
 
 	Command::Index getTextureIndex(const std::string &s) {

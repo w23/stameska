@@ -56,15 +56,18 @@ $(OBJDIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(COMPILE.cc) -c $< -o $@
 
-STAMESKA_EXE = $(OBJDIR)/stameska
-STAMESKA_SOURCES += \
-	$(STAMESKA_BASEDIR)/3p/atto/src/app_linux.c \
-	$(STAMESKA_BASEDIR)/3p/atto/src/app_x11.c \
+LIBYAML_SOURCES= \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/api.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/loader.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/parser.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/reader.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/scanner.c \
+
+STAMESKA_EXE = $(OBJDIR)/stameska
+STAMESKA_SOURCES += \
+	$(LIBYAML_SOURCES) \
+	$(STAMESKA_BASEDIR)/3p/atto/src/app_linux.c \
+	$(STAMESKA_BASEDIR)/3p/atto/src/app_x11.c \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledPipelineDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \
