@@ -4,7 +4,7 @@
 
 class PolledResource {
 public:
-	unsigned int version() const { return version_; }
+	unsigned int resource_version() const { return resource_version_; }
 
 protected:
 	bool beginUpdate(unsigned int poll_seq) {
@@ -16,13 +16,13 @@ protected:
 	}
 
 	bool endUpdate() {
-		++version_;
+		++resource_version_;
 		return true;
 	}
 
 private:
 	unsigned int poll_seq_ = 0;
-	unsigned int version_ = 0;
+	unsigned int resource_version_ = 0;
 };
 
 template <typename R>
@@ -34,8 +34,9 @@ public:
 		if (!resource_)
 			return false;
 
-		if (beginUpdate(poll_seq) && (resource_->poll(poll_seq) || resource_->version() != last_version_)) {
-			last_version_ = resource_->version();
+		if (beginUpdate(poll_seq) && (resource_->poll(poll_seq)
+				|| resource_->resource_version() != last_resource_version_)) {
+			last_resource_version_ = resource_->resource_version();
 			return endUpdate();
 		}
 
@@ -48,6 +49,6 @@ public:
 	operator bool() const { return !!resource_; }
 
 private:
-	unsigned int last_version_ = 0;
+	unsigned int last_resource_version_ = 0;
 	std::shared_ptr<R> resource_;
 };

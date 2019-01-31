@@ -40,7 +40,7 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 
 	for (auto &chunk: chunks_) {
 		if (Chunk::Type::Include == chunk.type) {
-			if (chunk.include->poll(poll_seq))
+			if (chunk.include.poll(poll_seq))
 				need_full_rebuild = true;
 		}
 	}
