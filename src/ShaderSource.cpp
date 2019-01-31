@@ -48,7 +48,7 @@ Source Source::load(std::string_view raw_source) {
 		const auto pcmd_start = raw_source.begin() + m.position(0);
 		const auto pcmd_end = pcmd_start + m.length(0);
 
-		current_chunk += std::string_view(subchunk_begin, pcmd_start - subchunk_begin);
+		current_chunk += std::string_view(&*subchunk_begin, pcmd_start - subchunk_begin);
 		subchunk_begin = pcmd_end;
 
 		// check for preprocessor definition kind
@@ -79,7 +79,7 @@ Source Source::load(std::string_view raw_source) {
 			if (pos != sver.length())
 				throw std::runtime_error(format("Unexpected #version number %s", sver.c_str()));
 		} else {
-			current_chunk += std::string_view(pcmd_start, pcmd_end - pcmd_start);
+			current_chunk += std::string_view(&*pcmd_start, pcmd_end - pcmd_start);
 		}
 
 		if (pcmd_kind == PcmdKind::Uniform) {
@@ -110,7 +110,7 @@ Source Source::load(std::string_view raw_source) {
 	} // for all preprocessor commands
 
 	const auto subchunk_end = raw_source.end();
-	current_chunk += std::string_view(subchunk_begin, subchunk_end - subchunk_begin);
+	current_chunk += std::string_view(&*subchunk_begin, subchunk_end - subchunk_begin);
 	chunks.emplace_back(Chunk::Type::String, std::move(current_chunk));
 
 	return Source(version, std::move(chunks), std::move(uniforms));
