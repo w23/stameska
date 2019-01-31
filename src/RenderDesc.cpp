@@ -56,7 +56,7 @@ class Loader {
 		if (it == names_.program.end())
 			throw std::runtime_error(format("Unknown program %s", s.c_str()));
 
-		return indexes_.framebuffer[it - names_.program.begin()];
+		return it - names_.program.begin();
 	}
 
 	Command::Index getTextureIndex(const std::string &s) {
@@ -103,10 +103,15 @@ class Loader {
 			const int width = readVariable(size.at(0).getString());
 			const int height = readVariable(size.at(1).getString());
 
-			const yaml::Mapping &textures = yfb.getMapping("textures");
+			const yaml::Sequence &ytextures = yfb.getSequence("textures");
 			Framebuffer fb;
 			fb.textures_count = 0;
-			for (const auto &[tex_name, tex_type_name]: textures.map()) {
+			for (const auto &ytex: ytextures) {
+				const yaml::Mapping &tex = ytex.getMapping();
+				if (tex.map().size() != 1)
+					throw std::runtime_error("Framebuffer target texture should have only one key:value pair: name and format");
+
+				const auto &[tex_name, tex_type_name] = *tex.map().begin();
 				if (fb.textures_count >= MAX_TARGET_TEXTURES)
 					throw std::runtime_error(format("Too many targets for framebuffer %s, max: %d",
 						name.c_str(), MAX_TARGET_TEXTURES));

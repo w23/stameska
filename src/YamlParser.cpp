@@ -6,10 +6,10 @@
 #include <stdexcept>
 #include <memory>
 
-#ifndef DEBUG
+//#ifndef DEBUG
 #undef MSG
 #define MSG(...)
-#endif
+//#endif
 
 namespace yaml {
 

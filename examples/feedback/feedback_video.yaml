@@ -2,7 +2,7 @@ framebuffers:
   frame:
     size: [1280, 720]
     textures:
-      color: RGBA32F
+      - color: RGBA32F
     pingpong: 1
 programs:
   feedback:
