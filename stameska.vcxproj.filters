@@ -69,9 +69,6 @@
     <ClInclude Include="3p\rocket\lib\track.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="src\string_view.h">
-      <Filter>Заголовочные файлы</Filter>
-    </ClInclude>
     <ClInclude Include="src\ProjectSettings.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>

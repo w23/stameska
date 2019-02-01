@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -34,7 +34,6 @@
     <ClInclude Include="src\Program.h" />
     <ClInclude Include="src\ProjectSettings.h" />
     <ClInclude Include="src\ShaderSource.h" />
-    <ClInclude Include="src\string_view.h" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\Timeline.h" />
     <ClInclude Include="src\utils.h" />
@@ -43,53 +42,72 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3p\atto\src\app_windows.c" />
+		<ClCompile Include="3p\libyaml\src\api.c" />
+		<ClCompile Include="3p\libyaml\src\loader.c" />
+		<ClCompile Include="3p\libyaml\src\parser.c" />
+		<ClCompile Include="3p\libyaml\src\reader.c" />
+		<ClCompile Include="3p\libyaml\src\scanner.c" />
     <ClCompile Include="3p\rocket\lib\device.c" />
     <ClCompile Include="3p\rocket\lib\track.c" />
+		<ClCompile Include="src\PolledFile.cpp" />
+		<ClCompile Include="src\PolledPipelineDesc.cpp" />
+		<ClCompile Include="src\PolledShaderProgram.cpp" />
+		<ClCompile Include="src\PolledShaderSource.cpp" />
+		<ClCompile Include="src\ProjectSettings.cpp" />
+		<ClCompile Include="src\RenderDesc.cpp" />
+		<ClCompile Include="src\Resources.cpp" />
+		<ClCompile Include="src\ShaderSource.cpp" />
+		<ClCompile Include="src\Timeline.cpp" />
+		<ClCompile Include="src\VideoEngine.cpp" />
+		<ClCompile Include="src\YamlParser.cpp" />
+		<ClCompile Include="src\tool.cpp" />
+		<ClCompile Include="src\utils.cpp" />
+		<ClCompile Include="src\video.cpp" />
     <ClCompile Include="src\PolledFile.cpp" />
     <ClCompile Include="src\ProjectSettings.cpp" />
     <ClCompile Include="src\ShaderSource.cpp" />
+    <ClCompile Include="src\Timeline.cpp" />
+    <ClCompile Include="src\VideoEngine.cpp" />
+    <ClCompile Include="src\tool.cpp" />
+    <ClCompile Include="src\utils.cpp" />
+    <ClCompile Include="src\video.cpp" />
     <ClCompile Include="src\Text.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\Timeline.cpp" />
-    <ClCompile Include="src\tool.cpp" />
-    <ClCompile Include="src\utils.cpp" />
-    <ClCompile Include="src\video.cpp" />
-    <ClCompile Include="src\VideoEngine.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AA462482-D90E-49F9-8488-5348955A6ADB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>tool</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -139,6 +157,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)3p\atto;$(ProjectDir)3p;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -154,6 +173,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)3p\atto;$(ProjectDir)3p;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -171,6 +191,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)3p\atto;$(ProjectDir)3p;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -190,6 +211,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)3p\atto;$(ProjectDir)3p;$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
