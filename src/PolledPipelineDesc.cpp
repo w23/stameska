@@ -20,7 +20,7 @@ bool PolledPipelineDesc::poll(unsigned int poll_seq) {
 
 	try {
 		pipeline_.reset(
-			new renderdesc::Pipeline(string_view(
+			new renderdesc::Pipeline(std::string_view(
 				(const char*)file_->data().data(),
 				file_->data().size())));
 		return endUpdate();

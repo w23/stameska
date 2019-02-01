@@ -177,7 +177,11 @@ Value parse(const char *filename) {
 	if (!f) {
 		const int err = errno;
 		char strerr[32] = {'\0'};
+#ifndef _MSC_VER
 		const auto v = strerror_r(err, strerr, sizeof(strerr));
+#else
+		const auto v = strerror_s(strerr, sizeof(strerr), err);
+#endif
 		(void)v;
 		throw std::runtime_error(format("Cannot open file %s: %d(%s)", filename, err, strerr));
 	}

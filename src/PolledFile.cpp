@@ -143,7 +143,7 @@ class PolledFile::Impl {
 	}
 
 public:
-	Impl(string_view filename) : filename_(filename) {}
+	Impl(std::string_view filename) : filename_(filename) {}
 
 	bool poll() {
 		const Metadata new_metadata = readFileMetadata(filename_.c_str());
@@ -169,7 +169,7 @@ private:
 	Metadata metadata_;
 };
 
-PolledFile::PolledFile(string_view filename) : impl_(new Impl(filename)) {}
+PolledFile::PolledFile(std::string_view filename) : impl_(new Impl(filename)) {}
 PolledFile::~PolledFile() {}
 
 bool PolledFile::poll(unsigned int poll_seq) {
