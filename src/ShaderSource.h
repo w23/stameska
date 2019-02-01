@@ -1,6 +1,6 @@
 #pragma once
 
-#include "string_view.h"
+#include <string_view>
 #include "utils.h"
 
 #include <string>
@@ -31,7 +31,7 @@ public:
 	~Source() {}
 	Source(Source&&) = default;
 
-	static Source load(string_view raw_source);
+	static Source load(std::string_view raw_source);
 
 	struct Chunk {
 		enum class Type {
@@ -41,7 +41,7 @@ public:
 
 		std::string value;
 
-		Chunk(Type type, string_view value) : type(type), value(value) {}
+		Chunk(Type type, std::string_view value) : type(type), value(value) {}
 		Chunk(Type type, std::string&& value) : type(type), value(std::move(value)) {}
 	};
 
