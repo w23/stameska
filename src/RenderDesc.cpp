@@ -21,6 +21,18 @@ static Command::Flag flagFromString(const std::string &s) {
 	throw std::runtime_error(format("Unknown flag %s", s.c_str()));
 }
 
+static Command::DrawArrays::Mode drawModeFromString(const std::string &s) {
+	if (s == "Points") return Command::DrawArrays::Mode::Points;
+	if (s == "Triangles") return Command::DrawArrays::Mode::Triangles;
+	if (s == "TriangleStrip") return Command::DrawArrays::Mode::TriangleStrip;
+	if (s == "TriangleFan") return Command::DrawArrays::Mode::TriangleFan;
+	if (s == "Lines") return Command::DrawArrays::Mode::Lines;
+	if (s == "LineStrip") return Command::DrawArrays::Mode::LineStrip;
+	if (s == "LineLoop") return Command::DrawArrays::Mode::LineLoop;
+
+	throw std::runtime_error(format("Unknown mode %s", s.c_str()));
+}
+
 class Loader {
 	Pipeline &pipeline_;
 	const yaml::Mapping &root_;
@@ -208,6 +220,7 @@ class Loader {
 				const yaml::Mapping &ymap = yargs.getMapping();
 				pipeline_.commands.emplace_back(
 					Command::DrawArrays(
+						drawModeFromString(ymap.getString("mode")),
 						readVariable(ymap.getString("start")),
 						readVariable(ymap.getString("count"))
 					)
