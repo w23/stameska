@@ -1,4 +1,5 @@
 #pragma once
+#include "OpenGL.h"
 
 #include <string>
 #include <vector>
@@ -40,8 +41,8 @@ public:
 	struct Index {
 		int index;
 		enum Pingpong {
-			Fixed, // Real index is always index 
-			Ping, // real index is index + (frame number is even)?0:1 
+			Fixed, // Real index is always index
+			Ping, // real index is index + (frame number is even)?0:1
 			Pong  // real index is index + (frame number is even)?1:0
 		} pingpong;
 
@@ -105,10 +106,21 @@ public:
 	};
 
 	struct DrawArrays {
+		enum class Mode {
+			Points = GL_POINTS,
+			Triangles = GL_TRIANGLES,
+			TriangleStrip = GL_TRIANGLE_STRIP,
+			TriangleFan = GL_TRIANGLE_FAN,
+			Lines = GL_LINES,
+			LineStrip = GL_LINE_STRIP,
+			LineLoop = GL_LINE_LOOP,
+		};
+
+		Mode mode;
 		int start, count;
 
 		DrawArrays() {}
-		DrawArrays(int start, int count) : start(start), count(count) {}
+		DrawArrays(Mode mode, int start, int count) : mode(mode), start(start), count(count) {}
 	};
 
 	struct DrawFullscreen {};

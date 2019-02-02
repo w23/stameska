@@ -216,7 +216,7 @@ void VideoEngine::paint(unsigned int frame_seq, int w, int h, float row, Timelin
 				}
 				break;
 			case renderdesc::Command::Op::DrawArrays:
-				GL(glDrawArrays(GL_POINTS, cmd.drawArrays.start, cmd.drawArrays.count));
+				GL(glDrawArrays((GLenum)cmd.drawArrays.mode, cmd.drawArrays.start, cmd.drawArrays.count));
 				break;
 			case renderdesc::Command::Op::DrawFullscreen:
 				GL(glRects(-1,-1,1,1));
