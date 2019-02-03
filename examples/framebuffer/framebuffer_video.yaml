@@ -16,6 +16,6 @@ paint:
   - drawFullscreen
   - bindFramebuffer: SCREEN
   - useProgram: post
-  - bindTextues:
+  - bindTexture:
       frame: frame.color
   - drawFullscreen

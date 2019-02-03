@@ -76,7 +76,7 @@ class Loader {
 		if (it == names_.texture.end())
 			throw std::runtime_error(format("Unknown texture %s", s.c_str()));
 
-		return (int)(it - names_.texture.begin());
+		return indexes_.texture[it - names_.texture.begin()];
 	}
 
 	int getShaderIndex(const std::string &s) {
@@ -90,8 +90,7 @@ class Loader {
 		return ret;
 	}
 
-	void addTexture(Command::Index::Pingpong pp, const std::string &name, int width, int height, Texture::PixelType tex_type) {
-		const int index = (int)names_.texture.size();
+	void addTexture(const int index, Command::Index::Pingpong pp, const std::string &name, int width, int height, Texture::PixelType tex_type) {
 		names_.texture.emplace_back(name);
 		pipeline_.textures.emplace_back(width, height, tex_type);
 		indexes_.texture.emplace_back(Command::Index(index, pp));
@@ -134,10 +133,10 @@ class Loader {
 				assert(tex_index == pipeline_.textures.size());
 
 				if (pingpong) {
-					addTexture(Command::Index::Pingpong::Ping, name + "@ping." + tex_name, width, height, tex_type);
-					addTexture(Command::Index::Pingpong::Pong, name + "@pong." + tex_name, width, height, tex_type);
+					addTexture(tex_index, Command::Index::Pingpong::Ping, name + "@ping." + tex_name, width, height, tex_type);
+					addTexture(tex_index, Command::Index::Pingpong::Pong, name + "@pong." + tex_name, width, height, tex_type);
 				} else {
-					addTexture(Command::Index::Pingpong::Fixed, name + "." + tex_name, width, height, tex_type);
+					addTexture(tex_index, Command::Index::Pingpong::Fixed, name + "." + tex_name, width, height, tex_type);
 				}
 
 				fb.textures[fb.textures_count] = (int)tex_index;
