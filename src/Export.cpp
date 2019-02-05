@@ -4,6 +4,7 @@
 #include "PolledShaderSource.h"
 #include "utils.h"
 
+#include <algorithm>
 #include <memory>
 
 static std::string validateName(const std::string &str) {
@@ -24,6 +25,30 @@ static std::string validateName(const std::string &str) {
 	return out;
 }
 
+static void writeUniformTrackData(FILE *out, const std::string &name) {
+	std::string filename = "sync_" + name + ".track";
+
+	const auto in = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "rb"), &fclose);
+	if (!in)
+		throw std::runtime_error(format("Cannot open file '%s' for reading", filename.c_str()));
+
+	fseek(in.get(), 0, SEEK_END);
+	const size_t size = ftell(in.get());
+	fseek(in.get(), 0, SEEK_SET);
+
+	std::vector<unsigned char> data;
+	data.resize(size);
+
+	const size_t read = fread(data.data(), 1, size, in.get());
+	if (size != read)
+		throw std::runtime_error(format("Could read only %d of %d bytes from '%s'", (int)read, (int)size, filename.c_str()));
+
+	fprintf(out, "\t{\"%s\", %d, \"", filename.c_str(), (int)size);
+	for (const auto &c: data)
+		fprintf(out, "\\x%x", c);
+	fprintf(out, "\", 0},\n");
+}
+
 void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) {
 	MSG("Exporting rendering pipeline to '%s'", filename);
 
@@ -31,8 +56,8 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 	if (!f)
 		throw std::runtime_error(format("Cannot open file '%s' for writing", filename));
 
+	Resources res;
 	{
-		Resources res;
 		for (const auto &s: p.shader_filenames) {
 			const std::string vname = validateName(s);
 			const auto shader = res.getShaderSource(s);
@@ -67,7 +92,60 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 
 	fprintf(f.get(), "static GLuint programs[%d];\n", (int)p.programs.size());
 
+	std::vector<std::string> rocket_tracks;
+	std::vector<shader::UniformsMap> program_uniforms;
+	shader::UniformsMap global_uniforms;
+	for (const auto& prog: p.programs) {
+		const auto vertex = res.getShaderSource(p.shader_filenames[prog.vertex]);
+		const auto fragment = res.getShaderSource(p.shader_filenames[prog.fragment]);
+
+		shader::appendUniforms(global_uniforms, vertex->uniforms());
+		shader::appendUniforms(global_uniforms, fragment->uniforms());
+
+		// Polled shaders are expected to be loaded
+		auto uniforms = vertex->uniforms();
+		shader::appendUniforms(uniforms, fragment->uniforms());
+		for (const auto &u: uniforms) {
+			if (u.first != "R" && u.first != "t" && std::find(rocket_tracks.begin(), rocket_tracks.end(), u.first) == rocket_tracks.end())
+				rocket_tracks.push_back(u.first);
+		}
+		program_uniforms.push_back(std::move(uniforms));
+	}
+
+	fprintf(f.get(), "static struct RocketTrack rocket_tracks[] = {\n");
+	for (const auto &[name, decl]: global_uniforms) {
+		if (name == "R" || name == "t")
+			continue;
+		switch (decl.type) {
+			case shader::UniformType::Float:
+				writeUniformTrackData(f.get(), name);
+				break;
+			case shader::UniformType::Vec2:
+				writeUniformTrackData(f.get(), name + ".x");
+				writeUniformTrackData(f.get(), name + ".y");
+				break;
+			case shader::UniformType::Vec3:
+				writeUniformTrackData(f.get(), name + ".x");
+				writeUniformTrackData(f.get(), name + ".y");
+				writeUniformTrackData(f.get(), name + ".z");
+				break;
+			case shader::UniformType::Vec4:
+				writeUniformTrackData(f.get(), name + ".x");
+				writeUniformTrackData(f.get(), name + ".y");
+				writeUniformTrackData(f.get(), name + ".z");
+				writeUniformTrackData(f.get(), name + ".w");
+				break;
+		}
+	}
+	fprintf(f.get(), "};\n\n");
+
+	if (!rocket_tracks.empty())
+		fprintf(f.get(), "static const struct sync_track *tracks[%d];\n", (int)rocket_tracks.size());
+
 	fprintf(f.get(), "\nstatic void videoInit() {\n");
+
+	for (size_t i = 0; i < rocket_tracks.size(); ++i)
+		fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", (int)i, rocket_tracks[i].c_str());
 
 	if (!p.textures.empty())
 		fprintf(f.get(), "\tglGenTextures(%d, textures);\n", (int)p.textures.size());
@@ -155,7 +233,21 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 			case renderdesc::Command::Op::UseProgram:
 				{
 					const renderdesc::Command::UseProgram &cmdp = cmd.useProgram;
-					fprintf(f.get(), "\tuseProgram(programs[%d], t);\n", cmdp.program.index);
+					const int pi = cmdp.program.index;
+					fprintf(f.get(), "\tcurrent_program = programs[%d];\n", pi);
+					fprintf(f.get(), "\tglUseProgram(current_program);\n");
+					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"R\"), %d, %d);\n", w, h);
+					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"t\"), t);\n");
+					const auto &uniforms = program_uniforms[pi];
+					for (const auto &[name, decl]: uniforms) {
+						// FIXME uniform types
+						(void)(decl); // FIXME
+						// FIXME
+						// FIXME
+						const int track_index = (int)(std::find(rocket_tracks.begin(), rocket_tracks.end(), name) - rocket_tracks.begin());
+						if (track_index != (int)rocket_tracks.size())
+							fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(programs[%d], \"%s\"), sync_get_val(tracks[%d], t));\n", pi, name.c_str(), track_index);
+					}
 					first_texture_slot = 0;
 					break;
 				}

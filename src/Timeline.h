@@ -21,6 +21,8 @@ public:
 	void update(float row);
 	Value getValue(const std::string& name, int comps);
 
+	void save() const;
+
 private:
 	static void pause(void *, int);
 	static void set_row(void *, int);

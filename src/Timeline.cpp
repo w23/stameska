@@ -70,6 +70,10 @@ Value Timeline::getValue(const std::string& name, int comps) {
 	return v;
 }
 
+void Timeline::save() const {
+	sync_save_tracks(rocket_.get());
+}
+
 void Timeline::pause(void *t, int p) {
 	Timeline *timeline = reinterpret_cast<Timeline*>(t);
 	timeline->pauseCallback(p);

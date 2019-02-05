@@ -111,6 +111,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 		break;
 
 	case AK_E:
+		timeline->save();
 		video_export();
 		break;
 
