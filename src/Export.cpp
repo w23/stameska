@@ -93,30 +93,48 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 	fprintf(f.get(), "static GLuint programs[%d];\n", (int)p.programs.size());
 
 	std::vector<std::string> rocket_tracks;
+	std::vector<std::pair<int,shader::UniformType>> rocket_tracks_details;
 	std::vector<shader::UniformsMap> program_uniforms;
-	shader::UniformsMap global_uniforms;
+	int rocket_track_index = 0;
 	for (const auto& prog: p.programs) {
 		const auto vertex = res.getShaderSource(p.shader_filenames[prog.vertex]);
 		const auto fragment = res.getShaderSource(p.shader_filenames[prog.fragment]);
 
-		shader::appendUniforms(global_uniforms, vertex->uniforms());
-		shader::appendUniforms(global_uniforms, fragment->uniforms());
-
 		// Polled shaders are expected to be loaded
 		auto uniforms = vertex->uniforms();
 		shader::appendUniforms(uniforms, fragment->uniforms());
-		for (const auto &u: uniforms) {
-			if (u.first != "R" && u.first != "t" && std::find(rocket_tracks.begin(), rocket_tracks.end(), u.first) == rocket_tracks.end())
-				rocket_tracks.push_back(u.first);
+		for (const auto &[name, decl]: uniforms) {
+			if (name != "R" && name != "t"
+				&& std::find(rocket_tracks.begin(), rocket_tracks.end(), name) == rocket_tracks.end()) {
+
+				rocket_tracks.push_back(name);
+				rocket_tracks_details.emplace_back(rocket_track_index, decl.type);
+
+				switch (decl.type) {
+					case shader::UniformType::Float:
+						rocket_track_index += 1;
+						break;
+					case shader::UniformType::Vec2:
+						rocket_track_index += 2;
+						break;
+					case shader::UniformType::Vec3:
+						rocket_track_index += 3;
+						break;
+					case shader::UniformType::Vec4:
+						rocket_track_index += 4;
+						break;
+				}
+			}
 		}
 		program_uniforms.push_back(std::move(uniforms));
 	}
 
-	fprintf(f.get(), "static struct RocketTrack rocket_tracks[] = {\n");
-	for (const auto &[name, decl]: global_uniforms) {
-		if (name == "R" || name == "t")
-			continue;
-		switch (decl.type) {
+	fprintf(f.get(), "static struct RocketTrack rocket_tracks[%d] = {\n", rocket_track_index);
+	for (size_t i = 0; i < rocket_tracks.size(); ++i) {
+		const auto &name = rocket_tracks[i];
+		const auto type = rocket_tracks_details[i].second;
+
+		switch (type) {
 			case shader::UniformType::Float:
 				writeUniformTrackData(f.get(), name);
 				break;
@@ -139,13 +157,37 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 	}
 	fprintf(f.get(), "};\n\n");
 
-	if (!rocket_tracks.empty())
-		fprintf(f.get(), "static const struct sync_track *tracks[%d];\n", (int)rocket_tracks.size());
+	if (rocket_track_index)
+		fprintf(f.get(), "static const struct sync_track *tracks[%d];\n", rocket_track_index);
 
 	fprintf(f.get(), "\nstatic void videoInit() {\n");
 
-	for (size_t i = 0; i < rocket_tracks.size(); ++i)
-		fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", (int)i, rocket_tracks[i].c_str());
+	rocket_track_index = 0;
+	for (size_t i = 0; i < rocket_tracks.size(); ++i) {
+		const auto &name = rocket_tracks[i];
+		const auto type = rocket_tracks_details[i].second;
+
+		switch (type) {
+			case shader::UniformType::Float:
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, name.c_str());
+				break;
+			case shader::UniformType::Vec2:
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
+				break;
+			case shader::UniformType::Vec3:
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
+				break;
+			case shader::UniformType::Vec4:
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
+				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".w").c_str());
+				break;
+			}
+	}
 
 	if (!p.textures.empty())
 		fprintf(f.get(), "\tglGenTextures(%d, textures);\n", (int)p.textures.size());
@@ -240,13 +282,42 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"t\"), t);\n");
 					const auto &uniforms = program_uniforms[pi];
 					for (const auto &[name, decl]: uniforms) {
-						// FIXME uniform types
-						(void)(decl); // FIXME
-						// FIXME
-						// FIXME
 						const int track_index = (int)(std::find(rocket_tracks.begin(), rocket_tracks.end(), name) - rocket_tracks.begin());
-						if (track_index != (int)rocket_tracks.size())
-							fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(programs[%d], \"%s\"), sync_get_val(tracks[%d], t));\n", pi, name.c_str(), track_index);
+						if (track_index != (int)rocket_tracks.size()) {
+							const auto &index_type = rocket_tracks_details[track_index];
+							switch (decl.type) {
+								case shader::UniformType::Float:
+									fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"%s\"), sync_get_val(tracks[%d], t));\n", name.c_str(), index_type.first);
+									break;
+								case shader::UniformType::Vec2:
+									fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"%s\"), "
+											"sync_get_val(tracks[%d], t), "
+											"sync_get_val(tracks[%d], t));\n", name.c_str(),
+											index_type.first,
+											index_type.first+1);
+									break;
+								case shader::UniformType::Vec3:
+									fprintf(f.get(), "\tglUniform3f(glGetUniformLocation(current_program, \"%s\"), "
+											"sync_get_val(tracks[%d], t), "
+											"sync_get_val(tracks[%d], t), "
+											"sync_get_val(tracks[%d], t));\n", name.c_str(),
+											index_type.first,
+											index_type.first+1,
+											index_type.first+2);
+									break;
+								case shader::UniformType::Vec4:
+									fprintf(f.get(), "\tglUniform4f(glGetUniformLocation(current_program, \"%s\"), "
+											"sync_get_val(tracks[%d], t), "
+											"sync_get_val(tracks[%d], t), "
+											"sync_get_val(tracks[%d], t), "
+											"sync_get_val(tracks[%d], t));\n", name.c_str(),
+											index_type.first,
+											index_type.first+1,
+											index_type.first+2,
+											index_type.first+3);
+									break;
+								}
+						}
 					}
 					first_texture_slot = 0;
 					break;
