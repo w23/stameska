@@ -33,6 +33,7 @@
 	X(UNIFORM3F, Uniform3f) \
 	X(UNIFORM4F, Uniform4f) \
 	X(GENFRAMEBUFFERS, GenFramebuffers) \
+	X(DELETEFRAMEBUFFERS, DeleteFramebuffers) \
 	X(BINDFRAMEBUFFER, BindFramebuffer) \
 	X(FRAMEBUFFERTEXTURE2D, FramebufferTexture2D) \
 	X(DRAWBUFFERS, DrawBuffers) \
