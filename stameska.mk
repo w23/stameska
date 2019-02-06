@@ -68,6 +68,7 @@ STAMESKA_SOURCES += \
 	$(LIBYAML_SOURCES) \
 	$(STAMESKA_BASEDIR)/3p/atto/src/app_linux.c \
 	$(STAMESKA_BASEDIR)/3p/atto/src/app_x11.c \
+	$(STAMESKA_BASEDIR)/src/Export.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledPipelineDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \

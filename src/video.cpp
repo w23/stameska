@@ -5,6 +5,7 @@
 
 #include "PolledPipelineDesc.h"
 #include "VideoEngine.h"
+#include "Export.h"
 
 #include <memory>
 
@@ -35,4 +36,10 @@ void video_paint(float row, Timeline &timeline) {
 
 	if (g.engine)
 		g.engine->paint(frame_seq, g.w, g.h, row, timeline);
+}
+
+void video_export() {
+	if (g.polled_pipeline && g.polled_pipeline->get())
+		exportC(*g.polled_pipeline->get().get(), 1280, 720, "stameska_export.c");
+
 }

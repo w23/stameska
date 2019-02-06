@@ -110,6 +110,11 @@ static void key(ATimeUs ts, AKey key, int down) {
 		timeShift(-4*pattern_length);
 		break;
 
+	case AK_E:
+		timeline->save();
+		video_export();
+		break;
+
 	case AK_Space:
 		loop.paused ^= 1;
 		break;
