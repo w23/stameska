@@ -8,12 +8,7 @@ namespace renderdesc {
 
 struct Texture {
 	int w, h;
-	enum PixelType {
-		RGBA8,
-		RGBA16F,
-		RGBA32F,
-		//Depth24,
-	} pixel_type;
+	PixelType pixel_type;
 
 	Texture(int w, int h, PixelType type) : w(w), h(h), pixel_type(type) {}
 };

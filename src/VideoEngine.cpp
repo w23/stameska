@@ -3,6 +3,7 @@
 #include "RenderDesc.h"
 #include "PolledShaderProgram.h"
 #include "Timeline.h"
+#include "Texture.h"
 
 #include <set>
 
@@ -16,53 +17,27 @@ VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 	: pipeline_(pipeline)
 {
 	for (const auto& t: pipeline->textures) {
-		int comp = 0, type = 0;
-		switch (t.pixel_type) {
-			case renderdesc::Texture::RGBA8:
-				comp = GL_RGBA;
-				type = GL_UNSIGNED_BYTE;
-				break;
-			case renderdesc::Texture::RGBA16F:
-				comp = GL_RGBA16F;
-				type = GL_FLOAT;
-				break;
-			case renderdesc::Texture::RGBA32F:
-				comp = GL_RGBA32F;
-				type = GL_FLOAT;
-				break;
-		}
-
-		GLuint tex;
-		GL(glGenTextures(1, &tex));
-		GL(glBindTexture(GL_TEXTURE_2D, tex));
-		GL(glTexImage2D(GL_TEXTURE_2D, 0, comp, t.w, t.h, 0, GL_RGBA, type, nullptr));
-		GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-		/*
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		*/
-
-		textures_.push_back(tex);
+		Texture tex;
+		tex.alloc(t.w, t.h, t.pixel_type);
+		textures_.push_back(std::move(tex));
 	}
 
 	for (const auto& f: pipeline->framebuffers) {
 		Framebuffer fb;
-		glGenFramebuffers(1, &fb.name);
 		GL(glBindFramebuffer(GL_FRAMEBUFFER, fb.name));
 		for (int i = 0; i < f.textures_count; ++i) {
 			const int index = f.textures[i];
 			if (index < 0 || index >= (int)textures_.size()) {
-				// FIXME fb handle leaks
 				throw std::runtime_error(format("Fb texture %d OOB %d (max %d)",
 					i, index, (int)textures_.size()));
 			}
 
-			GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures_[index], 0));
+			GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures_[index].name(), 0));
 
-			// FIXME check completeness
+			const int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			if (status != GL_FRAMEBUFFER_COMPLETE)
+				throw std::runtime_error(format("Framebuffer %d is not complete", (int)framebuffer_.size()));
 
-			// FIXME validate
 			fb.w = pipeline->textures[index].w;
 			fb.h = pipeline->textures[index].h;
 		}
@@ -181,8 +156,7 @@ void VideoEngine::paint(unsigned int frame_seq, int w, int h, float row, Timelin
 					const int index = cmdtex.texture.index + pingpong[cmdtex.texture.pingpong];
 					// FIXME validate index
 					const int slot = (runtime.first_availabale_texture_slot++);
-					GL(glActiveTexture(GL_TEXTURE0 + slot));
-					GL(glBindTexture(GL_TEXTURE_2D, textures_[index]));
+					textures_[index].bind(slot);
 					runtime.program->setUniform(cmdtex.name.c_str(), slot);
 					break;
 				}

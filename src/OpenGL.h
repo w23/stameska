@@ -33,6 +33,7 @@
 	X(UNIFORM3F, Uniform3f) \
 	X(UNIFORM4F, Uniform4f) \
 	X(GENFRAMEBUFFERS, GenFramebuffers) \
+	X(DELETEFRAMEBUFFERS, DeleteFramebuffers) \
 	X(BINDFRAMEBUFFER, BindFramebuffer) \
 	X(FRAMEBUFFERTEXTURE2D, FramebufferTexture2D) \
 	X(DRAWBUFFERS, DrawBuffers) \
@@ -109,3 +110,11 @@ static void GLCHECK(const char *func) {
 	};
 }
 #endif /* DEBUG_GL */
+
+enum PixelType {
+	RGBA8,
+	RGBA16F,
+	RGBA32F,
+	//Depth24,
+};
+

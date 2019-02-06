@@ -201,15 +201,15 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 			const char *comp = "", *type = "";
 
 			switch (t.pixel_type) {
-				case renderdesc::Texture::RGBA8:
+				case RGBA8:
 					comp = "GL_RGBA";
 					type = "GL_UNSIGNED_BYTE";
 					break;
-				case renderdesc::Texture::RGBA16F:
+				case RGBA16F:
 					comp = "GL_RGBA16F";
 					type = "GL_FLOAT";
 					break;
-				case renderdesc::Texture::RGBA32F:
+				case RGBA32F:
 					comp = "GL_RGBA32F";
 					type = "GL_FLOAT";
 					break;
