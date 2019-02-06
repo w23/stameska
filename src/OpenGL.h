@@ -109,3 +109,11 @@ static void GLCHECK(const char *func) {
 	};
 }
 #endif /* DEBUG_GL */
+
+enum PixelType {
+	RGBA8,
+	RGBA16F,
+	RGBA32F,
+	//Depth24,
+};
+

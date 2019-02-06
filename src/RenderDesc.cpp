@@ -6,11 +6,11 @@
 
 namespace renderdesc {
 
-static Texture::PixelType pixelTypeFromString(const std::string &s) {
-	if (s == "RGBA8") return Texture::PixelType::RGBA8;
-	if (s == "RGBA16F") return Texture::PixelType::RGBA16F;
-	if (s == "RGBA32F") return Texture::PixelType::RGBA32F;
-	//if (s == "Depth24") return Texture::PixelType::Depth24;
+static PixelType pixelTypeFromString(const std::string &s) {
+	if (s == "RGBA8") return PixelType::RGBA8;
+	if (s == "RGBA16F") return PixelType::RGBA16F;
+	if (s == "RGBA32F") return PixelType::RGBA32F;
+	//if (s == "Depth24") return PixelType::Depth24;
 	throw std::runtime_error(format("Unexpected pixel type %s", s.c_str()));
 }
 
@@ -90,7 +90,7 @@ class Loader {
 		return ret;
 	}
 
-	void addTexture(const int index, Command::Index::Pingpong pp, const std::string &name, int width, int height, Texture::PixelType tex_type) {
+	void addTexture(const int index, Command::Index::Pingpong pp, const std::string &name, int width, int height, PixelType tex_type) {
 		names_.texture.emplace_back(name);
 		pipeline_.textures.emplace_back(width, height, tex_type);
 		indexes_.texture.emplace_back(Command::Index(index, pp));
@@ -127,7 +127,7 @@ class Loader {
 					throw std::runtime_error(format("Too many targets for framebuffer %s, max: %d",
 						name.c_str(), MAX_TARGET_TEXTURES));
 
-				const Texture::PixelType tex_type = pixelTypeFromString(tex_type_name.getString());
+				const PixelType tex_type = pixelTypeFromString(tex_type_name.getString());
 
 				const size_t tex_index = names_.texture.size();
 				assert(tex_index == pipeline_.textures.size());
