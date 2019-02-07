@@ -102,7 +102,9 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 
 		// Polled shaders are expected to be loaded
 		auto uniforms = vertex->uniforms();
-		shader::appendUniforms(uniforms, fragment->uniforms());
+		const auto result = shader::appendUniforms(uniforms, fragment->uniforms());
+		if (!result.hasValue())
+			throw std::runtime_error("Error merging uniforms: " + result.error());
 		for (const auto &[name, decl]: uniforms) {
 			if (name != "R" && name != "t"
 				&& std::find(rocket_tracks.begin(), rocket_tracks.end(), name) == rocket_tracks.end()) {

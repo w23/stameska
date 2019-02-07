@@ -14,7 +14,11 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 	bool need_full_rebuild = false;
 	if (file_.poll(poll_seq)) {
 		try {
-			shader::Source src = shader::Source::load(file_->string());
+			auto load_result = shader::Source::load(file_->string());
+			if (!load_result.hasValue())
+				throw std::runtime_error(format("Cannot load shader source '%.*s': %s", (int)file_->string().size(), file_->string().data(), load_result.error().c_str()));
+
+			shader::Source src = std::move(load_result).value();
 
 			std::vector<Chunk> chunks;
 			for (const auto& chunk: src.chunks()) {
@@ -59,7 +63,9 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 					break;
 				case Chunk::Type::Include:
 					if (chunk.include) {
-						shader::appendUniforms(uniforms, chunk.include->uniforms());
+						const auto result = shader::appendUniforms(uniforms, chunk.include->uniforms());
+						if (!result.hasValue())
+							throw std::runtime_error("Cannot merge uniforms: " + result.error());
 						source += chunk.include->source();
 						source += "\n";
 						if (chunk.include->version() > version)

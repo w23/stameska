@@ -25,7 +25,7 @@ static const std::regex reg_preprocessor("#(\\w+)\\s+((\\w+)|(\"[^\"]+\"))");
 using svregex_iterator = std::regex_iterator<std::string_view::const_iterator>;
 using svmatch = std::match_results<std::string_view::const_iterator>;
 
-Source Source::load(std::string_view raw_source) {
+Expected<Source,std::string> Source::load(std::string_view raw_source) {
 	std::string chunk_source;
 	UniformsMap uniforms;
 	std::vector<Chunk> chunks;
@@ -77,7 +77,7 @@ Source Source::load(std::string_view raw_source) {
 			size_t pos = 0;
 			version = std::stoi(sver, &pos);
 			if (pos != sver.length())
-				throw std::runtime_error(format("Unexpected #version number %s", sver.c_str()));
+				return Unexpected(format("Unexpected #version number %s", sver.c_str()));
 		} else {
 			current_chunk += std::string_view(&*pcmd_start, pcmd_end - pcmd_start);
 		}
@@ -88,7 +88,7 @@ Source Source::load(std::string_view raw_source) {
 			const UniformsMap::const_iterator it = uniforms.find(name);
 			if (it != uniforms.end()) {
 				if (it->second.name != name || it->second.type != uniform_type)
-					throw std::runtime_error(format("Type mismatch for variable %s at %s", name.c_str(), m.str(0).c_str()));
+					return Unexpected(format("Type mismatch for variable %s at %s", name.c_str(), m.str(0).c_str()));
 			} else {
 				uniforms[name] = UniformDeclaration{uniform_type, name};
 			}
@@ -103,7 +103,7 @@ Source Source::load(std::string_view raw_source) {
 
 			const auto filename = m.str(2);
 			if (filename[0] != '"' || filename[filename.size()-1] != '"')
-				throw std::runtime_error(format("#include filename must be in quotes: \"%s\"", filename.c_str()));
+				return Unexpected(format("#include filename must be in quotes: \"%s\"", filename.c_str()));
 			chunks.emplace_back(Chunk::Type::Include, std::string(filename.begin() + 1, filename.end() - 1));
 		}
 
@@ -116,16 +116,18 @@ Source Source::load(std::string_view raw_source) {
 	return Source(version, std::move(chunks), std::move(uniforms));
 }
 
-void appendUniforms(UniformsMap &uniforms, const UniformsMap &append) {
+Expected<void,std::string> appendUniforms(UniformsMap &uniforms, const UniformsMap &append) {
 	for (const auto &uni: append) {
 		const UniformsMap::const_iterator it = uniforms.find(uni.first);
 		if (it != uniforms.end()) {
 			if (it->second.type != uni.second.type)
-				throw std::runtime_error(format("Type mismatch for uniform %s: %s != %s",
+				return Unexpected(format("Type mismatch for uniform %s: %s != %s",
 						uni.first.c_str(), uniformName(uni.second.type), uniformName(it->second.type)));
 		} else
 			uniforms[uni.first] = uni.second;
 	}
+
+	return Expected<void, std::string>();
 }
 
 } // namespace shader

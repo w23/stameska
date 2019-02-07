@@ -29,7 +29,9 @@ bool PolledShaderProgram::poll(unsigned int poll_seq) {
 			if (!new_program.valid())
 				throw std::runtime_error("New program is not valid");
 			shader::UniformsMap new_uniforms = vertex_->uniforms();
-			appendUniforms(new_uniforms, fragment_->uniforms());
+			const auto result = appendUniforms(new_uniforms, fragment_->uniforms());
+			if (!result.hasValue())
+				throw std::runtime_error("Cannot merge uniforms: " + result.error());
 			program_ = std::move(new_program);
 			uniforms_ = std::move(new_uniforms);
 			MSG("Built program %u", program_.name());

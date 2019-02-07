@@ -1,12 +1,13 @@
 #pragma once
 
-#include <string_view>
+#include "Expected.h"
 #include "utils.h"
 
 #include <string>
 #include <map>
 #include <vector>
 #include <memory>
+#include <string_view>
 
 namespace shader {
 
@@ -23,7 +24,7 @@ struct UniformDeclaration {
 
 typedef std::map<std::string, UniformDeclaration> UniformsMap;
 
-void appendUniforms(UniformsMap &uniforms, const UniformsMap &append);
+Expected<void, std::string> appendUniforms(UniformsMap &uniforms, const UniformsMap &append);
 
 class Source {
 public:
@@ -31,7 +32,7 @@ public:
 	~Source() {}
 	Source(Source&&) = default;
 
-	static Source load(std::string_view raw_source);
+	static Expected<Source, std::string> load(std::string_view raw_source);
 
 	struct Chunk {
 		enum class Type {
