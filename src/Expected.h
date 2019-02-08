@@ -52,6 +52,12 @@ public:
 		return std::move(value_);
 	}
 
+	const T *operator->() const {
+		if (!has_value_)
+			throw error_.get();
+		return &value_;
+	}
+
 	~Expected() {
 		if (has_value_)
 			value_.~T();

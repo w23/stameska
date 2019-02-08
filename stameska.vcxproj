@@ -54,6 +54,7 @@
     <ClCompile Include="src\PolledPipelineDesc.cpp" />
     <ClCompile Include="src\PolledShaderProgram.cpp" />
     <ClCompile Include="src\PolledShaderSource.cpp" />
+    <ClCompile Include="src\Program.cpp" />
     <ClCompile Include="src\ProjectSettings.cpp" />
     <ClCompile Include="src\RenderDesc.cpp" />
     <ClCompile Include="src\Resources.cpp" />

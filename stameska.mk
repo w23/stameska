@@ -73,6 +73,7 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/PolledPipelineDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderSource.cpp \
+	$(STAMESKA_BASEDIR)/src/Program.cpp \
 	$(STAMESKA_BASEDIR)/src/ProjectSettings.cpp \
 	$(STAMESKA_BASEDIR)/src/RenderDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/Resources.cpp \
