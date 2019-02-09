@@ -6,7 +6,7 @@ BUILDDIR ?= build
 CC ?= cc
 CXX ?= c++
 CFLAGS += -Wall -Wextra -Werror -pedantic -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p/atto -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/src
-CXXFLAGS += -std=c++17 $(CFLAGS)
+CXXFLAGS += -std=c++17 -fno-exceptions -fno-rtti $(CFLAGS)
 LIBS = -lX11 -lXfixes -lGL -lasound -lm -pthread
 
 YAML_MAJOR=0

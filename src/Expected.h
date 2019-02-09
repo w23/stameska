@@ -55,7 +55,7 @@ public:
 
 	T&& value() && {
 		if (!has_value_)
-			throw error_.get();
+			CRASH("Unexpected");
 		return std::move(value_);
 	}
 

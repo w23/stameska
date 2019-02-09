@@ -39,7 +39,10 @@ void video_paint(float row, Timeline &timeline) {
 }
 
 void video_export() {
-	if (g.polled_pipeline && g.polled_pipeline->get())
-		exportC(*g.polled_pipeline->get().get(), 1280, 720, "stameska_export.c");
+	if (g.polled_pipeline && g.polled_pipeline->get()) {
+		auto result = exportC(*g.polled_pipeline->get().get(), 1280, 720, "stameska_export.c");
+		if (!result)
+			MSG("Export error: %s", result.error().c_str());
+	}
 
 }

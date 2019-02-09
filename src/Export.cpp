@@ -25,12 +25,12 @@ static std::string validateName(const std::string &str) {
 	return out;
 }
 
-static void writeUniformTrackData(FILE *out, const std::string &name) {
+static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::string &name) {
 	std::string filename = "sync_" + name + ".track";
 
 	const auto in = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "rb"), &fclose);
 	if (!in)
-		throw std::runtime_error(format("Cannot open file '%s' for reading", filename.c_str()));
+		return Unexpected(format("Cannot open file '%s' for reading", filename.c_str()));
 
 	fseek(in.get(), 0, SEEK_END);
 	const size_t size = ftell(in.get());
@@ -41,20 +41,22 @@ static void writeUniformTrackData(FILE *out, const std::string &name) {
 
 	const size_t read = fread(data.data(), 1, size, in.get());
 	if (size != read)
-		throw std::runtime_error(format("Could read only %d of %d bytes from '%s'", (int)read, (int)size, filename.c_str()));
+		return Unexpected(format("Could read only %d of %d bytes from '%s'", (int)read, (int)size, filename.c_str()));
 
 	fprintf(out, "\t{\"%s\", %d, \"", filename.c_str(), (int)size);
 	for (const auto &c: data)
 		fprintf(out, "\\x%x", c);
 	fprintf(out, "\", 0},\n");
+
+	return Expected<void, std::string>();
 }
 
-void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) {
+Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) {
 	MSG("Exporting rendering pipeline to '%s'", filename);
 
 	const auto f = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename, "w"), &fclose);
 	if (!f)
-		throw std::runtime_error(format("Cannot open file '%s' for writing", filename));
+		return Unexpected(format("Cannot open file '%s' for writing", filename));
 
 	Resources res;
 	{
@@ -62,10 +64,10 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 			const std::string vname = validateName(s);
 			const auto shader = res.getShaderSource(s);
 			if (!shader)
-				throw std::runtime_error(format("Cannot open shader '%s'", s.c_str()));
+				return Unexpected(format("Cannot open shader '%s'", s.c_str()));
 
 			if (!shader->poll(1))
-				throw std::runtime_error(format("Cannot read shader '%s'", s.c_str()));
+				return Unexpected(format("Cannot read shader '%s'", s.c_str()));
 
 			fprintf(f.get(), "static const char %s[] =\n", vname.c_str());
 
@@ -104,7 +106,7 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 		auto uniforms = vertex->uniforms();
 		const auto result = shader::appendUniforms(uniforms, fragment->uniforms());
 		if (!result.hasValue())
-			throw std::runtime_error("Error merging uniforms: " + result.error());
+			return Unexpected("Error merging uniforms: " + result.error());
 		for (const auto &[name, decl]: uniforms) {
 			if (name != "R" && name != "t"
 				&& std::find(rocket_tracks.begin(), rocket_tracks.end(), name) == rocket_tracks.end()) {
@@ -138,22 +140,27 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 
 		switch (type) {
 			case shader::UniformType::Float:
-				writeUniformTrackData(f.get(), name);
+#define CALL_CHECK(c) do { \
+	auto result = c; \
+	if (!result) \
+		return Unexpected(result.error()); \
+} while (0)
+				CALL_CHECK(writeUniformTrackData(f.get(), name));
 				break;
 			case shader::UniformType::Vec2:
-				writeUniformTrackData(f.get(), name + ".x");
-				writeUniformTrackData(f.get(), name + ".y");
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
 				break;
 			case shader::UniformType::Vec3:
-				writeUniformTrackData(f.get(), name + ".x");
-				writeUniformTrackData(f.get(), name + ".y");
-				writeUniformTrackData(f.get(), name + ".z");
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".z"));
 				break;
 			case shader::UniformType::Vec4:
-				writeUniformTrackData(f.get(), name + ".x");
-				writeUniformTrackData(f.get(), name + ".y");
-				writeUniformTrackData(f.get(), name + ".z");
-				writeUniformTrackData(f.get(), name + ".w");
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".z"));
+				CALL_CHECK(writeUniformTrackData(f.get(), name + ".w"));
 				break;
 		}
 	}
@@ -386,4 +393,6 @@ void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) 
 
 	fprintf(f.get(), "}\n");
 	MSG("Done exporting rendering pipeline to '%s'", filename);
+
+	return Expected<void, std::string>();
 }
