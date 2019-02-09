@@ -224,18 +224,18 @@ ExpectedRef<const Sequence, std::string> Mapping::getSequence(const std::string 
 	return value_result.value().get().getSequence();
 }
 
-const std::string &Mapping::getString(const std::string &name) const {
+ExpectedRef<const std::string, std::string> Mapping::getString(const std::string &name) const {
 	const auto value_result = getValue(name);
 	if (!value_result)
-		throw value_result.error();
+		return Unexpected(value_result.error());
 
 	return value_result.value().get().getString();
 }
 
-int Mapping::getInt(const std::string &name) const {
+Expected<long int, std::string> Mapping::getInt(const std::string &name) const {
 	const auto value_result = getValue(name);
 	if (!value_result)
-		throw value_result.error();
+		return Unexpected(value_result.error());
 
 	return value_result.value().get().getInt();
 }
@@ -245,15 +245,23 @@ const std::string &Mapping::getString(const std::string &name, const std::string
 	if (it == map_.end())
 		return default_value;
 
-	return it->second.getString();
+	auto result = it->second.getString();
+	if (!result)
+		return default_value;
+
+	return result.value();
 }
 
-int Mapping::getInt(const std::string &name, int default_value) const {
+long int Mapping::getInt(const std::string &name, long int default_value) const {
 	const auto it = map_.find(name);
 	if (it == map_.end())
 		return default_value;
 
-	return it->second.getInt();
+	auto result = it->second.getInt();
+	if (!result)
+		return default_value;
+
+	return result.value();
 }
 
 } // namespace yaml

@@ -65,7 +65,7 @@ public:
 		return &value_;
 	}
 
-	operator bool() const { return hasValue(); }
+	explicit operator bool() const { return hasValue(); }
 
 private:
 	union {
@@ -103,7 +103,7 @@ public:
 		return std::move(error_.get());
 	}
 
-	operator bool() const { return hasValue(); }
+	explicit operator bool() const { return hasValue(); }
 
 private:
 	union {

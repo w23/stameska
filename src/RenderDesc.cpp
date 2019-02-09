@@ -6,22 +6,33 @@
 
 namespace renderdesc {
 
-static PixelType pixelTypeFromString(const std::string &s) {
+static Expected<PixelType, std::string> pixelTypeFromValue(const yaml::Value &v) {
+	auto s_result = v.getString();
+	if (!s_result)
+		return Unexpected("Cannot read PixelType: " + s_result.error());
+
+	const std::string &s = s_result.value();
 	if (s == "RGBA8") return PixelType::RGBA8;
 	if (s == "RGBA16F") return PixelType::RGBA16F;
 	if (s == "RGBA32F") return PixelType::RGBA32F;
 	//if (s == "Depth24") return PixelType::Depth24;
-	throw std::runtime_error(format("Unexpected pixel type %s", s.c_str()));
+
+	return Unexpected(format("Unexpected pixel type %s", s.c_str()));
 }
 
-static Command::Flag flagFromString(const std::string &s) {
+static Expected<Command::Flag, std::string> flagFromValue(const yaml::Value &v) {
+	auto s_result = v.getString();
+	if (!s_result)
+		return Unexpected("Cannot read Flag: " + s_result.error());
+
+	const std::string &s = s_result.value();
 	if (s == "DepthTest") return Command::Flag::DepthTest;
 	if (s == "VertexProgramPointSize") return Command::Flag::VertexProgramPointSize;
 
-	throw std::runtime_error(format("Unknown flag %s", s.c_str()));
+	return Unexpected(format("Unknown flag %s", s.c_str()));
 }
 
-static Command::DrawArrays::Mode drawModeFromString(const std::string &s) {
+static Expected<Command::DrawArrays::Mode, std::string> drawModeFromString(const std::string &s) {
 	if (s == "Points") return Command::DrawArrays::Mode::Points;
 	if (s == "Triangles") return Command::DrawArrays::Mode::Triangles;
 	if (s == "TriangleStrip") return Command::DrawArrays::Mode::TriangleStrip;
@@ -30,7 +41,7 @@ static Command::DrawArrays::Mode drawModeFromString(const std::string &s) {
 	if (s == "LineStrip") return Command::DrawArrays::Mode::LineStrip;
 	if (s == "LineLoop") return Command::DrawArrays::Mode::LineLoop;
 
-	throw std::runtime_error(format("Unknown mode %s", s.c_str()));
+	return Unexpected(format("Unknown draw mode %s", s.c_str()));
 }
 
 class Loader {
@@ -47,9 +58,17 @@ class Loader {
 		std::vector<Command::Index> texture;
 	} indexes_;
 
-	int readVariable(const std::string &s) {
+	Expected<long int, std::string> readVariable(const yaml::Value &v) {
 		// FIXME read actual variable
-		return intFromString(s);
+		return v.getInt();
+	}
+
+	Expected<long int, std::string> readVariable(const yaml::Mapping &m, const std::string &name) {
+		auto value_result = m.getValue(name);
+		if (!value_result)
+			return Unexpected("Cannot read variable " + name + ": " + value_result.error());
+		// FIXME read actual variable
+		return value_result.value().get().getInt();
 	}
 
 	Command::Index getFramebufferIndex(const std::string &s) {
@@ -118,10 +137,21 @@ class Loader {
 				return Unexpected("Cannot read size for framebuffer " + name + ": " + size_result.error());
 			const yaml::Sequence &size = size_result.value();
 
-			const bool pingpong = yfb.hasKey("pingpong") && yfb.getInt("pingpong");
+			if (size.size() != 2)
+				return Unexpected("Framebuffer " + name + " size must have 2 elements");
 
-			const int width = readVariable(size.at(0).getString());
-			const int height = readVariable(size.at(1).getString());
+			auto width_result = readVariable(size[0]);
+			if (!width_result)
+				return Unexpected("Cannot read width for framebuffer " + name + ": " + width_result.error());
+			const int width = width_result.value();
+
+			auto height_result = readVariable(size[1]);
+			if (!height_result)
+				return Unexpected("Cannot read height for framebuffer " + name + ": " + height_result.error());
+			const int height = height_result.value();
+
+			const auto pingpong_result = yfb.getInt("pingpong");
+			const bool pingpong = pingpong_result && pingpong_result.value();
 
 			auto textures_result = yfb.getSequence("textures");
 			if (!textures_result)
@@ -142,7 +172,11 @@ class Loader {
 					return Unexpected(format("Too many targets for framebuffer %s, max: %d",
 						name.c_str(), MAX_TARGET_TEXTURES));
 
-				const PixelType tex_type = pixelTypeFromString(tex_type_name.getString());
+				auto tex_type_result = pixelTypeFromValue(tex_type_name);
+				if (!tex_type_result)
+					return Unexpected(format("Framebuffer %s texture %d has invalid pixel type: %s",
+						name.c_str(), fb.textures_count, tex_type_result.error().c_str()));
+				const PixelType tex_type = tex_type_result.value();
 
 				const size_t tex_index = names_.texture.size();
 				assert(tex_index == pipeline_.textures.size());
@@ -190,14 +224,22 @@ class Loader {
 		auto map_programs_result = root_.getMapping("programs");
 		if (!map_programs_result)
 			return Unexpected(map_programs_result.error());
+
 		for (const auto &[name, yprog]: map_programs_result.value().get().map()) {
 			auto yp_result = yprog.getMapping();
 			if (!yp_result)
 				return Unexpected("Program " + name + " desc object is not a mapping");
 			const yaml::Mapping &yp = yp_result.value();
 
-			const int fragment_index = getShaderIndex(yp.getString("fragment"));
-			const int vertex_index = getShaderIndex(yp.getString("vertex"));
+			auto vertex_name_result = yp.getString("vertex");
+			if (!vertex_name_result)
+				return Unexpected("Program " + name + " invalid vertex: " + vertex_name_result.error());
+			const int vertex_index = getShaderIndex(vertex_name_result.value());
+
+			auto fragment_name_result = yp.getString("fragment");
+			if (!fragment_name_result)
+				return Unexpected("Program " + name + " invalid fragment: " + fragment_name_result.error());
+			const int fragment_index = getShaderIndex(fragment_name_result.value());
 
 			names_.program.emplace_back(name);
 			pipeline_.programs.emplace_back(vertex_index, fragment_index);
@@ -212,7 +254,7 @@ class Loader {
 			return Unexpected(paint_result.error());
 
 		for (const auto &ycmd_value: paint_result.value().get()) {
-			if (ycmd_value.isString() && ycmd_value.getString() == "drawFullscreen") {
+			if (ycmd_value.isString() && ycmd_value.getString().value().get() == "drawFullscreen") {
 				pipeline_.commands.emplace_back(Command::DrawFullscreen());
 				continue;
 			}
@@ -226,39 +268,69 @@ class Loader {
 			const yaml::Value &yargs = it->second;
 
 			if (op == "bindFramebuffer") {
-				const auto index = getFramebufferIndex(yargs.getString());
+				auto fb_name_result = yargs.getString();
+				if (!fb_name_result)
+					return Unexpected("Cannot read framebuffer name: " + fb_name_result.error());
+				const auto index = getFramebufferIndex(fb_name_result.value());
 				pipeline_.commands.emplace_back(Command::BindFramebuffer(index));
 			} else if (op == "useProgram") {
-				const auto index = getProgramIndex(yargs.getString());
+				auto prog_name_result = yargs.getString();
+				if (!prog_name_result)
+					return Unexpected("Cannot read program name: " + prog_name_result.error());
+				const auto index = getProgramIndex(prog_name_result.value());
 				pipeline_.commands.emplace_back(Command::UseProgram(index));
 			} else if (op == "bindTexture") {
 				auto yunitex_result = yargs.getMapping();
 				if (!yunitex_result)
 					return Unexpected<std::string>("bindTexture argument is not a mapping");
 				for (const auto &[yuniform, ytexture]: yunitex_result.value().get().map()) {
+					auto tex_name_result = ytexture.getString();
+					if (!tex_name_result)
+						return Unexpected("Cannot read texture name for uniform " + yuniform + ": " + tex_name_result.error());
 					pipeline_.commands.emplace_back(
-						Command::BindTexture(yuniform, getTextureIndex(ytexture.getString())));
+						Command::BindTexture(yuniform, getTextureIndex(tex_name_result.value())));
 				}
 			} else if (op == "clear") {
 				// FIXME read actual values
 				pipeline_.commands.emplace_back(
 					Command::Clear(0, 0, 0, 0, true));
 			} else if (op == "enable") {
-				const Command::Flag flag = flagFromString(yargs.getString());
-				pipeline_.commands.emplace_back(Command::Enable(flag));
+				auto flag_result = flagFromValue(yargs);
+				if (!flag_result)
+					return Unexpected(flag_result.error());
+				pipeline_.commands.emplace_back(Command::Enable(flag_result.value()));
 			} else if (op == "disable") {
-				const Command::Flag flag = flagFromString(yargs.getString());
-				pipeline_.commands.emplace_back(Command::Disable(flag));
+				auto flag_result = flagFromValue(yargs);
+				if (!flag_result)
+					return Unexpected(flag_result.error());
+				pipeline_.commands.emplace_back(Command::Disable(flag_result.value()));
 			} else if (op == "drawArrays") {
 				auto ymap_result = yargs.getMapping();
 				if (!ymap_result)
 					return Unexpected<std::string>("drawArray argument is not a mapping");
 				const yaml::Mapping &ymap = ymap_result.value();
+
+				auto mode_result_str = ymap.getString("mode");
+				if (!mode_result_str)
+					return Unexpected("Cannot read draw mode string: " + mode_result_str.error());
+				
+				auto mode_result = drawModeFromString(mode_result_str.value());
+				if (!mode_result)
+					return Unexpected("Cannot read draw mode: " + mode_result.error());
+
+				auto start_result = readVariable(ymap, "start");
+				if (!start_result)
+					return Unexpected("Cannot read draw start: " + start_result.error());
+
+				auto count_result = readVariable(ymap, "count");
+				if (!count_result)
+					return Unexpected("Cannot read draw count: " + count_result.error());
+
 				pipeline_.commands.emplace_back(
 					Command::DrawArrays(
-						drawModeFromString(ymap.getString("mode")),
-						readVariable(ymap.getString("start")),
-						readVariable(ymap.getString("count"))
+						mode_result.value(),
+						(int)start_result.value(),
+						(int)count_result.value()
 					)
 				);
 			} else

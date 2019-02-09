@@ -1,4 +1,5 @@
 #pragma once
+#include "Expected.h"
 
 #include <string>
 #include <stddef.h>
@@ -29,4 +30,4 @@ public:
 
 std::string format(const char* str, ...) PRINTF_ATTR(1, 2);
 
-long int intFromString(const std::string &s);
+Expected<long int, std::string> intFromString(const std::string &s);

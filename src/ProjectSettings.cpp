@@ -22,13 +22,19 @@ Expected<ProjectSettings, std::string> ProjectSettings::readFromFile(const char 
 	auto map_video_result = config.getMapping("video");
 	if (!map_video_result)
 		return Unexpected(map_video_result.error());
-	settings.video.config_filename = map_video_result.value().get().getString("config_file");
+	auto video_config_result = map_video_result.value().get().getString("config_file");
+	if (!video_config_result)
+		return Unexpected("Cannot read video config: " + video_config_result.error());
+	settings.video.config_filename = video_config_result.value();
 
 	auto map_audio_result = config.getMapping("audio");
 	if (!map_audio_result)
 		return Unexpected(map_audio_result.error());
 	const yaml::Mapping &yaudio = map_audio_result.value();
-	settings.audio.samplerate = yaudio.getInt("samplerate");
+	auto samplerate_result = yaudio.getInt("samplerate");
+	if (!samplerate_result)
+		return Unexpected("Error reading samplerate: " + samplerate_result.error());
+	settings.audio.samplerate = samplerate_result.value();
 	settings.audio.channels = yaudio.getInt("channels", 2);
 
 	const int duration_sec = yaudio.getInt("duration_sec", 120);
