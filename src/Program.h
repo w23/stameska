@@ -1,12 +1,8 @@
 #pragma once
-
-#include "ShaderSource.h"
 #include "Expected.h"
-#include "utils.h"
 #include "OpenGL.h"
 
 #include <string>
-#include <utility>
 
 class Program {
 public:

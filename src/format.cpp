@@ -1,6 +1,5 @@
-#include "utils.h"
+#include "format.h"
 
-#include <stdexcept>
 #include <cstdarg>
 
 std::string format(const char* fmt, ...) {

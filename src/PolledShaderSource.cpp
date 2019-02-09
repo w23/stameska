@@ -1,5 +1,6 @@
 #include "PolledShaderSource.h"
 #include "Resources.h"
+#include "format.h"
 
 PolledShaderSource::PolledShaderSource(Resources &resources, const std::shared_ptr<PolledFile>& file)
 	: resources_(resources)

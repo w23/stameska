@@ -82,7 +82,7 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 	$(STAMESKA_BASEDIR)/src/YamlParser.cpp \
 	$(STAMESKA_BASEDIR)/src/tool.cpp \
-	$(STAMESKA_BASEDIR)/src/utils.cpp \
+	$(STAMESKA_BASEDIR)/src/format.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \
 
 # TODO how to handle ../

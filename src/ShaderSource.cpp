@@ -1,4 +1,5 @@
 #include "ShaderSource.h"
+#include "format.h"
 #include <regex>
 
 namespace shader {

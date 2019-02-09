@@ -1,4 +1,5 @@
 #include "Program.h"
+#include "format.h"
 
 namespace {
 class Shader {

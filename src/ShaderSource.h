@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Expected.h"
-#include "utils.h"
 
 #include <string>
 #include <map>
 #include <vector>
-#include <memory>
 #include <string_view>
 
 namespace shader {

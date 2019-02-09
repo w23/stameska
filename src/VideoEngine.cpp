@@ -27,16 +27,14 @@ VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 		GL(glBindFramebuffer(GL_FRAMEBUFFER, fb.name));
 		for (int i = 0; i < f.textures_count; ++i) {
 			const int index = f.textures[i];
-			if (index < 0 || index >= (int)textures_.size()) {
-				throw std::runtime_error(format("Fb texture %d OOB %d (max %d)",
-					i, index, (int)textures_.size()));
-			}
+			if (index < 0 || index >= (int)textures_.size())
+				CRASH("Fb texture %d OOB %d (max %d)", i, index, (int)textures_.size());
 
 			GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures_[index].name(), 0));
 
 			const int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (status != GL_FRAMEBUFFER_COMPLETE)
-				throw std::runtime_error(format("Framebuffer %d is not complete", (int)framebuffer_.size()));
+				CRASH("Framebuffer %d is not complete", (int)framebuffer_.size());
 
 			fb.w = pipeline->textures[index].w;
 			fb.h = pipeline->textures[index].h;
@@ -53,9 +51,9 @@ VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 
 	for (const auto& p: pipeline->programs) {
 		if (p.vertex < 0 || p.vertex >= (int)sources_.size())
-			throw std::runtime_error(format("Program vertex source OOB %d (max %d)", p.vertex, (int)sources_.size()));
+			CRASH("Program vertex source OOB %d (max %d)", p.vertex, (int)sources_.size());
 		if (p.fragment < 0 || p.fragment >= (int)sources_.size())
-			throw std::runtime_error(format("Program fragment source OOB %d (max %d)", p.fragment, (int)sources_.size()));
+			CRASH("Program fragment source OOB %d (max %d)", p.fragment, (int)sources_.size());
 
 		programs_.emplace_back(sources_[p.vertex], sources_[p.fragment]);
 	}

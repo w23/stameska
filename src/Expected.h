@@ -1,5 +1,5 @@
 #pragma once
-
+#include "utils.h"
 #include <utility>
 #include <stdexcept>
 
@@ -37,19 +37,19 @@ public:
 	bool hasValue() const { return has_value_; }
 	const E& error() const & {
 		if (has_value_)
-			throw std::runtime_error("Expected has value");
+			CRASH("Expected has value");
 		return error_.get();
 	}
 
 	E&& error() const && {
 		if (has_value_)
-			throw std::runtime_error("Expected has value");
+			CRASH("Expected has value");
 		return std::move(error_.get());
 	}
 
 	const T& value() const & {
 		if (!has_value_)
-			throw error_.get();
+			CRASH("Unexpected");
 		return value_;
 	}
 
@@ -61,7 +61,7 @@ public:
 
 	const T *operator->() const {
 		if (!has_value_)
-			throw error_.get();
+			CRASH("Unexpected");
 		return &value_;
 	}
 
@@ -93,13 +93,13 @@ public:
 
 	const E& error() const & {
 		if (has_value_)
-			throw std::runtime_error("Expected has value");
+			CRASH("Expected has value");
 		return error_.get();
 	}
 
 	E&& error() const && {
 		if (has_value_)
-			throw std::runtime_error("Expected has value");
+			CRASH("Expected has value");
 		return std::move(error_.get());
 	}
 

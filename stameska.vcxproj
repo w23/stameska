@@ -25,10 +25,8 @@
     <ClInclude Include="3p\rocket\lib\device.h" />
     <ClInclude Include="3p\rocket\lib\sync.h" />
     <ClInclude Include="3p\rocket\lib\track.h" />
-    <ClInclude Include="src\aud_io.h" />
     <ClInclude Include="src\Framebuffer.h" />
     <ClInclude Include="src\OpenGL.h" />
-    <ClInclude Include="src\pcg32.h" />
     <ClInclude Include="src\PolledFile.h" />
     <ClInclude Include="src\PolledResource.h" />
     <ClInclude Include="src\Program.h" />
@@ -36,9 +34,12 @@
     <ClInclude Include="src\ShaderSource.h" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\Timeline.h" />
+    <ClInclude Include="src\VideoEngine.h" />
+    <ClInclude Include="src\aud_io.h" />
+    <ClInclude Include="src\format.h" />
+    <ClInclude Include="src\pcg32.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\video.h" />
-    <ClInclude Include="src\VideoEngine.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3p\atto\src\app_windows.c" />
@@ -62,8 +63,8 @@
     <ClCompile Include="src\Timeline.cpp" />
     <ClCompile Include="src\VideoEngine.cpp" />
     <ClCompile Include="src\YamlParser.cpp" />
+    <ClCompile Include="src\format.cpp" />
     <ClCompile Include="src\tool.cpp" />
-    <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\video.cpp" />
     <ClCompile Include="src\Text.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

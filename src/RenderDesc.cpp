@@ -1,5 +1,6 @@
 #include "RenderDesc.h"
 #include "YamlParser.h"
+#include "format.h"
 
 #include <assert.h>
 #include <algorithm>
