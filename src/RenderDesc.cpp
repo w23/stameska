@@ -71,29 +71,29 @@ class Loader {
 		return value_result.value().get().getInt();
 	}
 
-	Command::Index getFramebufferIndex(const std::string &s) {
+	Expected<Command::Index, std::string> getFramebufferIndex(const std::string &s) {
 		if (s == "SCREEN")
-			return -1;
+			return Command::Index(-1);
 
 		const auto it = std::find(names_.framebuffer.begin(), names_.framebuffer.end(), s);
 		if (it == names_.framebuffer.end())
-			throw std::runtime_error(format("Unknown framebuffer %s", s.c_str()));
+			return Unexpected(format("Unknown framebuffer %s", s.c_str()));
 
 		return indexes_.framebuffer[it - names_.framebuffer.begin()];
 	}
 
-	Command::Index getProgramIndex(const std::string &s) {
+	Expected<Command::Index, std::string> getProgramIndex(const std::string &s) {
 		const auto it = std::find(names_.program.begin(), names_.program.end(), s);
 		if (it == names_.program.end())
-			throw std::runtime_error(format("Unknown program %s", s.c_str()));
+			return Unexpected(format("Unknown program %s", s.c_str()));
 
-		return it - names_.program.begin();
+		return Command::Index(it - names_.program.begin());
 	}
 
-	Command::Index getTextureIndex(const std::string &s) {
+	Expected<Command::Index, std::string> getTextureIndex(const std::string &s) {
 		const auto it = std::find(names_.texture.begin(), names_.texture.end(), s);
 		if (it == names_.texture.end())
-			throw std::runtime_error(format("Unknown texture %s", s.c_str()));
+			return Unexpected(format("Unknown texture %s", s.c_str()));
 
 		return indexes_.texture[it - names_.texture.begin()];
 	}
@@ -271,14 +271,20 @@ class Loader {
 				auto fb_name_result = yargs.getString();
 				if (!fb_name_result)
 					return Unexpected("Cannot read framebuffer name: " + fb_name_result.error());
-				const auto index = getFramebufferIndex(fb_name_result.value());
-				pipeline_.commands.emplace_back(Command::BindFramebuffer(index));
+				auto index_result = getFramebufferIndex(fb_name_result.value());
+
+				if (!index_result)
+					return Unexpected(index_result.error());
+
+				pipeline_.commands.emplace_back(Command::BindFramebuffer(index_result.value()));
 			} else if (op == "useProgram") {
 				auto prog_name_result = yargs.getString();
 				if (!prog_name_result)
 					return Unexpected("Cannot read program name: " + prog_name_result.error());
-				const auto index = getProgramIndex(prog_name_result.value());
-				pipeline_.commands.emplace_back(Command::UseProgram(index));
+				auto index_result = getProgramIndex(prog_name_result.value());
+				if (!index_result)
+					return Unexpected(index_result.error());
+				pipeline_.commands.emplace_back(Command::UseProgram(index_result.value()));
 			} else if (op == "bindTexture") {
 				auto yunitex_result = yargs.getMapping();
 				if (!yunitex_result)
@@ -287,8 +293,11 @@ class Loader {
 					auto tex_name_result = ytexture.getString();
 					if (!tex_name_result)
 						return Unexpected("Cannot read texture name for uniform " + yuniform + ": " + tex_name_result.error());
+					auto index_result = getTextureIndex(tex_name_result.value());
+					if (!index_result)
+						return Unexpected(index_result.error());
 					pipeline_.commands.emplace_back(
-						Command::BindTexture(yuniform, getTextureIndex(tex_name_result.value())));
+						Command::BindTexture(yuniform, index_result.value()));
 				}
 			} else if (op == "clear") {
 				// FIXME read actual values
