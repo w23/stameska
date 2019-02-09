@@ -1,10 +1,15 @@
 #pragma once
+#include "Expected.h"
 #include "utils.h"
 
 #include <vector>
 #include <map>
 #include <string>
 #include <string_view>
+#include <functional>
+
+template <typename T, typename E>
+using ExpectedRef = Expected<std::reference_wrapper<T>, E>;
 
 namespace yaml {
 
@@ -20,6 +25,7 @@ public:
 	using KeyValue = std::map<std::string, Value>;
 	const KeyValue &map() const { return map_; }
 
+	//ExpectedRef<const Mapping, std::string> getMapping(const std::string &name) const;
 	const Mapping &getMapping(const std::string &name) const;
 	const Sequence &getSequence(const std::string &name) const;
 	const std::string &getString(const std::string &name) const;
@@ -36,17 +42,17 @@ public:
 private:
 	friend class ParserContext;
 
-	const Value &getValue(const std::string &name) const;
+	ExpectedRef<const Value, std::string> getValue(const std::string &name) const;
 
 	KeyValue map_;
 };
 
 class Value {
 public:
-	const Mapping &getMapping() const {
+	ExpectedRef<const Mapping, std::string> getMapping() const {
 		if (type_ != Type::Mapping)
-			throw std::runtime_error("Value is not of Mapping type");
-		return mapping_;
+			return Unexpected<std::string>("Value is not of Mapping type");
+		return std::cref(mapping_);
 	}
 
 	const Sequence &getSequence() const {
@@ -87,8 +93,8 @@ private:
 	Sequence sequence_;
 };
 
-Value parse(const char *filename);
-Value parse(std::string_view s);
+Expected<Value, std::string> parse(const char *filename);
+Expected<Value, std::string> parse(std::string_view s);
 
 } // namespace yaml
 

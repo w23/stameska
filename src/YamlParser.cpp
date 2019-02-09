@@ -89,7 +89,7 @@ class ParserContext {
 
 			{
 				YamlEvent event = getNextEvent();
-				
+
 				switch (event.type) {
 					case YAML_SCALAR_EVENT:
 						MSG("YAML_SCALAR_EVENT: value=%s", event.value.c_str());
@@ -169,7 +169,7 @@ public:
 	}
 };
 
-Value parse(const char *filename) {
+Expected<Value, std::string> parse(const char *filename) {
 	MSG("Parsing YAML from %s", filename);
 
 	const auto f = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename, "rb"), &fclose);
@@ -183,7 +183,7 @@ Value parse(const char *filename) {
 		const auto v = strerror_s(strerr, sizeof(strerr), err);
 #endif
 		(void)v;
-		throw std::runtime_error(format("Cannot open file %s: %d(%s)", filename, err, strerr));
+		return Unexpected(format("Cannot open file %s: %d(%s)", filename, err, strerr));
 	}
 
 	ParserContext ctx(*f);
@@ -191,9 +191,8 @@ Value parse(const char *filename) {
 	return ctx.readAnyValue();
 }
 
-Value parse(std::string_view s) {
+Expected<Value, std::string> parse(std::string_view s) {
 	ParserContext ctx(s);
-
 	return ctx.readAnyValue();
 }
 
@@ -201,28 +200,47 @@ bool Mapping::hasKey(const std::string &name) const {
 	return map_.find(name) != map_.end();
 }
 
-const Value &Mapping::getValue(const std::string &name) const {
+ExpectedRef<const Value, std::string> Mapping::getValue(const std::string &name) const {
 	const auto it = map_.find(name);
 	if (it == map_.end())
-		throw std::runtime_error(format("Field %s not found", name.c_str()));
+		return Unexpected(format("Field %s not found", name.c_str()));
 
-	return it->second;
+	return std::cref(it->second);
 }
 
+//ExpectedRef<const Mapping, std::string> Mapping::getMapping(const std::string &name) const {
 const Mapping &Mapping::getMapping(const std::string &name) const {
-	return getValue(name).getMapping();
+	const auto value_result = getValue(name);
+	if (!value_result)
+		throw (value_result.error());
+		//return Unexpected(value_result.error());
+
+	const auto mapping_result = value_result.value().get().getMapping();
+	return mapping_result.value();
 }
 
 const Sequence &Mapping::getSequence(const std::string &name) const {
-	return getValue(name).getSequence();
+	const auto value_result = getValue(name);
+	if (!value_result)
+		throw value_result.error();
+
+	return value_result.value().get().getSequence();
 }
 
 const std::string &Mapping::getString(const std::string &name) const {
-	return getValue(name).getString();
+	const auto value_result = getValue(name);
+	if (!value_result)
+		throw value_result.error();
+
+	return value_result.value().get().getString();
 }
 
 int Mapping::getInt(const std::string &name) const {
-	return getValue(name).getInt();
+	const auto value_result = getValue(name);
+	if (!value_result)
+		throw value_result.error();
+
+	return value_result.value().get().getInt();
 }
 
 const std::string &Mapping::getString(const std::string &name, const std::string &default_value) const {

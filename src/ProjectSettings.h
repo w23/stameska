@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Expected.h"
 #include <string>
 
 struct ProjectSettings {
@@ -14,5 +14,5 @@ struct ProjectSettings {
 		float *data = nullptr;
 	} audio;
 
-	void readFromFile(const char *filename);
+	static Expected<ProjectSettings, std::string> readFromFile(const char *filename);
 };

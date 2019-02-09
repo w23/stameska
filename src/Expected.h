@@ -7,7 +7,7 @@ template <typename E>
 class Unexpected {
 public:
 	Unexpected() = delete;
-	explicit Unexpected(const E &&e) : error_(e) {}
+	explicit Unexpected(const E &e) : error_(e) {}
 	explicit Unexpected(E &&e) : error_(std::move(e)) {}
 
 	const E &get() const & { return error_; }
@@ -26,6 +26,13 @@ public:
 	Expected(const T& value) : value_(value), has_value_(true) {}
 	Expected(T &&value) : value_(std::move(value)), has_value_(true) {}
 	Expected(UnexpectedType &&unexpected) : error_(std::move(unexpected)), has_value_(false) {}
+
+	~Expected() {
+		if (has_value_)
+			value_.~T();
+		else
+			error_.~UnexpectedType();
+	}
 
 	bool hasValue() const { return has_value_; }
 	const E& error() const & {
@@ -58,12 +65,7 @@ public:
 		return &value_;
 	}
 
-	~Expected() {
-		if (has_value_)
-			value_.~T();
-		else
-			error_.~UnexpectedType();
-	}
+	operator bool() const { return hasValue(); }
 
 private:
 	union {
@@ -82,6 +84,11 @@ public:
 	Expected() : has_value_(true) {}
 	Expected(UnexpectedType &&unexpected) : error_(std::move(unexpected)), has_value_(false) {}
 
+	~Expected() {
+		if (!has_value_)
+			error_.~UnexpectedType();
+	}
+
 	bool hasValue() const { return has_value_; }
 
 	const E& error() const & {
@@ -96,10 +103,7 @@ public:
 		return std::move(error_.get());
 	}
 
-	~Expected() {
-		if (!has_value_)
-			error_.~UnexpectedType();
-	}
+	operator bool() const { return hasValue(); }
 
 private:
 	union {
