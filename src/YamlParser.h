@@ -25,8 +25,7 @@ public:
 	using KeyValue = std::map<std::string, Value>;
 	const KeyValue &map() const { return map_; }
 
-	//ExpectedRef<const Mapping, std::string> getMapping(const std::string &name) const;
-	const Mapping &getMapping(const std::string &name) const;
+	ExpectedRef<const Mapping, std::string> getMapping(const std::string &name) const;
 	const Sequence &getSequence(const std::string &name) const;
 	const std::string &getString(const std::string &name) const;
 	int getInt(const std::string &name) const;

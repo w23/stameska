@@ -97,8 +97,11 @@ class Loader {
 	}
 
 	Expected<void, std::string> loadFramebuffers() {
-		const yaml::Mapping &yfbs = root_.getMapping("framebuffers");
-		for (const auto &[name, yfbv]: yfbs.map()) {
+		auto map_fb_result = root_.getMapping("framebuffers");
+		if (!map_fb_result)
+			return Unexpected(map_fb_result.error());
+
+		for (const auto &[name, yfbv]: map_fb_result.value().get().map()) {
 			if (std::find(names_.framebuffer.begin(), names_.framebuffer.end(), name) != names_.framebuffer.end())
 				return Unexpected(format("Framebuffer '%s' is not unique", name.c_str()));
 
@@ -178,7 +181,10 @@ class Loader {
 	}
 
 	Expected<void,std::string> loadPrograms() {
-		for (const auto &[name, yprog]: root_.getMapping("programs").map()) {
+		auto map_programs_result = root_.getMapping("programs");
+		if (!map_programs_result)
+			return Unexpected(map_programs_result.error());
+		for (const auto &[name, yprog]: map_programs_result.value().get().map()) {
 			auto yp_result = yprog.getMapping();
 			if (!yp_result)
 				return Unexpected("Program " + name + " desc object is not a mapping");

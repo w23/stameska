@@ -19,9 +19,15 @@ Expected<ProjectSettings, std::string> ProjectSettings::readFromFile(const char 
 	const yaml::Mapping &config = config_result.value();
 
 	ProjectSettings settings;
-	settings.video.config_filename = config.getMapping("video").getString("config_file");
+	auto map_video_result = config.getMapping("video");
+	if (!map_video_result)
+		return Unexpected(map_video_result.error());
+	settings.video.config_filename = map_video_result.value().get().getString("config_file");
 
-	const yaml::Mapping &yaudio = config.getMapping("audio");
+	auto map_audio_result = config.getMapping("audio");
+	if (!map_audio_result)
+		return Unexpected(map_audio_result.error());
+	const yaml::Mapping &yaudio = map_audio_result.value();
 	settings.audio.samplerate = yaudio.getInt("samplerate");
 	settings.audio.channels = yaudio.getInt("channels", 2);
 

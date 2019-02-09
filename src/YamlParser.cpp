@@ -208,15 +208,12 @@ ExpectedRef<const Value, std::string> Mapping::getValue(const std::string &name)
 	return std::cref(it->second);
 }
 
-//ExpectedRef<const Mapping, std::string> Mapping::getMapping(const std::string &name) const {
-const Mapping &Mapping::getMapping(const std::string &name) const {
+ExpectedRef<const Mapping, std::string> Mapping::getMapping(const std::string &name) const {
 	const auto value_result = getValue(name);
 	if (!value_result)
-		throw (value_result.error());
-		//return Unexpected(value_result.error());
+		return Unexpected(value_result.error());
 
-	const auto mapping_result = value_result.value().get().getMapping();
-	return mapping_result.value();
+	return value_result.value().get().getMapping();
 }
 
 const Sequence &Mapping::getSequence(const std::string &name) const {
