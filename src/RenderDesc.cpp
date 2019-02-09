@@ -113,14 +113,20 @@ class Loader {
 			const size_t framebuffer_index = names_.framebuffer.size();
 			assert(framebuffer_index == pipeline_.framebuffers.size());
 
-			const yaml::Sequence &size = yfb.getSequence("size");
+			auto size_result = yfb.getSequence("size");
+			if (!size_result)
+				return Unexpected("Cannot read size for framebuffer " + name + ": " + size_result.error());
+			const yaml::Sequence &size = size_result.value();
 
 			const bool pingpong = yfb.hasKey("pingpong") && yfb.getInt("pingpong");
 
 			const int width = readVariable(size.at(0).getString());
 			const int height = readVariable(size.at(1).getString());
 
-			const yaml::Sequence &ytextures = yfb.getSequence("textures");
+			auto textures_result = yfb.getSequence("textures");
+			if (!textures_result)
+				return Unexpected("Cannot read target textures for framebuffer " + name + ": " + textures_result.error());
+			const yaml::Sequence &ytextures = textures_result.value();
 			Framebuffer fb;
 			fb.textures_count = 0;
 			for (const auto &ytex: ytextures) {
@@ -201,7 +207,11 @@ class Loader {
 	}
 
 	Expected<void,std::string> loadCommands() {
-		for (const auto &ycmd_value: root_.getSequence("paint")) {
+		auto paint_result = root_.getSequence("paint");
+		if (!paint_result)
+			return Unexpected(paint_result.error());
+
+		for (const auto &ycmd_value: paint_result.value().get()) {
 			if (ycmd_value.isString() && ycmd_value.getString() == "drawFullscreen") {
 				pipeline_.commands.emplace_back(Command::DrawFullscreen());
 				continue;

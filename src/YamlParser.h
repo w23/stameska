@@ -26,7 +26,7 @@ public:
 	const KeyValue &map() const { return map_; }
 
 	ExpectedRef<const Mapping, std::string> getMapping(const std::string &name) const;
-	const Sequence &getSequence(const std::string &name) const;
+	ExpectedRef<const Sequence, std::string> getSequence(const std::string &name) const;
 	const std::string &getString(const std::string &name) const;
 	int getInt(const std::string &name) const;
 	const std::string &getString(const std::string &name, const std::string &default_value) const;
@@ -54,10 +54,10 @@ public:
 		return std::cref(mapping_);
 	}
 
-	const Sequence &getSequence() const {
+	ExpectedRef<const Sequence, std::string> getSequence() const {
 		if (type_ != Type::Sequence)
-			throw std::runtime_error("Value is not of Sequence type");
-		return sequence_;
+			return Unexpected<std::string>("Value is not of Sequence type");
+		return std::cref(sequence_);
 	}
 
 	const std::string &getString() const {
