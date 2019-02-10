@@ -155,11 +155,15 @@ void attoAppInit(struct AAppProctable *proctable) {
 		aAppTerminate(1);
 	}
 
-	try {
-		settings.readFromFile(a_app_state->argv[1]);
-	} catch (const std::exception& e) {
-		MSG("Error reading project file: %s", e.what());
-		aAppTerminate(2);
+	{
+		const char *settings_filename = a_app_state->argv[1];
+		auto settings_result = ProjectSettings::readFromFile(settings_filename);
+		if (!settings_result) {
+			MSG("Error reading project file %s: %s", settings_filename, settings_result.error().c_str());
+			aAppTerminate(2);
+		}
+
+		settings = std::move(settings_result).value();
 	}
 
 	loop.start = 0;

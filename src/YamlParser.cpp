@@ -1,5 +1,5 @@
 #include "YamlParser.h"
-#include "utils.h"
+#include "format.h"
 
 #include "yaml.h"
 #include <stdio.h>
@@ -27,10 +27,10 @@ class ParserContext {
 		}
 	};
 
-	YamlEvent getNextEvent() {
+	Expected<YamlEvent, std::string> getNextEvent() {
 		yaml_event_t event;
 		if (!yaml_parser_parse(&parser_, &event)) {
-			throw std::runtime_error(format("Error parsing yaml %d@%d: %s",
+			return Unexpected(format("Error parsing yaml %d@%d: %s",
 				(int)parser_.problem_mark.line, (int)parser_.problem_mark.column,
 				parser_.problem));
 		}
@@ -40,10 +40,13 @@ class ParserContext {
 		return YamlEvent(event);
 	}
 
-	Sequence readSequence() {
+	Expected<Sequence, std::string> readSequence() {
 		Sequence seq;
 		for (;;) {
-			YamlEvent event = getNextEvent();
+			auto event_result = getNextEvent();
+			if (!event_result)
+				return Unexpected("Error while reading sequence: " + event_result.error());
+			YamlEvent event = std::move(event_result).value();
 
 			switch (event.type) {
 				case YAML_SCALAR_EVENT:
@@ -52,27 +55,40 @@ class ParserContext {
 					break;
 				case YAML_SEQUENCE_START_EVENT:
 					MSG("YAML_SEQUENCE_START_EVENT");
-					seq.emplace_back(readSequence());
+					{
+						auto result = readSequence();
+						if (!result)
+							return Unexpected(result.error());
+						seq.emplace_back(std::move(result).value());
+					}
 					break;
 				case YAML_MAPPING_START_EVENT:
 					MSG("YAML_MAPPING_START_EVENT");
-					seq.emplace_back(readMapping());
+					{
+						auto result = readMapping();
+						if (!result)
+							return Unexpected(result.error());
+						seq.emplace_back(std::move(result).value());
+					}
 					break;
 				case YAML_SEQUENCE_END_EVENT:
 					MSG("YAML_SEQUENCE_END_EVENT");
 					return seq;
 				default:
-					throw std::runtime_error(format("Unexpected event %d", event.type));
+					return Unexpected(format("Unexpected event %d", event.type));
 			}
 		}
 	}
 
-	Mapping readMapping() {
+	Expected<Mapping, std::string> readMapping() {
 		Mapping mapping;
 		for (;;) {
 			std::string key;
 			{
-				YamlEvent event = getNextEvent();
+				auto event_result = getNextEvent();
+				if (!event_result)
+					return Unexpected("Error while reading mapping: " + event_result.error());
+				YamlEvent event = std::move(event_result).value();
 
 				switch (event.type) {
 					case YAML_SCALAR_EVENT:
@@ -83,13 +99,16 @@ class ParserContext {
 						MSG("YAML_MAPPING_END_EVENT");
 						return mapping;
 					default:
-						throw std::runtime_error(format("Unexpected event %d", event.type));
+						return Unexpected(format("Unexpected event %d", event.type));
 					}
 			}
 
 			{
-				YamlEvent event = getNextEvent();
-				
+				auto event_result = getNextEvent();
+				if (!event_result)
+					return Unexpected("Error while reading mapping: " + event_result.error());
+				YamlEvent event = std::move(event_result).value();
+
 				switch (event.type) {
 					case YAML_SCALAR_EVENT:
 						MSG("YAML_SCALAR_EVENT: value=%s", event.value.c_str());
@@ -97,14 +116,24 @@ class ParserContext {
 						break;
 					case YAML_SEQUENCE_START_EVENT:
 						MSG("YAML_SEQUENCE_START_EVENT");
-						mapping.map_.emplace(std::move(key), readSequence());
+						{
+							auto result = readSequence();
+							if (!result)
+								return Unexpected(result.error());
+							mapping.map_.emplace(std::move(key), std::move(result).value());
+						}
 						break;
 					case YAML_MAPPING_START_EVENT:
 						MSG("YAML_MAPPING_START_EVENT");
-						mapping.map_.emplace(std::move(key), readMapping());
+						{
+							auto result = readMapping();
+							if (!result)
+								return Unexpected(result.error());
+							mapping.map_.emplace(std::move(key), std::move(result).value());
+						}
 						break;
 					default:
-						throw std::runtime_error(format("Unexpected event %d", event.type));
+						return Unexpected(format("Unexpected event %d", event.type));
 				}
 			}
 		}
@@ -125,7 +154,7 @@ public:
 		yaml_parser_delete(&parser_);
 	}
 
-	Value readAnyValue() {
+	Expected<Value, std::string> readAnyValue() {
 		enum class State {
 			Init,
 			StreamStarted,
@@ -133,25 +162,31 @@ public:
 		};
 
 		for(State state = State::Init; state != State::DocumentStarted;) {
-			const YamlEvent event = getNextEvent();
+			auto event_result = getNextEvent();
+			if (!event_result)
+				return Unexpected("Error while reading mapping: " + event_result.error());
+			YamlEvent event = std::move(event_result).value();
 
 			switch (event.type) {
 				case YAML_STREAM_START_EVENT:
 					if (state != State::Init)
-						throw std::runtime_error("Unexpected YAML_STREAM_START_EVENT");
+						return Unexpected<std::string>("Unexpected YAML_STREAM_START_EVENT");
 					state = State::StreamStarted;
 					break;
 				case YAML_DOCUMENT_START_EVENT:
 					if (state != State::StreamStarted)
-						throw std::runtime_error("Unexpected YAML_DOCUMENT_START_EVENT");
+						return Unexpected<std::string>("Unexpected YAML_DOCUMENT_START_EVENT");
 					state = State::DocumentStarted;
 					break;
 				default:
-					throw std::runtime_error(format("Unexpected event %d", event.type));
+					return Unexpected(format("Unexpected event %d", event.type));
 			} // switch (event.type)
 		} // for(state != DocumentStarted)
 
-		YamlEvent event = getNextEvent();
+		auto event_result = getNextEvent();
+		if (!event_result)
+			return Unexpected("Error while reading mapping: " + event_result.error());
+		YamlEvent event = std::move(event_result).value();
 
 		switch (event.type) {
 			case YAML_SCALAR_EVENT:
@@ -159,17 +194,27 @@ public:
 				return Value(std::move(event.value));
 			case YAML_SEQUENCE_START_EVENT:
 				MSG("YAML_SEQUENCE_START_EVENT");
-				return Value(readSequence());
+				{
+					auto result = readSequence();
+					if (!result)
+						return Unexpected(result.error());
+					return Value(std::move(result).value());
+				}
 			case YAML_MAPPING_START_EVENT:
 				MSG("YAML_MAPPING_START_EVENT");
-				return Value(readMapping());
+				{
+					auto result = readMapping();
+					if (!result)
+						return Unexpected(result.error());
+					return Value(std::move(result).value());
+				}
 			default:
-				throw std::runtime_error(format("Unexpected event %d", event.type));
+				return Unexpected(format("Unexpected event %d", event.type));
 		}
 	}
 };
 
-Value parse(const char *filename) {
+Expected<Value, std::string> parse(const char *filename) {
 	MSG("Parsing YAML from %s", filename);
 
 	const auto f = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename, "rb"), &fclose);
@@ -183,7 +228,7 @@ Value parse(const char *filename) {
 		const auto v = strerror_s(strerr, sizeof(strerr), err);
 #endif
 		(void)v;
-		throw std::runtime_error(format("Cannot open file %s: %d(%s)", filename, err, strerr));
+		return Unexpected(format("Cannot open file %s: %d(%s)", filename, err, strerr));
 	}
 
 	ParserContext ctx(*f);
@@ -191,9 +236,8 @@ Value parse(const char *filename) {
 	return ctx.readAnyValue();
 }
 
-Value parse(std::string_view s) {
+Expected<Value, std::string> parse(std::string_view s) {
 	ParserContext ctx(s);
-
 	return ctx.readAnyValue();
 }
 
@@ -201,28 +245,44 @@ bool Mapping::hasKey(const std::string &name) const {
 	return map_.find(name) != map_.end();
 }
 
-const Value &Mapping::getValue(const std::string &name) const {
+ExpectedRef<const Value, std::string> Mapping::getValue(const std::string &name) const {
 	const auto it = map_.find(name);
 	if (it == map_.end())
-		throw std::runtime_error(format("Field %s not found", name.c_str()));
+		return Unexpected(format("Field %s not found", name.c_str()));
 
-	return it->second;
+	return std::cref(it->second);
 }
 
-const Mapping &Mapping::getMapping(const std::string &name) const {
-	return getValue(name).getMapping();
+ExpectedRef<const Mapping, std::string> Mapping::getMapping(const std::string &name) const {
+	const auto value_result = getValue(name);
+	if (!value_result)
+		return Unexpected(value_result.error());
+
+	return value_result.value().get().getMapping();
 }
 
-const Sequence &Mapping::getSequence(const std::string &name) const {
-	return getValue(name).getSequence();
+ExpectedRef<const Sequence, std::string> Mapping::getSequence(const std::string &name) const {
+	const auto value_result = getValue(name);
+	if (!value_result)
+		return Unexpected(value_result.error());
+
+	return value_result.value().get().getSequence();
 }
 
-const std::string &Mapping::getString(const std::string &name) const {
-	return getValue(name).getString();
+ExpectedRef<const std::string, std::string> Mapping::getString(const std::string &name) const {
+	const auto value_result = getValue(name);
+	if (!value_result)
+		return Unexpected(value_result.error());
+
+	return value_result.value().get().getString();
 }
 
-int Mapping::getInt(const std::string &name) const {
-	return getValue(name).getInt();
+Expected<long int, std::string> Mapping::getInt(const std::string &name) const {
+	const auto value_result = getValue(name);
+	if (!value_result)
+		return Unexpected(value_result.error());
+
+	return value_result.value().get().getInt();
 }
 
 const std::string &Mapping::getString(const std::string &name, const std::string &default_value) const {
@@ -230,15 +290,23 @@ const std::string &Mapping::getString(const std::string &name, const std::string
 	if (it == map_.end())
 		return default_value;
 
-	return it->second.getString();
+	auto result = it->second.getString();
+	if (!result)
+		return default_value;
+
+	return result.value();
 }
 
-int Mapping::getInt(const std::string &name, int default_value) const {
+long int Mapping::getInt(const std::string &name, long int default_value) const {
 	const auto it = map_.find(name);
 	if (it == map_.end())
 		return default_value;
 
-	return it->second.getInt();
+	auto result = it->second.getInt();
+	if (!result)
+		return default_value;
+
+	return result.value();
 }
 
 } // namespace yaml

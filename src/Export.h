@@ -1,5 +1,6 @@
 #pragma once
+#include "Expected.h"
 
 namespace renderdesc { class Pipeline; }
 
-void exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename);
+Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename);

@@ -7,6 +7,9 @@
 
 class Resources;
 
+class PolledShaderSource;
+typedef std::shared_ptr<PolledShaderSource> shader_ptr;
+
 class PolledShaderSource : public PolledResource {
 public:
 	PolledShaderSource(Resources &resources, const std::shared_ptr<PolledFile>& file);
@@ -34,7 +37,7 @@ private:
 
 		Chunk(std::string&& string) : type(Type::String), string(std::move(string)) {}
 		Chunk(const std::string& string) : type(Type::String), string(string) {}
-		Chunk(const std::shared_ptr<PolledShaderSource> &include) : type(Type::Include), include(include) {}
+		Chunk(const shader_ptr &include) : type(Type::Include), include(include) {}
 	};
 
 	std::vector<Chunk> chunks_;

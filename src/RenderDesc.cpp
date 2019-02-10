@@ -1,27 +1,39 @@
 #include "RenderDesc.h"
 #include "YamlParser.h"
+#include "format.h"
 
 #include <assert.h>
 #include <algorithm>
 
 namespace renderdesc {
 
-static PixelType pixelTypeFromString(const std::string &s) {
+static Expected<PixelType, std::string> pixelTypeFromValue(const yaml::Value &v) {
+	auto s_result = v.getString();
+	if (!s_result)
+		return Unexpected("Cannot read PixelType: " + s_result.error());
+
+	const std::string &s = s_result.value();
 	if (s == "RGBA8") return PixelType::RGBA8;
 	if (s == "RGBA16F") return PixelType::RGBA16F;
 	if (s == "RGBA32F") return PixelType::RGBA32F;
 	//if (s == "Depth24") return PixelType::Depth24;
-	throw std::runtime_error(format("Unexpected pixel type %s", s.c_str()));
+
+	return Unexpected(format("Unexpected pixel type %s", s.c_str()));
 }
 
-static Command::Flag flagFromString(const std::string &s) {
+static Expected<Command::Flag, std::string> flagFromValue(const yaml::Value &v) {
+	auto s_result = v.getString();
+	if (!s_result)
+		return Unexpected("Cannot read Flag: " + s_result.error());
+
+	const std::string &s = s_result.value();
 	if (s == "DepthTest") return Command::Flag::DepthTest;
 	if (s == "VertexProgramPointSize") return Command::Flag::VertexProgramPointSize;
 
-	throw std::runtime_error(format("Unknown flag %s", s.c_str()));
+	return Unexpected(format("Unknown flag %s", s.c_str()));
 }
 
-static Command::DrawArrays::Mode drawModeFromString(const std::string &s) {
+static Expected<Command::DrawArrays::Mode, std::string> drawModeFromString(const std::string &s) {
 	if (s == "Points") return Command::DrawArrays::Mode::Points;
 	if (s == "Triangles") return Command::DrawArrays::Mode::Triangles;
 	if (s == "TriangleStrip") return Command::DrawArrays::Mode::TriangleStrip;
@@ -30,7 +42,7 @@ static Command::DrawArrays::Mode drawModeFromString(const std::string &s) {
 	if (s == "LineStrip") return Command::DrawArrays::Mode::LineStrip;
 	if (s == "LineLoop") return Command::DrawArrays::Mode::LineLoop;
 
-	throw std::runtime_error(format("Unknown mode %s", s.c_str()));
+	return Unexpected(format("Unknown draw mode %s", s.c_str()));
 }
 
 class Loader {
@@ -47,34 +59,42 @@ class Loader {
 		std::vector<Command::Index> texture;
 	} indexes_;
 
-	int readVariable(const std::string &s) {
+	Expected<long int, std::string> readVariable(const yaml::Value &v) {
 		// FIXME read actual variable
-		return intFromString(s);
+		return v.getInt();
 	}
 
-	Command::Index getFramebufferIndex(const std::string &s) {
+	Expected<long int, std::string> readVariable(const yaml::Mapping &m, const std::string &name) {
+		auto value_result = m.getValue(name);
+		if (!value_result)
+			return Unexpected("Cannot read variable " + name + ": " + value_result.error());
+		// FIXME read actual variable
+		return value_result.value().get().getInt();
+	}
+
+	Expected<Command::Index, std::string> getFramebufferIndex(const std::string &s) {
 		if (s == "SCREEN")
-			return -1;
+			return Command::Index(-1);
 
 		const auto it = std::find(names_.framebuffer.begin(), names_.framebuffer.end(), s);
 		if (it == names_.framebuffer.end())
-			throw std::runtime_error(format("Unknown framebuffer %s", s.c_str()));
+			return Unexpected(format("Unknown framebuffer %s", s.c_str()));
 
 		return indexes_.framebuffer[it - names_.framebuffer.begin()];
 	}
 
-	Command::Index getProgramIndex(const std::string &s) {
+	Expected<Command::Index, std::string> getProgramIndex(const std::string &s) {
 		const auto it = std::find(names_.program.begin(), names_.program.end(), s);
 		if (it == names_.program.end())
-			throw std::runtime_error(format("Unknown program %s", s.c_str()));
+			return Unexpected(format("Unknown program %s", s.c_str()));
 
-		return it - names_.program.begin();
+		return Command::Index(it - names_.program.begin());
 	}
 
-	Command::Index getTextureIndex(const std::string &s) {
+	Expected<Command::Index, std::string> getTextureIndex(const std::string &s) {
 		const auto it = std::find(names_.texture.begin(), names_.texture.end(), s);
 		if (it == names_.texture.end())
-			throw std::runtime_error(format("Unknown texture %s", s.c_str()));
+			return Unexpected(format("Unknown texture %s", s.c_str()));
 
 		return indexes_.texture[it - names_.texture.begin()];
 	}
@@ -96,38 +116,68 @@ class Loader {
 		indexes_.texture.emplace_back(Command::Index(index, pp));
 	}
 
-	void loadFramebuffers() {
-		const yaml::Mapping &yfbs = root_.getMapping("framebuffers");
-		for (const auto &[name, yfbv]: yfbs.map()) {
-			if (std::find(names_.framebuffer.begin(), names_.framebuffer.end(), name) != names_.framebuffer.end())
-				throw std::runtime_error(format("Framebuffer '%s' is not unique", name.c_str()));
+	Expected<void, std::string> loadFramebuffers() {
+		auto map_fb_result = root_.getMapping("framebuffers");
+		if (!map_fb_result)
+			return Unexpected(map_fb_result.error());
 
-			const yaml::Mapping &yfb = yfbv.getMapping();
+		for (const auto &[name, yfbv]: map_fb_result.value().get().map()) {
+			if (std::find(names_.framebuffer.begin(), names_.framebuffer.end(), name) != names_.framebuffer.end())
+				return Unexpected(format("Framebuffer '%s' is not unique", name.c_str()));
+
+			auto yfb_result = yfbv.getMapping();
+			if (!yfb_result)
+				return Unexpected("Framebuffer " + name + " desc object is not a mapping");
+			const yaml::Mapping &yfb = yfb_result.value();
 
 			const size_t framebuffer_index = names_.framebuffer.size();
 			assert(framebuffer_index == pipeline_.framebuffers.size());
 
-			const yaml::Sequence &size = yfb.getSequence("size");
+			auto size_result = yfb.getSequence("size");
+			if (!size_result)
+				return Unexpected("Cannot read size for framebuffer " + name + ": " + size_result.error());
+			const yaml::Sequence &size = size_result.value();
 
-			const bool pingpong = yfb.hasKey("pingpong") && yfb.getInt("pingpong");
+			if (size.size() != 2)
+				return Unexpected("Framebuffer " + name + " size must have 2 elements");
 
-			const int width = readVariable(size.at(0).getString());
-			const int height = readVariable(size.at(1).getString());
+			auto width_result = readVariable(size[0]);
+			if (!width_result)
+				return Unexpected("Cannot read width for framebuffer " + name + ": " + width_result.error());
+			const int width = width_result.value();
 
-			const yaml::Sequence &ytextures = yfb.getSequence("textures");
+			auto height_result = readVariable(size[1]);
+			if (!height_result)
+				return Unexpected("Cannot read height for framebuffer " + name + ": " + height_result.error());
+			const int height = height_result.value();
+
+			const auto pingpong_result = yfb.getInt("pingpong");
+			const bool pingpong = pingpong_result && pingpong_result.value();
+
+			auto textures_result = yfb.getSequence("textures");
+			if (!textures_result)
+				return Unexpected("Cannot read target textures for framebuffer " + name + ": " + textures_result.error());
+			const yaml::Sequence &ytextures = textures_result.value();
 			Framebuffer fb;
 			fb.textures_count = 0;
 			for (const auto &ytex: ytextures) {
-				const yaml::Mapping &tex = ytex.getMapping();
+				auto tex_result = ytex.getMapping();
+				if (!tex_result)
+					return Unexpected(format("%dth texture of framebuffer %s is not a mapping", fb.textures_count, name.c_str()));
+				const yaml::Mapping &tex = tex_result.value();
 				if (tex.map().size() != 1)
-					throw std::runtime_error("Framebuffer target texture should have only one key:value pair: name and format");
+					return Unexpected("Framebuffer " + name + " target texture should have only one key:value pair: name and format");
 
 				const auto &[tex_name, tex_type_name] = *tex.map().begin();
 				if (fb.textures_count >= MAX_TARGET_TEXTURES)
-					throw std::runtime_error(format("Too many targets for framebuffer %s, max: %d",
+					return Unexpected(format("Too many targets for framebuffer %s, max: %d",
 						name.c_str(), MAX_TARGET_TEXTURES));
 
-				const PixelType tex_type = pixelTypeFromString(tex_type_name.getString());
+				auto tex_type_result = pixelTypeFromValue(tex_type_name);
+				if (!tex_type_result)
+					return Unexpected(format("Framebuffer %s texture %d has invalid pixel type: %s",
+						name.c_str(), fb.textures_count, tex_type_result.error().c_str()));
+				const PixelType tex_type = tex_type_result.value();
 
 				const size_t tex_index = names_.texture.size();
 				assert(tex_index == pipeline_.textures.size());
@@ -153,6 +203,7 @@ class Loader {
 
 				for (int i = 0; i < fb.textures_count; ++i)
 					fb.textures[i] += 1;
+
 				{
 					const int index = (int)pipeline_.framebuffers.size();
 					pipeline_.framebuffers.push_back(fb);
@@ -166,67 +217,137 @@ class Loader {
 				indexes_.framebuffer.emplace_back(Command::Index(index));
 			}
 		}
+
+		return Expected<void, std::string>();
 	}
 
-	void loadPrograms() {
-		for (const auto &ip: root_.getMapping("programs").map()) {
-			const std::string &name = ip.first;
+	Expected<void,std::string> loadPrograms() {
+		auto map_programs_result = root_.getMapping("programs");
+		if (!map_programs_result)
+			return Unexpected(map_programs_result.error());
 
-			const yaml::Mapping &yp = ip.second.getMapping();
+		for (const auto &[name, yprog]: map_programs_result.value().get().map()) {
+			auto yp_result = yprog.getMapping();
+			if (!yp_result)
+				return Unexpected("Program " + name + " desc object is not a mapping");
+			const yaml::Mapping &yp = yp_result.value();
 
-			const int fragment_index = getShaderIndex(yp.getString("fragment"));
-			const int vertex_index = getShaderIndex(yp.getString("vertex"));
+			auto vertex_name_result = yp.getString("vertex");
+			if (!vertex_name_result)
+				return Unexpected("Program " + name + " invalid vertex: " + vertex_name_result.error());
+			const int vertex_index = getShaderIndex(vertex_name_result.value());
+
+			auto fragment_name_result = yp.getString("fragment");
+			if (!fragment_name_result)
+				return Unexpected("Program " + name + " invalid fragment: " + fragment_name_result.error());
+			const int fragment_index = getShaderIndex(fragment_name_result.value());
 
 			names_.program.emplace_back(name);
 			pipeline_.programs.emplace_back(vertex_index, fragment_index);
 		}
+
+		return Expected<void,std::string>();
 	}
 
-	void loadCommands() {
-		for (const auto &ycmd_value: root_.getSequence("paint")) {
-			if (ycmd_value.isString() && ycmd_value.getString() == "drawFullscreen") {
+	Expected<void,std::string> loadCommands() {
+		auto paint_result = root_.getSequence("paint");
+		if (!paint_result)
+			return Unexpected(paint_result.error());
+
+		for (const auto &ycmd_value: paint_result.value().get()) {
+			if (ycmd_value.isString() && ycmd_value.getString().value().get() == "drawFullscreen") {
 				pipeline_.commands.emplace_back(Command::DrawFullscreen());
 				continue;
 			}
 
-			const yaml::Mapping &ycmd = ycmd_value.getMapping();
+			auto ycmd_result = ycmd_value.getMapping();
+			if (!ycmd_result)
+				return Unexpected<std::string>("Command is not a mapping");
+			const yaml::Mapping &ycmd = ycmd_result.value();
 			const auto it = ycmd.map().begin();
 			const std::string &op = it->first;
 			const yaml::Value &yargs = it->second;
 
 			if (op == "bindFramebuffer") {
-				const auto index = getFramebufferIndex(yargs.getString());
-				pipeline_.commands.emplace_back(Command::BindFramebuffer(index));
+				auto fb_name_result = yargs.getString();
+				if (!fb_name_result)
+					return Unexpected("Cannot read framebuffer name: " + fb_name_result.error());
+				auto index_result = getFramebufferIndex(fb_name_result.value());
+
+				if (!index_result)
+					return Unexpected(index_result.error());
+
+				pipeline_.commands.emplace_back(Command::BindFramebuffer(index_result.value()));
 			} else if (op == "useProgram") {
-				const auto index = getProgramIndex(yargs.getString());
-				pipeline_.commands.emplace_back(Command::UseProgram(index));
+				auto prog_name_result = yargs.getString();
+				if (!prog_name_result)
+					return Unexpected("Cannot read program name: " + prog_name_result.error());
+				auto index_result = getProgramIndex(prog_name_result.value());
+				if (!index_result)
+					return Unexpected(index_result.error());
+				pipeline_.commands.emplace_back(Command::UseProgram(index_result.value()));
 			} else if (op == "bindTexture") {
-				for (const auto &[yuniform, ytexture]: yargs.getMapping().map()) {
+				auto yunitex_result = yargs.getMapping();
+				if (!yunitex_result)
+					return Unexpected<std::string>("bindTexture argument is not a mapping");
+				for (const auto &[yuniform, ytexture]: yunitex_result.value().get().map()) {
+					auto tex_name_result = ytexture.getString();
+					if (!tex_name_result)
+						return Unexpected("Cannot read texture name for uniform " + yuniform + ": " + tex_name_result.error());
+					auto index_result = getTextureIndex(tex_name_result.value());
+					if (!index_result)
+						return Unexpected(index_result.error());
 					pipeline_.commands.emplace_back(
-						Command::BindTexture(yuniform, getTextureIndex(ytexture.getString())));
+						Command::BindTexture(yuniform, index_result.value()));
 				}
 			} else if (op == "clear") {
 				// FIXME read actual values
 				pipeline_.commands.emplace_back(
 					Command::Clear(0, 0, 0, 0, true));
 			} else if (op == "enable") {
-				const Command::Flag flag = flagFromString(yargs.getString());
-				pipeline_.commands.emplace_back(Command::Enable(flag));
+				auto flag_result = flagFromValue(yargs);
+				if (!flag_result)
+					return Unexpected(flag_result.error());
+				pipeline_.commands.emplace_back(Command::Enable(flag_result.value()));
 			} else if (op == "disable") {
-				const Command::Flag flag = flagFromString(yargs.getString());
-				pipeline_.commands.emplace_back(Command::Disable(flag));
+				auto flag_result = flagFromValue(yargs);
+				if (!flag_result)
+					return Unexpected(flag_result.error());
+				pipeline_.commands.emplace_back(Command::Disable(flag_result.value()));
 			} else if (op == "drawArrays") {
-				const yaml::Mapping &ymap = yargs.getMapping();
+				auto ymap_result = yargs.getMapping();
+				if (!ymap_result)
+					return Unexpected<std::string>("drawArray argument is not a mapping");
+				const yaml::Mapping &ymap = ymap_result.value();
+
+				auto mode_result_str = ymap.getString("mode");
+				if (!mode_result_str)
+					return Unexpected("Cannot read draw mode string: " + mode_result_str.error());
+				
+				auto mode_result = drawModeFromString(mode_result_str.value());
+				if (!mode_result)
+					return Unexpected("Cannot read draw mode: " + mode_result.error());
+
+				auto start_result = readVariable(ymap, "start");
+				if (!start_result)
+					return Unexpected("Cannot read draw start: " + start_result.error());
+
+				auto count_result = readVariable(ymap, "count");
+				if (!count_result)
+					return Unexpected("Cannot read draw count: " + count_result.error());
+
 				pipeline_.commands.emplace_back(
 					Command::DrawArrays(
-						drawModeFromString(ymap.getString("mode")),
-						readVariable(ymap.getString("start")),
-						readVariable(ymap.getString("count"))
+						mode_result.value(),
+						(int)start_result.value(),
+						(int)count_result.value()
 					)
 				);
 			} else
-				throw std::runtime_error(format("Unknown command %s", op.c_str()));
+				return Unexpected(format("Unknown command %s", op.c_str()));
 		}
+
+		return Expected<void,std::string>();
 	}
 
 public:
@@ -236,20 +357,45 @@ public:
 	{
 	}
 
-	void load() {
-		if (root_.hasKey("framebuffers"))
-			loadFramebuffers();
+	Expected<void, std::string> load() {
+		if (root_.hasKey("framebuffers")) {
+			auto result = loadFramebuffers();
+			if (!result)
+				return Unexpected(result.error());
+		}
 
-		loadPrograms();
+		{
+			auto result = loadPrograms();
+			if (!result)
+				return Unexpected(result.error());
+		}
 
-		loadCommands();
+		{
+			auto result = loadCommands();
+			if (!result)
+				return Unexpected(result.error());
+		}
+
+		return Expected<void, std::string>();
 	}
 };
 
-Pipeline::Pipeline(std::string_view s) {
+Expected<Pipeline, std::string> Pipeline::load(std::string_view s) {
 	const auto root = yaml::parse(s);
-	Loader loader(*this, root.getMapping());
-	loader.load();
+	if (!root)
+		return Unexpected("Cannot load pipeline: " + root.error());
+
+	auto root_mapping_result = root.value().getMapping();
+	if (!root_mapping_result)
+		return Unexpected<std::string>("Root pipeline desc object is not a mapping");
+
+	Pipeline pipeline;
+	Loader loader(pipeline, root_mapping_result.value());
+	const auto result = loader.load();
+	if (!result)
+		return Unexpected("Cannot load pipeline: " + result.error());
+
+	return pipeline;
 }
 
 } // namespace renderdesc

@@ -6,7 +6,7 @@ BUILDDIR ?= build
 CC ?= cc
 CXX ?= c++
 CFLAGS += -Wall -Wextra -Werror -pedantic -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p/atto -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/src
-CXXFLAGS += -std=c++17 $(CFLAGS)
+CXXFLAGS += -std=c++17 -fno-exceptions -fno-rtti $(CFLAGS)
 LIBS = -lX11 -lXfixes -lGL -lasound -lm -pthread
 
 YAML_MAJOR=0
@@ -73,6 +73,7 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/PolledPipelineDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderProgram.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledShaderSource.cpp \
+	$(STAMESKA_BASEDIR)/src/Program.cpp \
 	$(STAMESKA_BASEDIR)/src/ProjectSettings.cpp \
 	$(STAMESKA_BASEDIR)/src/RenderDesc.cpp \
 	$(STAMESKA_BASEDIR)/src/Resources.cpp \
@@ -81,7 +82,7 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 	$(STAMESKA_BASEDIR)/src/YamlParser.cpp \
 	$(STAMESKA_BASEDIR)/src/tool.cpp \
-	$(STAMESKA_BASEDIR)/src/utils.cpp \
+	$(STAMESKA_BASEDIR)/src/format.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \
 
 # TODO how to handle ../

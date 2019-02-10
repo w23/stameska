@@ -1,4 +1,5 @@
 #include "Timeline.h"
+#include "utils.h"
 #include "rocket/lib/sync.h"
 #include <math.h>
 #include <cassert>
@@ -10,7 +11,7 @@ Timeline::Timeline(PauseCallback&& pause, SetRowCallback&& setRow, IsPlayingCall
 	, rocket_(sync_create_device("sync"))
 {
 	if (!rocket_)
-		throw std::runtime_error("Cannot create rocket");
+		CRASH("Cannot create rocket");
 
 	sync_tcp_connect(rocket_.get(), "localhost", SYNC_DEFAULT_PORT);
 }

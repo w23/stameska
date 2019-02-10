@@ -1,4 +1,5 @@
 #pragma once
+#include "Expected.h"
 #include "OpenGL.h"
 
 #include <string>
@@ -155,7 +156,7 @@ public:
 
 	std::vector<Command> commands;
 
-	Pipeline(std::string_view s);
+	static Expected<Pipeline, std::string> load(std::string_view s);
 };
 
 } // namespace renderdesc
