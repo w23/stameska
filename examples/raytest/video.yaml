@@ -1,0 +1,7 @@
+programs:
+  raymarch:
+    vertex: vertex.glsl
+    fragment: raymarch.glsl
+paint:
+  - useProgram: raymarch
+  - drawFullscreen
