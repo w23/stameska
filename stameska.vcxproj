@@ -51,6 +51,7 @@
     <ClCompile Include="3p\rocket\lib\device.c" />
     <ClCompile Include="3p\rocket\lib\track.c" />
     <ClCompile Include="src\Export.cpp" />
+    <ClCompile Include="src\OpenGL.cpp" />
     <ClCompile Include="src\PolledFile.cpp" />
     <ClCompile Include="src\PolledPipelineDesc.cpp" />
     <ClCompile Include="src\PolledShaderProgram.cpp" />

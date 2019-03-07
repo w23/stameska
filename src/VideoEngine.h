@@ -17,6 +17,7 @@ public:
 	VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline);
 	~VideoEngine();
 
+	void setCanvasResolution(int w, int h);
 	void paint(unsigned int frame_seq, int w, int h, float row, Timeline &timeline);
 
 private:
@@ -30,6 +31,8 @@ private:
 		Framebuffer(Framebuffer &&f)
 			: w(f.w), h(f.h), num_targets(f.num_targets), name(f.name) { f.name = 0; }
 		~Framebuffer() { glDeleteFramebuffers(1, &name); }
+
+		bool attachColorTexture(int i, const Texture &);
 	};
 
 	const std::shared_ptr<renderdesc::Pipeline> pipeline_;
@@ -38,4 +41,7 @@ private:
 	std::vector<Framebuffer> framebuffer_;
 	std::vector<std::shared_ptr<PolledShaderSource>> sources_;
 	std::vector<PolledShaderProgram> programs_;
+
+	class Canvas;
+	std::unique_ptr<Canvas> canvas_;
 };

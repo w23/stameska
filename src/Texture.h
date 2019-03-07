@@ -27,6 +27,9 @@ public:
 			glDeleteTextures(1, &name_);
 	}
 
+	int w() const { return w_; }
+	int h() const { return h_; }
+
 	GLuint name() const { return name_; }
 
 	void alloc(int w, int h, PixelType pixel_type) {
