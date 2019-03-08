@@ -77,6 +77,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\OpenGL.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
     <ClCompile Include="src\PolledFile.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>

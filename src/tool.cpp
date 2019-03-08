@@ -46,7 +46,7 @@ static void audioCallback(void *unused, float *samples, int nsamples) {
 static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
 	(void)w; (void)h;
-	video_tool_resize(a_app_state->width, a_app_state->height);
+	video_preview_resize(a_app_state->width, a_app_state->height);
 }
 
 static struct {

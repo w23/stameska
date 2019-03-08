@@ -7,6 +7,58 @@
 
 #include <set>
 
+class VideoEngine::Canvas {
+public:
+	Canvas(int w, int h) {
+		color_.alloc(w, h, RGBA8);
+		GL(glBindFramebuffer(GL_FRAMEBUFFER, fb_.name));
+		fb_.attachColorTexture(0, color_);
+
+		auto p = Program::create(
+			"#version 130\n"
+			"uniform sampler2D frame;\n"
+			"uniform vec2 R;\n"
+			"void main() {\n"
+				"vec2 ts = vec2(textureSize(frame, 0));\n"
+				"vec2 k = ts / R;\n"
+				"float scale = max(k.x, k.y);\n"
+				"vec2 off = (R-ts/scale)/2. * vec2(step(k.x, k.y), step(k.y, k.x));\n"
+				"vec2 tc = scale * (gl_FragCoord.xy - off);\n"
+				"gl_FragColor = vec4(0.);\n"
+				"if (tc.x >= 0. && tc.x < ts.x && tc.y >= 0. && tc.y < ts.y)\n"
+					"gl_FragColor = texture2D(frame, tc / (ts + vec2(1.)));\n"
+			"}\n",
+			"void main() { gl_Position = gl_Vertex; }");
+
+		if (!p)
+			CRASH("Cannot create canvas program: %s", p.error().c_str());
+
+		program_ = std::move(p).value();
+	}
+
+	const Program &program() const { return program_; }
+	const Texture &color() const { return color_; }
+	const Framebuffer &framebuffer() const { return fb_; }
+
+	int width() const { return fb_.w; }
+	int height() const { return fb_.h; }
+
+private:
+	Program program_;
+	Texture color_;
+	Framebuffer fb_;
+};
+
+bool VideoEngine::Framebuffer::attachColorTexture(int i, const Texture &tex) {
+	// FIXME check?
+	w = tex.w();
+	h = tex.h();
+	GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, tex.name(), 0));
+
+	const int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	return status == GL_FRAMEBUFFER_COMPLETE;
+}
+
 #define MAX_PASS_TEXTURES 4
 
 static const GLuint draw_buffers[MAX_PASS_TEXTURES] = {
@@ -30,15 +82,10 @@ VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 			if (index < 0 || index >= (int)textures_.size())
 				CRASH("Fb texture %d OOB %d (max %d)", i, index, (int)textures_.size());
 
-			GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures_[index].name(), 0));
-
-			const int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if (status != GL_FRAMEBUFFER_COMPLETE)
+			if (!fb.attachColorTexture(i, textures_[index]))
 				CRASH("Framebuffer %d is not complete", (int)framebuffer_.size());
-
-			fb.w = pipeline->textures[index].w;
-			fb.h = pipeline->textures[index].h;
 		}
+
 		fb.num_targets = f.textures_count;
 
 		framebuffer_.push_back(std::move(fb));
@@ -95,20 +142,31 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 	p.setUniform("R", w, h).setUniform("t", row);
 }
 
-void VideoEngine::paint(unsigned int frame_seq, int w, int h, float row, Timeline &timeline) {
+void VideoEngine::setCanvasResolution(int w, int h) {
+	canvas_.reset(new Canvas(w, h));
+}
+
+void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_height, float row, Timeline &timeline) {
 	const int pingpong[3] = {0, (int)(frame_seq & 1), (int)((frame_seq + 1) & 1)};
 
 	for (auto &p: programs_)
 		p.poll(frame_seq);
+
+	if (!canvas_) {
+		glViewport(0, 0, preview_width, preview_height);
+		glClear(GL_COLOR_BUFFER_BIT);
+		return;
+	}
 
 	struct {
 		int w, h;
 		const Program *program = nullptr;
 		// TODO better texture tracking mechanism to support texture changes between draw calls
 		int first_availabale_texture_slot = 0;
-	} runtime;
-	runtime.w = w;
-	runtime.h = h;
+	} runtime = { canvas_->width(), canvas_->height() };
+
+	GL(glBindFramebuffer(GL_FRAMEBUFFER, canvas_->framebuffer().name));
+	glViewport(0, 0, runtime.w, runtime.h);
 
 	for (const auto &cmd: pipeline_->commands) {
 		switch (cmd.op) {
@@ -116,9 +174,9 @@ void VideoEngine::paint(unsigned int frame_seq, int w, int h, float row, Timelin
 				{
 					const renderdesc::Command::BindFramebuffer &cmdfb = cmd.bindFramebuffer;
 					if (cmdfb.framebuffer.index == -1) {
-						GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-						runtime.w = w;
-						runtime.h = h;
+						GL(glBindFramebuffer(GL_FRAMEBUFFER, canvas_->framebuffer().name));
+						runtime.w = canvas_->width();
+						runtime.h = canvas_->height();
 					} else {
 						const int index = cmdfb.framebuffer.index + pingpong[cmdfb.framebuffer.pingpong];
 
@@ -195,4 +253,11 @@ void VideoEngine::paint(unsigned int frame_seq, int w, int h, float row, Timelin
 				break;
 		}
 	}
-}
+
+	GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+	glViewport(0, 0, preview_width, preview_height);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, canvas_->color().name());
+	canvas_->program().use().setUniform("R", preview_width, preview_height).setUniform("frame", 0);
+	glRects(-1,-1,1,1);
+} // void VideoEngine::paint()
