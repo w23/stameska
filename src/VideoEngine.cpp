@@ -12,6 +12,15 @@ public:
 	Canvas(int w, int h) {
 		color_.alloc(w, h, RGBA8);
 		GL(glBindFramebuffer(GL_FRAMEBUFFER, fb_.name));
+
+		GLuint depth_renderbuffer;
+		GL(glGenRenderbuffers(1, &depth_renderbuffer));
+		GL(glBindRenderbuffer(GL_RENDERBUFFER, depth_renderbuffer));
+		GL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h));
+		GL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+		GL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_renderbuffer));
+		//GL(glDeleteRenderbuffers(1, &depth_renderbuffer));
+
 		fb_.attachColorTexture(0, color_);
 
 		auto p = Program::create(
@@ -151,6 +160,9 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 
 	for (auto &p: programs_)
 		p.poll(frame_seq);
+
+	glViewport(0, 0, preview_width, preview_height);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (!canvas_) {
 		glViewport(0, 0, preview_width, preview_height);

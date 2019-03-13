@@ -1,0 +1,8 @@
+video:
+  config_file: video.yaml
+audio:
+  samplerate: 44100
+  channels: 2
+  duration_sec: 60
+  bpm: 120
+  rows_per_beat: 8
