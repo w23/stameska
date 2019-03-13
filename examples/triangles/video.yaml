@@ -1,0 +1,14 @@
+programs:
+  geometry:
+    vertex: gvertex.glsl
+    fragment: gfragment.glsl
+paint:
+  - clear: [0,0,0,0]
+  - useProgram: geometry
+  - enable: DepthTest
+  - drawArrays:
+      mode: TriangleStrip
+    #mode: LineStrip
+      start: 0
+      count: 2048
+  - disable: DepthTest
