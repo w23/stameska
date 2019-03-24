@@ -47,6 +47,11 @@
 	X(VERTEXATTRIBPOINTER, VertexAttribPointer) \
 	X(GETOBJECTPARAMETERIVARB, GetObjectParameterivARB) \
 	X(GETINFOLOGARB, GetInfoLogARB) \
+	X(GENRENDERBUFFERS, GenRenderbuffers) \
+	X(BINDRENDERBUFFER, BindRenderbuffer) \
+	X(RENDERBUFFERSTORAGE, RenderbufferStorage) \
+	X(BINDRENDERBUFFER, BindRenderbuffer) \
+	X(FRAMEBUFFERRENDERBUFFER, FramebufferRenderbuffer) \
 
 #ifdef _WIN32
 #ifndef GL_DECLARE_FUNC
