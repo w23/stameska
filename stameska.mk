@@ -31,9 +31,11 @@ ifeq ($(ASAN), 1)
 	LIBS += -fsanitize=address
 endif
 
-COMPILE.cc = $(CXX) $(CXXFLAGS) $(DEPFLAGS) -MT $@ -MF $@.d
+ifneq ($(RASPBERRY), 1)
+	LIBS += -lasound
+endif
 
-all: stameska
+COMPILE.cc = $(CXX) $(CXXFLAGS) $(DEPFLAGS) -MT $@ -MF $@.d
 
 $(OBJDIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
