@@ -14,44 +14,43 @@
 #endif
 
 #define GL_FUNC_LIST(X) \
-	X(CREATESHADERPROGRAMV, CreateShaderProgramv) \
+	X(ACTIVETEXTURE, ActiveTexture) \
+	X(ATTACHSHADER, AttachShader) \
+	X(BINDFRAMEBUFFER, BindFramebuffer) \
+	X(BINDRENDERBUFFER, BindRenderbuffer) \
+	X(CHECKFRAMEBUFFERSTATUS, CheckFramebufferStatus) \
+	X(COMPILESHADER, CompileShader) \
 	X(CREATEPROGRAM, CreateProgram) \
 	X(CREATESHADER, CreateShader) \
-	X(SHADERSOURCE, ShaderSource) \
-	X(COMPILESHADER, CompileShader) \
-	X(GETSHADERIV, GetShaderiv) \
-	X(DELETESHADER, DeleteShader) \
-	X(ATTACHSHADER, AttachShader) \
-	X(LINKPROGRAM, LinkProgram) \
-	X(GETPROGRAMIV, GetProgramiv) \
-	X(USEPROGRAM, UseProgram) \
+	X(CREATESHADERPROGRAMV, CreateShaderProgramv) \
+	X(DELETEFRAMEBUFFERS, DeleteFramebuffers) \
 	X(DELETEPROGRAM, DeleteProgram) \
+	X(DELETESHADER, DeleteShader) \
+	X(DISABLEVERTEXATTRIBARRAY, DisableVertexAttribArray) \
+	X(DRAWBUFFERS, DrawBuffers) \
+	X(ENABLEVERTEXATTRIBARRAY, EnableVertexAttribArray) \
+	X(FRAMEBUFFERRENDERBUFFER, FramebufferRenderbuffer) \
+	X(FRAMEBUFFERTEXTURE2D, FramebufferTexture2D) \
+	X(GENFRAMEBUFFERS, GenFramebuffers) \
+	X(GENRENDERBUFFERS, GenRenderbuffers) \
+	X(GETATTRIBLOCATION, GetAttribLocation) \
+	X(GETINFOLOGARB, GetInfoLogARB) \
+	X(GETOBJECTPARAMETERIVARB, GetObjectParameterivARB) \
+	X(GETPROGRAMINFOLOG, GetProgramInfoLog) \
+	X(GETPROGRAMIV, GetProgramiv) \
+	X(GETSHADERINFOLOG, GetShaderInfoLog) \
+	X(GETSHADERIV, GetShaderiv) \
 	X(GETUNIFORMLOCATION, GetUniformLocation) \
-	X(UNIFORM1I, Uniform1i) \
+	X(LINKPROGRAM, LinkProgram) \
+	X(RENDERBUFFERSTORAGE, RenderbufferStorage) \
+	X(SHADERSOURCE, ShaderSource) \
 	X(UNIFORM1F, Uniform1f) \
+	X(UNIFORM1I, Uniform1i) \
 	X(UNIFORM2F, Uniform2f) \
 	X(UNIFORM3F, Uniform3f) \
 	X(UNIFORM4F, Uniform4f) \
-	X(GENFRAMEBUFFERS, GenFramebuffers) \
-	X(DELETEFRAMEBUFFERS, DeleteFramebuffers) \
-	X(BINDFRAMEBUFFER, BindFramebuffer) \
-	X(FRAMEBUFFERTEXTURE2D, FramebufferTexture2D) \
-	X(DRAWBUFFERS, DrawBuffers) \
-	X(ACTIVETEXTURE, ActiveTexture) \
-	X(GETPROGRAMINFOLOG, GetProgramInfoLog) \
-	X(GETSHADERINFOLOG, GetShaderInfoLog) \
-	X(CHECKFRAMEBUFFERSTATUS, CheckFramebufferStatus) \
-	X(DISABLEVERTEXATTRIBARRAY, DisableVertexAttribArray) \
-	X(ENABLEVERTEXATTRIBARRAY, EnableVertexAttribArray) \
-	X(GETATTRIBLOCATION, GetAttribLocation) \
+	X(USEPROGRAM, UseProgram) \
 	X(VERTEXATTRIBPOINTER, VertexAttribPointer) \
-	X(GETOBJECTPARAMETERIVARB, GetObjectParameterivARB) \
-	X(GETINFOLOGARB, GetInfoLogARB) \
-	X(GENRENDERBUFFERS, GenRenderbuffers) \
-	X(BINDRENDERBUFFER, BindRenderbuffer) \
-	X(RENDERBUFFERSTORAGE, RenderbufferStorage) \
-	X(BINDRENDERBUFFER, BindRenderbuffer) \
-	X(FRAMEBUFFERRENDERBUFFER, FramebufferRenderbuffer) \
 
 #ifdef _WIN32
 #ifndef GL_DECLARE_FUNC
