@@ -48,7 +48,9 @@ public:
 
 	enum class Flag {
 		DepthTest,
+#ifndef ATTO_PLATFORM_RPI
 		VertexProgramPointSize,
+#endif
 	};
 
 	struct BindFramebuffer {

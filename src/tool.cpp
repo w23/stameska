@@ -3,8 +3,10 @@
 
 #include "video.h"
 #include "utils.h"
+#ifndef ATTO_PLATFORM_RPI
 #define AUDIO_IMPLEMENT
 #include "aud_io.h"
+#endif
 #include "atto/app.h"
 #include "atto/platform.h"
 
@@ -23,6 +25,7 @@ static struct {
 	int set;
 } loop;
 
+#ifndef ATTO_PLATFORM_RPI
 static void audioCallback(void *unused, float *samples, int nsamples) {
 	(void)unused;
 	if (loop.paused || !settings.audio.data) {
@@ -42,6 +45,7 @@ static void audioCallback(void *unused, float *samples, int nsamples) {
 				loop.pos = loop.start;
 	}
 }
+#endif
 
 static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
@@ -189,5 +193,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 			return !loop.paused.load();
 		}
 	));
+#ifndef ATTO_PLATFORM_RPI
 	audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
+#endif
 }

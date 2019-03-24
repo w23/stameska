@@ -14,8 +14,10 @@ static Expected<PixelType, std::string> pixelTypeFromValue(const yaml::Value &v)
 
 	const std::string &s = s_result.value();
 	if (s == "RGBA8") return PixelType::RGBA8;
+#ifndef ATTO_PLATFORM_RPI
 	if (s == "RGBA16F") return PixelType::RGBA16F;
 	if (s == "RGBA32F") return PixelType::RGBA32F;
+#endif
 	//if (s == "Depth24") return PixelType::Depth24;
 
 	return Unexpected(format("Unexpected pixel type %s", s.c_str()));
@@ -28,7 +30,9 @@ static Expected<Command::Flag, std::string> flagFromValue(const yaml::Value &v) 
 
 	const std::string &s = s_result.value();
 	if (s == "DepthTest") return Command::Flag::DepthTest;
+#ifndef ATTO_PLATFORM_RPI
 	if (s == "VertexProgramPointSize") return Command::Flag::VertexProgramPointSize;
+#endif
 
 	return Unexpected(format("Unknown flag %s", s.c_str()));
 }

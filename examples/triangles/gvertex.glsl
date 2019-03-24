@@ -45,11 +45,11 @@ vec3 CO =
 		vec3(hash(tn2+1.), hash(tn2+2.), hash(tn2+3.)), Tt2));
 vec3 CA =
 	3.*(-.5+mix(
-		vec3(hash(tn2+10), hash(tn2+11.), hash(tn2+12.)),
+		vec3(hash(tn2+10.), hash(tn2+11.), hash(tn2+12.)),
 		vec3(hash(tn2+11.), hash(tn2+12.), hash(tn2+13.)), Tt2));
 vec3 CU =
 	normalize(vec3(0.,1.,0.)+.8*(-.5+mix(
-		vec3(hash(tn2+20), hash(tn2+21.), hash(tn2+22.)),
+		vec3(hash(tn2+20.), hash(tn2+21.), hash(tn2+22.)),
 		vec3(hash(tn2+21.), hash(tn2+22.), hash(tn2+23.)), Tt2)));
 
 mat4 mproj = persp(0.01, 100., 3.1415927/2., R.x/R.y);

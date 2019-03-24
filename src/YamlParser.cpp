@@ -3,6 +3,7 @@
 
 #include "yaml.h"
 #include <stdio.h>
+#include <errno.h>
 #include <stdexcept>
 #include <memory>
 
