@@ -36,6 +36,4 @@ bool PolledShaderProgram::poll(unsigned int poll_seq) {
 	program_ = std::move(program_result).value();
 	uniforms_ = std::move(new_uniforms);
 	return endUpdate();
-
-	return false;
 }
