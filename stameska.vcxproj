@@ -43,11 +43,36 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3p\atto\src\app_windows.c" />
-    <ClCompile Include="3p\libyaml\src\api.c" />
-    <ClCompile Include="3p\libyaml\src\loader.c" />
-    <ClCompile Include="3p\libyaml\src\parser.c" />
-    <ClCompile Include="3p\libyaml\src\reader.c" />
-    <ClCompile Include="3p\libyaml\src\scanner.c" />
+    <ClCompile Include="3p\libyaml\src\api.c">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="3p\libyaml\src\loader.c">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="3p\libyaml\src\parser.c">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="3p\libyaml\src\reader.c">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="3p\libyaml\src\scanner.c">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/wd"4996" /wd"4267" /wd"4244" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="3p\rocket\lib\device.c" />
     <ClCompile Include="3p\rocket\lib\track.c" />
     <ClCompile Include="src\Export.cpp" />
