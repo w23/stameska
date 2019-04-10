@@ -18,7 +18,7 @@ public:
 	~VideoEngine();
 
 	void setCanvasResolution(int w, int h);
-	void paint(unsigned int frame_seq, int w, int h, float row, Timeline &timeline);
+	void paint(unsigned int frame_seq, int w, int h, float row, float dt, Timeline &timeline);
 
 private:
 	struct Framebuffer {

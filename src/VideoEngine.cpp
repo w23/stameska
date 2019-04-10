@@ -120,7 +120,7 @@ VideoEngine::~VideoEngine() {
 
 static const std::set<std::string> internal_uniforms = {"R", "t"};
 
-static void useProgram(const PolledShaderProgram& program, int w, int h, float row, Timeline &timeline) {
+static void useProgram(const PolledShaderProgram& program, int w, int h, float row, float dt, Timeline &timeline) {
 	const Program& p = program.get();
 	if (!p.valid())
 		return;
@@ -148,14 +148,14 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 		}
 	}
 
-	p.setUniform("R", w, h).setUniform("t", row);
+	p.setUniform("R", w, h).setUniform("t", row).setUniform("dt", dt);
 }
 
 void VideoEngine::setCanvasResolution(int w, int h) {
 	canvas_.reset(new Canvas(w, h));
 }
 
-void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_height, float row, Timeline &timeline) {
+void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_height, float row, float dt, Timeline &timeline) {
 	const int pingpong[3] = {0, (int)(frame_seq & 1), (int)((frame_seq + 1) & 1)};
 
 	for (auto &p: programs_)
@@ -209,7 +209,7 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 					const renderdesc::Command::UseProgram &cmdp = cmd.useProgram;
 					// FIXME validate index
 					const PolledShaderProgram &prog = programs_[cmdp.program.index];
-					useProgram(prog, runtime.w, runtime.h, row, timeline);
+					useProgram(prog, runtime.w, runtime.h, row, dt, timeline);
 					runtime.program = &prog.get();
 					runtime.first_availabale_texture_slot = 0; // TODO bound textures will leak
 					break;

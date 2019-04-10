@@ -55,11 +55,9 @@ static struct {
 } fpstat;
 
 static void paint(ATimeUs ts, float dt) {
-	(void)ts; (void)dt;
-
 	const ATimeUs last_print_delta = ts - fpstat.last_print;
 	if (last_print_delta > 1000000) {
-		MSG("avg fps: %.1f", fpstat.frames * 1000000.f / last_print_delta);
+		MSG("avg fps: %.1f %.2f", fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
 		fpstat.frames = 0;
 		fpstat.last_print = ts;
 	}
@@ -69,7 +67,7 @@ static void paint(ATimeUs ts, float dt) {
 	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
 	timeline->update(time_row);
 
-	video_paint(time_row, *timeline.get());
+	video_paint(time_row, dt, *timeline.get());
 }
 
 const int pattern_length = 16;

@@ -323,7 +323,7 @@ class Loader {
 				auto mode_result_str = ymap.getString("mode");
 				if (!mode_result_str)
 					return Unexpected("Cannot read draw mode string: " + mode_result_str.error());
-				
+
 				auto mode_result = drawModeFromString(mode_result_str.value());
 				if (!mode_result)
 					return Unexpected("Cannot read draw mode: " + mode_result.error());
