@@ -9,8 +9,14 @@
 #include <GL/gl.h>
 #include "glext.h"
 #else
+#ifdef ATTO_PLATFORM_RPI
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#define ATTO_GL_ES
+#else
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
+#endif
 #endif
 
 #define GL_FUNC_LIST(X) \
@@ -84,8 +90,10 @@ void GLCHECK(const char *func);
 
 enum PixelType {
 	RGBA8,
+#ifndef ATTO_PLATFORM_RPI
 	RGBA16F,
 	RGBA32F,
+#endif
 	//Depth24,
 };
 

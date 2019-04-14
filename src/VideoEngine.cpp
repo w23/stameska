@@ -70,9 +70,11 @@ bool VideoEngine::Framebuffer::attachColorTexture(int i, const Texture &tex) {
 
 #define MAX_PASS_TEXTURES 4
 
+#ifndef ATTO_PLATFORM_RPI
 static const GLuint draw_buffers[MAX_PASS_TEXTURES] = {
 	GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3
 };
+#endif
 
 VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 	: pipeline_(pipeline)
@@ -152,7 +154,12 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 }
 
 void VideoEngine::setCanvasResolution(int w, int h) {
+#ifndef ATTO_PLATFORM_RPI
 	canvas_.reset(new Canvas(w, h));
+#else
+	(void)w;
+	(void)h;
+#endif
 }
 
 void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_height, float row, float dt, Timeline &timeline) {
@@ -164,20 +171,29 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 	glViewport(0, 0, preview_width, preview_height);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+#ifndef ATTO_PLATFORM_RPI
 	if (!canvas_) {
 		glViewport(0, 0, preview_width, preview_height);
 		glClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
+#endif
 
 	struct {
 		int w, h;
 		const Program *program = nullptr;
 		// TODO better texture tracking mechanism to support texture changes between draw calls
 		int first_availabale_texture_slot = 0;
-	} runtime = { canvas_->width(), canvas_->height() };
+	} runtime = {
+		canvas_ ? canvas_->width() : preview_width,
+		canvas_ ? canvas_->height() : preview_height
+	};
 
+#ifndef ATTO_PLATFORM_RPI
 	GL(glBindFramebuffer(GL_FRAMEBUFFER, canvas_->framebuffer().name));
+#else
+	GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+#endif
 	glViewport(0, 0, runtime.w, runtime.h);
 
 	for (const auto &cmd: pipeline_->commands) {
@@ -186,9 +202,15 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 				{
 					const renderdesc::Command::BindFramebuffer &cmdfb = cmd.bindFramebuffer;
 					if (cmdfb.framebuffer.index == -1) {
-						GL(glBindFramebuffer(GL_FRAMEBUFFER, canvas_->framebuffer().name));
-						runtime.w = canvas_->width();
-						runtime.h = canvas_->height();
+						if (canvas_) {
+							GL(glBindFramebuffer(GL_FRAMEBUFFER, canvas_->framebuffer().name));
+							runtime.w = canvas_->width();
+							runtime.h = canvas_->height();
+						} else {
+							GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+							runtime.w = preview_width;
+							runtime.h = preview_height;
+						}
 					} else {
 						const int index = cmdfb.framebuffer.index + pingpong[cmdfb.framebuffer.pingpong];
 
@@ -196,7 +218,9 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 
 						const Framebuffer &fb = framebuffer_[index];
 						GL(glBindFramebuffer(GL_FRAMEBUFFER, fb.name));
+#ifndef ATTO_PLATFORM_RPI
 						GL(glDrawBuffers(fb.num_targets, draw_buffers));
+#endif
 						runtime.w = fb.w;
 						runtime.h = fb.h;
 					}
@@ -242,9 +266,11 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 					case renderdesc::Command::Flag::DepthTest:
 						glEnable(GL_DEPTH_TEST);
 						break;
+#ifndef ATTO_PLATFORM_RPI
 					case renderdesc::Command::Flag::VertexProgramPointSize:
 						glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 						break;
+#endif
 				}
 				break;
 			case renderdesc::Command::Op::Disable:
@@ -252,24 +278,32 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 					case renderdesc::Command::Flag::DepthTest:
 						glDisable(GL_DEPTH_TEST);
 						break;
+#ifndef ATTO_PLATFORM_RPI
 					case renderdesc::Command::Flag::VertexProgramPointSize:
 						glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
 						break;
+#endif
 				}
 				break;
 			case renderdesc::Command::Op::DrawArrays:
 				GL(glDrawArrays((GLenum)cmd.drawArrays.mode, cmd.drawArrays.start, cmd.drawArrays.count));
 				break;
 			case renderdesc::Command::Op::DrawFullscreen:
+#ifndef ATTO_PLATFORM_RPI
 				GL(glRects(-1,-1,1,1));
+#else
+// FIXME
+#endif
 				break;
 		}
 	}
 
+#ifndef ATTO_PLATFORM_RPI
 	GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 	glViewport(0, 0, preview_width, preview_height);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, canvas_->color().name());
 	canvas_->program().use().setUniform("R", preview_width, preview_height).setUniform("frame", 0);
 	glRects(-1,-1,1,1);
+#endif
 } // void VideoEngine::paint()

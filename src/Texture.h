@@ -39,6 +39,7 @@ public:
 				comp = GL_RGBA;
 				type = GL_UNSIGNED_BYTE;
 				break;
+#ifndef ATTO_PLATFORM_RPI
 			case RGBA16F:
 				comp = GL_RGBA16F;
 				type = GL_FLOAT;
@@ -47,6 +48,7 @@ public:
 				comp = GL_RGBA32F;
 				type = GL_FLOAT;
 				break;
+#endif
 		}
 
 		upload(w, h, comp, type, nullptr);

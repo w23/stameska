@@ -214,6 +214,7 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 					comp = "GL_RGBA";
 					type = "GL_UNSIGNED_BYTE";
 					break;
+#ifndef ATTO_PLATFORM_RPI
 				case RGBA16F:
 					comp = "GL_RGBA16F";
 					type = "GL_FLOAT";
@@ -222,6 +223,7 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 					comp = "GL_RGBA32F";
 					type = "GL_FLOAT";
 					break;
+#endif
 			}
 
 			fprintf(f.get(), "\ttextureInit(textures[%d], %d, %d, %s, %s);\n",
@@ -355,9 +357,11 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 					case renderdesc::Command::Flag::DepthTest:
 						fprintf(f.get(), "\tglEnable(GL_DEPTH_TEST);\n");
 						break;
+#ifndef ATTO_PLATFORM_RPI
 					case renderdesc::Command::Flag::VertexProgramPointSize:
 						fprintf(f.get(), "\tglEnable(GL_VERTEX_PROGRAM_POINT_SIZE);\n");
 						break;
+#endif
 				}
 				break;
 			case renderdesc::Command::Op::Disable:
@@ -365,9 +369,11 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 					case renderdesc::Command::Flag::DepthTest:
 						fprintf(f.get(), "\tglDisable(GL_DEPTH_TEST);\n");
 						break;
+#ifndef ATTO_PLATFORM_RPI
 					case renderdesc::Command::Flag::VertexProgramPointSize:
 						fprintf(f.get(), "\tglDisable(GL_VERTEX_PROGRAM_POINT_SIZE);\n");
 						break;
+#endif
 				}
 				break;
 			case renderdesc::Command::Op::DrawArrays:

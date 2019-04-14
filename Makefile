@@ -1,3 +1,5 @@
+all: stameska
+
 STAMESKA_BASEDIR = .
 
 include stameska.mk

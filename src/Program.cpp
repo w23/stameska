@@ -10,7 +10,7 @@ public:
 	static Expected<Shader,std::string> create(GLuint kind, const std::string& src) {
 		GLuint name = glCreateShader(kind);
 		GLchar const * const c_src = src.c_str();
-		glShaderSource(name, 1, &c_src, nullptr);
+		glShaderSource(name, 1, (const GLchar**)&c_src, nullptr);
 		glCompileShader(name);
 
 		GLint compiled = GL_FALSE;

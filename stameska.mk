@@ -1,13 +1,11 @@
-.SUFFIXES:
-.DEFAULT:
-MAKEFLAGS += -r --no-print-directory
+ATTO_BASEDIR=3p/atto
+include 3p/atto/atto.mk
 
 BUILDDIR ?= build
 CC ?= cc
 CXX ?= c++
-CFLAGS += -Wall -Wextra -Werror -pedantic -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p/atto -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/src
+CFLAGS += -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/src
 CXXFLAGS += -std=c++17 -fno-exceptions -fno-rtti $(CFLAGS)
-LIBS = -lX11 -lXfixes -lGL -lasound -lm -pthread
 
 YAML_MAJOR=0
 YAML_MINOR=2
@@ -24,11 +22,7 @@ CFLAGS += \
 	-DYAML_VERSION_STRING="\"$(YAML_MAJOR).$(YAML_MINOR).$(YAML_PATCH)\""
 
 ifeq ($(DEBUG), 1)
-	CONFIG = dbg
-	CFLAGS += -O0 -g -DDEBUG
-else
-	CONFIG = rel
-	CFLAGS += -O3
+	CFLAGS += -DDEBUG
 endif
 
 ifeq ($(ASAN), 1)
@@ -37,20 +31,11 @@ ifeq ($(ASAN), 1)
 	LIBS += -fsanitize=address
 endif
 
-PLATFORM=linux-x11
-COMPILER ?= $(CC)
+ifneq ($(RASPBERRY), 1)
+	LIBS += -lasound
+endif
 
-DEPFLAGS = -MMD -MP
-COMPILE.c = $(CC) -std=gnu99 $(CFLAGS) $(DEPFLAGS) -MT $@ -MF $@.d
 COMPILE.cc = $(CXX) $(CXXFLAGS) $(DEPFLAGS) -MT $@ -MF $@.d
-
-OBJDIR ?= $(BUILDDIR)/$(PLATFORM)-$(CONFIG)
-
-all: stameska
-
-$(OBJDIR)/%.c.o: %.c
-	@mkdir -p $(dir $@)
-	$(COMPILE.c) -c $< -o $@
 
 $(OBJDIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -66,8 +51,6 @@ LIBYAML_SOURCES= \
 STAMESKA_EXE = $(OBJDIR)/stameska
 STAMESKA_SOURCES += \
 	$(LIBYAML_SOURCES) \
-	$(STAMESKA_BASEDIR)/3p/atto/src/app_linux.c \
-	$(STAMESKA_BASEDIR)/3p/atto/src/app_x11.c \
 	$(STAMESKA_BASEDIR)/src/Export.cpp \
 	$(STAMESKA_BASEDIR)/src/OpenGL.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
@@ -86,7 +69,6 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/format.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \
 
-# TODO how to handle ../
 STAMESKA_OBJS = $(STAMESKA_SOURCES:%=$(OBJDIR)/%.o)
 STAMESKA_DEPS = $(STAMESKA_OBJS:%=%.d)
 -include $(STAMESKA_DEPS)
@@ -94,12 +76,9 @@ STAMESKA_DEPS = $(STAMESKA_OBJS:%=%.d)
 $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a:
 	MAKEFLAGS= make -C $(STAMESKA_BASEDIR)/3p/rocket lib/librocket.a
 
-$(STAMESKA_EXE): $(STAMESKA_OBJS) $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a
-	$(CXX) $^ $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a $(LIBS) -o $@
+$(STAMESKA_EXE): $(ATTO_OBJS) $(STAMESKA_OBJS) $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a
+	$(CXX) $(CXXFLAGS) $^ $(STAMESKA_BASEDIR)/3p/rocket/lib/librocket.a $(LIBS) -o $@
 
 stameska: $(STAMESKA_EXE)
-
-clean:
-	rm -rf build
 
 .PHONY: all clean
