@@ -51,9 +51,9 @@ void video_paint(float row, float dt, Timeline &timeline) {
 		g.engine->paint(frame_seq, g.preview.w, g.preview.h, row, dt, timeline);
 }
 
-void video_export() {
+void video_export(const ExportSettings &settings) {
 	if (g.polled_pipeline && g.polled_pipeline->get()) {
-		auto result = exportC(*g.polled_pipeline->get().get(), g.canvas.w, g.canvas.h, "stameska_export.c");
+		auto result = exportC(settings, *g.polled_pipeline->get().get());
 		if (!result)
 			MSG("Export error: %s", result.error().c_str());
 	}
