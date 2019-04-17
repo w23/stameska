@@ -25,6 +25,14 @@ static struct {
 	int set;
 } loop;
 
+static struct { int w, h; } canvas_sizes[] = {
+	{1920, 1080},
+	{1280, 720},
+	{960, 540},
+	{640, 360}
+};
+static int canvas_size_cursor = 0;
+
 #ifndef ATTO_PLATFORM_RPI
 static void audioCallback(void *unused, float *samples, int nsamples) {
 	(void)unused;
@@ -97,6 +105,26 @@ static void key(ATimeUs ts, AKey key, int down) {
 	case AK_Esc:
 		//audioClose();
 		aAppTerminate(0);
+		break;
+
+	case AK_Plus:
+	case AK_Equal:
+	case AK_KeypadPlus:
+		if (canvas_size_cursor > 0) {
+			--canvas_size_cursor;
+			video_canvas_resize(
+				canvas_sizes[canvas_size_cursor].w,
+				canvas_sizes[canvas_size_cursor].h);
+		}
+		break;
+	case AK_Minus:
+	case AK_KeypadMinus:
+		if (canvas_size_cursor < (int)(COUNTOF(canvas_sizes) - 1)) {
+			++canvas_size_cursor;
+			video_canvas_resize(
+				canvas_sizes[canvas_size_cursor].w,
+				canvas_sizes[canvas_size_cursor].h);
+		}
 		break;
 
 	case AK_Left:
