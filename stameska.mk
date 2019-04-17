@@ -1,6 +1,7 @@
-ATTO_BASEDIR=3p/atto
-include 3p/atto/atto.mk
+ATTO_BASEDIR=$(STAMESKA_BASEDIR)/3p/atto
+include $(STAMESKA_BASEDIR)/3p/atto/atto.mk
 
+STAMESKA ?= stameska
 BUILDDIR ?= build
 CC ?= cc
 CXX ?= c++
@@ -48,7 +49,7 @@ LIBYAML_SOURCES= \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/reader.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/scanner.c \
 
-STAMESKA_EXE = $(OBJDIR)/stameska
+STAMESKA_EXE = $(OBJDIR)/$(STAMESKA)
 STAMESKA_SOURCES += \
 	$(LIBYAML_SOURCES) \
 	$(STAMESKA_BASEDIR)/src/Export.cpp \

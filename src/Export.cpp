@@ -51,7 +51,43 @@ static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::s
 	return Expected<void, std::string>();
 }
 
-Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h, const char *filename) {
+static Expected<void, std::string> writeFile(const std::string &filename, const void *data, size_t bytes) {
+	const auto out = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "wb"), &fclose);
+	if (!out)
+		return Unexpected(format("Cannot open file '%s' for writing", filename.c_str()));
+
+	const size_t written = fwrite(data, 1, bytes, out.get());
+	if (written != bytes)
+		return Unexpected(format("Cannot write %zu bytes, could write only %zu", bytes, written));
+
+	return Expected<void, std::string>();
+}
+
+static Expected<void, std::string> writeShaderSource(FILE *main, const std::string &name, const std::string &src, const ExportSettings &settings) {
+	if (!settings.shader_path.empty()) {
+		const std::string filename = settings.shader_path + name + settings.shader_suffix;
+		return writeFile(filename, src.data(), src.size());
+	} else {
+		fprintf(main, "static const char %s[] =\n", name.c_str());
+
+		const std::string srn = "\n";
+		for (size_t pos = 0; pos < src.length();) {
+			size_t rn = src.find(srn, pos);
+			if (rn == std::string::npos)
+				rn = src.length();
+
+			fprintf(main, "\t\"%.*s\\n\"\n", (int)(rn - pos), src.c_str() + pos);
+			pos = rn + srn.length();
+		}
+
+		fprintf(main, ";\n\n");
+	}
+
+	return Expected<void, std::string>();
+}
+
+Expected<void, std::string> exportC(const ExportSettings &settings, const renderdesc::Pipeline &p) {
+	const char * const filename = settings.c_source.c_str();
 	MSG("Exporting rendering pipeline to '%s'", filename);
 
 	const auto f = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename, "w"), &fclose);
@@ -69,20 +105,9 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 			if (!shader->poll(1))
 				return Unexpected(format("Cannot read shader '%s'", s.c_str()));
 
-			fprintf(f.get(), "static const char %s[] =\n", vname.c_str());
-
-			const std::string srn = "\n";
-			const std::string src = shader->sources();
-			for (size_t pos = 0; pos < src.length();) {
-				size_t rn = src.find(srn, pos);
-				if (rn == std::string::npos)
-					rn = src.length();
-
-				fprintf(f.get(), "\t\"%.*s\\n\"\n", (int)(rn - pos), src.c_str() + pos);
-				pos = rn + srn.length();
-			}
-
-			fprintf(f.get(), ";\n\n");
+			if (auto result = writeShaderSource(f.get(), vname, shader->sources(), settings)) {}
+			else
+				return Unexpected(format("Cannot write shader '%s': %s", vname.c_str(), result.error().c_str()));
 		}
 	}
 
@@ -270,7 +295,7 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 					const renderdesc::Command::BindFramebuffer &cmdfb = cmd.bindFramebuffer;
 					if (cmdfb.framebuffer.index == -1) {
 						fprintf(f.get(), "\tglBindFramebuffer(GL_FRAMEBUFFER, 0);\n");
-						fprintf(f.get(), "\tglViewport(0, 0, %d, %d);\n", w, h);
+						fprintf(f.get(), "\tglViewport(0, 0, %d, %d);\n", settings.width, settings.height);
 					} else {
 						const renderdesc::Framebuffer &fb = p.framebuffers[cmdfb.framebuffer.index];
 						fprintf(f.get(), "\tglBindFramebuffer(GL_FRAMEBUFFER, framebuffers[%d%s]);\n",
@@ -289,7 +314,7 @@ Expected<void, std::string> exportC(const renderdesc::Pipeline &p, int w, int h,
 					const int pi = cmdp.program.index;
 					fprintf(f.get(), "\tcurrent_program = programs[%d];\n", pi);
 					fprintf(f.get(), "\tglUseProgram(current_program);\n");
-					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"R\"), %d, %d);\n", w, h);
+					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"R\"), %d, %d);\n", settings.width, settings.height);
 					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"t\"), t);\n");
 					const auto &uniforms = program_uniforms[pi];
 					for (const auto &[name, decl]: uniforms) {

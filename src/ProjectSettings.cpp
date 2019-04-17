@@ -66,5 +66,23 @@ Expected<ProjectSettings, std::string> ProjectSettings::readFromFile(const char 
 		settings.audio.samples = settings.audio.samplerate * duration_sec;
 	}
 
+	if(auto map_export = config.getMapping("export")) {
+		const yaml::Mapping &exports = map_export.value();
+	#define READ_VALUE(name, getType) \
+		if (auto name = exports.getType(#name)) \
+			settings.exports.name = name.value(); \
+		else \
+			MSG("Cannot read export." #name ": %s. Continuing with default", name.error().c_str())
+
+		READ_VALUE(width, getInt);
+		READ_VALUE(height, getInt);
+		READ_VALUE(c_source, getString);
+		READ_VALUE(shader_path, getString);
+		READ_VALUE(shader_suffix, getString);
+		//READ_VALUE(shader_concat, getInt);
+	} else {
+		MSG("Cannot read export section: %s. Continuing with defaults", map_export.error().c_str());
+	}
+
 	return settings;
 }
