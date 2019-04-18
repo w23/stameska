@@ -1,7 +1,7 @@
 #pragma once
 
 class Timeline;
-class ExportSettings;
+struct ExportSettings;
 
 void video_init(const char *config);
 void video_preview_resize(int w, int h);
