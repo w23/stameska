@@ -112,6 +112,9 @@ static void key(ATimeUs ts, AKey key, int down) {
 	case AK_KeypadPlus:
 		if (canvas_size_cursor > 0) {
 			--canvas_size_cursor;
+			MSG("Change resolution: %dx%d",
+				canvas_sizes[canvas_size_cursor].w,
+				canvas_sizes[canvas_size_cursor].h);
 			video_canvas_resize(
 				canvas_sizes[canvas_size_cursor].w,
 				canvas_sizes[canvas_size_cursor].h);
@@ -121,6 +124,9 @@ static void key(ATimeUs ts, AKey key, int down) {
 	case AK_KeypadMinus:
 		if (canvas_size_cursor < (int)(COUNTOF(canvas_sizes) - 1)) {
 			++canvas_size_cursor;
+			MSG("Change resolution: %dx%d",
+				canvas_sizes[canvas_size_cursor].w,
+				canvas_sizes[canvas_size_cursor].h);
 			video_canvas_resize(
 				canvas_sizes[canvas_size_cursor].w,
 				canvas_sizes[canvas_size_cursor].h);
@@ -207,6 +213,12 @@ void attoAppInit(struct AAppProctable *proctable) {
 	MSG("float t = s / %f;", (float)settings.audio.samples_per_row * sizeof(float) * settings.audio.channels);
 
 	video_init(settings.video.config_filename.c_str());
+	MSG("Set resolution: %dx%d",
+		canvas_sizes[canvas_size_cursor].w,
+		canvas_sizes[canvas_size_cursor].h);
+	video_canvas_resize(
+		canvas_sizes[canvas_size_cursor].w,
+		canvas_sizes[canvas_size_cursor].h);
 
 	timeline.reset(new Timeline(
 		[](int pause) {
