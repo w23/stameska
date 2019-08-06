@@ -1,10 +1,10 @@
-#include "Timeline.h"
+#include "Rocket.h"
 #include "utils.h"
 #include "rocket/lib/sync.h"
 #include <math.h>
 #include <cassert>
 
-Timeline::Timeline(PauseCallback&& pause, SetRowCallback&& setRow, IsPlayingCallback&& isPlaying)
+Rocket::Rocket(PauseCallback&& pause, SetRowCallback&& setRow, IsPlayingCallback&& isPlaying)
 	: pauseCallback(pause)
 	, setRowCallback(setRow)
 	, isPlayingCallback(isPlaying)
@@ -16,11 +16,11 @@ Timeline::Timeline(PauseCallback&& pause, SetRowCallback&& setRow, IsPlayingCall
 	sync_tcp_connect(rocket_.get(), "localhost", SYNC_DEFAULT_PORT);
 }
 
-Timeline::~Timeline() {
+Rocket::~Rocket() {
 	sync_save_tracks(rocket_.get());
 }
 
-void Timeline::update(float row) {
+void Rocket::update(float row) {
 	struct sync_cb callbacks = { pause, set_row, is_playing };
 	if (sync_update(rocket_.get(), (int)floorf(row), &callbacks, this))
 		sync_tcp_connect(rocket_.get(), "localhost", SYNC_DEFAULT_PORT);
@@ -30,7 +30,7 @@ void Timeline::update(float row) {
 
 static const char* component_suffix[4] = { ".x", ".y", ".z", ".w" };
 
-Value Timeline::getValue(const std::string& name, int comps) {
+Value Rocket::getValue(const std::string& name, int comps) {
 	assert(comps > 0);
 	assert(comps <= 4);
 
@@ -71,21 +71,21 @@ Value Timeline::getValue(const std::string& name, int comps) {
 	return v;
 }
 
-void Timeline::save() const {
+void Rocket::save() const {
 	sync_save_tracks(rocket_.get());
 }
 
-void Timeline::pause(void *t, int p) {
-	Timeline *timeline = reinterpret_cast<Timeline*>(t);
+void Rocket::pause(void *t, int p) {
+	Rocket *timeline = reinterpret_cast<Rocket*>(t);
 	timeline->pauseCallback(p);
 }
 
-void Timeline::set_row(void *t, int r) {
-	Timeline *timeline = reinterpret_cast<Timeline*>(t);
+void Rocket::set_row(void *t, int r) {
+	Rocket *timeline = reinterpret_cast<Rocket*>(t);
 	timeline->setRowCallback(r);
 }
 
-int Timeline::is_playing(void *t) {
-	Timeline *timeline = reinterpret_cast<Timeline*>(t);
+int Rocket::is_playing(void *t) {
+	Rocket *timeline = reinterpret_cast<Rocket*>(t);
 	return timeline->isPlayingCallback();
 }

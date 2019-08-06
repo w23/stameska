@@ -9,7 +9,7 @@
 namespace renderdesc { class Pipeline; }
 class PolledShaderProgram;
 class PolledShaderSource;
-class Timeline;
+class IScope;
 class Texture;
 
 class VideoEngine {
@@ -18,7 +18,7 @@ public:
 	~VideoEngine();
 
 	void setCanvasResolution(int w, int h);
-	void paint(unsigned int frame_seq, int w, int h, float row, float dt, Timeline &timeline);
+	void paint(unsigned int frame_seq, int w, int h, float row, float dt, IScope &scope);
 
 private:
 	struct Framebuffer {

@@ -33,7 +33,8 @@
     <ClInclude Include="src\ProjectSettings.h" />
     <ClInclude Include="src\ShaderSource.h" />
     <ClInclude Include="src\Texture.h" />
-    <ClInclude Include="src\Timeline.h" />
+    <ClInclude Include="src\Rocket.h" />
+    <ClInclude Include="src\Variables.h" />
     <ClInclude Include="src\VideoEngine.h" />
     <ClInclude Include="src\aud_io.h" />
     <ClInclude Include="src\format.h" />
@@ -86,7 +87,7 @@
     <ClCompile Include="src\RenderDesc.cpp" />
     <ClCompile Include="src\Resources.cpp" />
     <ClCompile Include="src\ShaderSource.cpp" />
-    <ClCompile Include="src\Timeline.cpp" />
+    <ClCompile Include="src\Rocket.cpp" />
     <ClCompile Include="src\VideoEngine.cpp" />
     <ClCompile Include="src\YamlParser.cpp" />
     <ClCompile Include="src\format.cpp" />
