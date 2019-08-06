@@ -16,6 +16,11 @@ struct ProjectSettings {
 		float *data = nullptr;
 	} audio;
 
+	struct Automation {
+		enum class Type { None, Basic, Rocket } type = Type::None;
+		std::string filename;
+	} automation;
+
 	ExportSettings exports;
 
 	static Expected<ProjectSettings, std::string> readFromFile(const char *filename);

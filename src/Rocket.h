@@ -1,28 +1,25 @@
 #pragma once
 
+#include "Variables.h"
 #include "rocket/lib/sync.h"
 #include <functional>
 #include <map>
 #include <memory>
 #include <string>
 
-struct Value {
-	float x, y, z, w;
-};
-
-class Timeline {
+class Rocket : public IAutomation {
 public:
 	typedef std::function<void(int)> PauseCallback;
 	typedef std::function<void(int)> SetRowCallback;
 	typedef std::function<int()> IsPlayingCallback;
 
-	Timeline(PauseCallback &&pause, SetRowCallback &&setRow, IsPlayingCallback &&isPlaying);
-	~Timeline();
+	Rocket(PauseCallback &&pause, SetRowCallback &&setRow, IsPlayingCallback &&isPlaying);
+	virtual ~Rocket();
 
-	void update(float row);
-	Value getValue(const std::string& name, int comps);
+	virtual void update(float row) override;
+	virtual Value getValue(const std::string& name, int comps) override;
 
-	void save() const;
+	virtual void save() const override;
 
 private:
 	static void pause(void *, int);

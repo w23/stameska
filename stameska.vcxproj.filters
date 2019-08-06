@@ -48,7 +48,10 @@
     <ClInclude Include="src\Texture.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="src\Timeline.h">
+    <ClInclude Include="src\Rocket.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Variables.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
     <ClInclude Include="src\utils.h">
@@ -98,7 +101,7 @@
     <ClCompile Include="src\Text.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-    <ClCompile Include="src\Timeline.cpp">
+    <ClCompile Include="src\Rocket.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
     <ClCompile Include="src\tool.cpp">

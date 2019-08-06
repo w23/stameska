@@ -38,7 +38,7 @@ void video_init(const char *config) {
 			std::shared_ptr<PolledFile>(new PolledFile(config))));
 }
 
-void video_paint(float row, float dt, Timeline &timeline) {
+void video_paint(float row, float dt, IScope &scope) {
 	static unsigned int frame_seq = 0;
 	frame_seq++;
 
@@ -48,7 +48,7 @@ void video_paint(float row, float dt, Timeline &timeline) {
 	}
 
 	if (g.engine)
-		g.engine->paint(frame_seq, g.preview.w, g.preview.h, row, dt, timeline);
+		g.engine->paint(frame_seq, g.preview.w, g.preview.h, row, dt, scope);
 }
 
 void video_export(const ExportSettings &settings) {

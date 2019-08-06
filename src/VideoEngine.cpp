@@ -2,7 +2,7 @@
 #include "VideoEngine.h"
 #include "RenderDesc.h"
 #include "PolledShaderProgram.h"
-#include "Timeline.h"
+#include "Variables.h"
 #include "Texture.h"
 
 #include <set>
@@ -122,7 +122,7 @@ VideoEngine::~VideoEngine() {
 
 static const std::set<std::string> internal_uniforms = {"R", "t"};
 
-static void useProgram(const PolledShaderProgram& program, int w, int h, float row, float dt, Timeline &timeline) {
+static void useProgram(const PolledShaderProgram& program, int w, int h, float row, float dt, IScope &scope) {
 	const Program& p = program.get();
 	if (!p.valid())
 		return;
@@ -133,7 +133,7 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 		if (internal_uniforms.find(it.first) != internal_uniforms.end())
 			continue;
 
-		const Value v = timeline.getValue(it.first, static_cast<int>(it.second.type) + 1);
+		const Value v = scope.getValue(it.first, static_cast<int>(it.second.type) + 1);
 		switch (it.second.type) {
 			case shader::UniformType::Float:
 				p.setUniform(it.first.c_str(), v.x);
@@ -162,7 +162,7 @@ void VideoEngine::setCanvasResolution(int w, int h) {
 #endif
 }
 
-void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_height, float row, float dt, Timeline &timeline) {
+void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_height, float row, float dt, IScope &scope) {
 	const int pingpong[3] = {0, (int)(frame_seq & 1), (int)((frame_seq + 1) & 1)};
 
 	for (auto &p: programs_)
@@ -233,7 +233,7 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 					const renderdesc::Command::UseProgram &cmdp = cmd.useProgram;
 					// FIXME validate index
 					const PolledShaderProgram &prog = programs_[cmdp.program.index];
-					useProgram(prog, runtime.w, runtime.h, row, dt, timeline);
+					useProgram(prog, runtime.w, runtime.h, row, dt, scope);
 					runtime.program = &prog.get();
 					runtime.first_availabale_texture_slot = 0; // TODO bound textures will leak
 					break;

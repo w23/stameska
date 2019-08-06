@@ -1,5 +1,6 @@
 #include "ProjectSettings.h"
-#include "Timeline.h"
+#include "Rocket.h"
+#include "Variables.h"
 
 #include "video.h"
 #include "utils.h"
@@ -15,7 +16,7 @@
 #include <memory>
 #include <atomic>
 
-static std::unique_ptr<Timeline> timeline;
+static std::unique_ptr<IAutomation> automation;
 static ProjectSettings settings;
 
 static struct {
@@ -77,9 +78,13 @@ static void paint(ATimeUs ts, float dt) {
 	++fpstat.frames;
 
 	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
-	timeline->update(time_row);
+	if (automation)
+		automation->update(time_row);
 
-	video_paint(time_row, dt, *timeline.get());
+	DummyScope dummy_scope;
+	IScope *dummy = &dummy_scope;
+
+	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
 }
 
 const int pattern_length = 16;
@@ -147,7 +152,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 		break;
 
 	case AK_E:
-		timeline->save();
+		automation->save();
 		video_export(settings.exports);
 		break;
 
@@ -212,6 +217,28 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	MSG("float t = s / %f;", (float)settings.audio.samples_per_row * sizeof(float) * settings.audio.channels);
 
+	switch (settings.automation.type) {
+		case ProjectSettings::Automation::Type::Rocket:
+			automation.reset(new Rocket(
+				[](int pause) {
+					loop.paused = pause;
+				},
+				[](int row) {
+					loop.pos = row * settings.audio.samples_per_row;
+				},
+				[]() {
+					return !loop.paused.load();
+				}
+			));
+			break;
+		case ProjectSettings::Automation::Type::Basic:
+			// TODO
+			break;
+		case ProjectSettings::Automation::Type::None:
+			MSG("Not using any automation");
+			break;
+	}
+
 	video_init(settings.video.config_filename.c_str());
 	MSG("Set resolution: %dx%d",
 		canvas_sizes[canvas_size_cursor].w,
@@ -220,17 +247,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 		canvas_sizes[canvas_size_cursor].w,
 		canvas_sizes[canvas_size_cursor].h);
 
-	timeline.reset(new Timeline(
-		[](int pause) {
-			loop.paused = pause;
-		},
-		[](int row) {
-			loop.pos = row * settings.audio.samples_per_row;
-		},
-		[]() {
-			return !loop.paused.load();
-		}
-	));
 #ifndef ATTO_PLATFORM_RPI
 	audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
 #endif
