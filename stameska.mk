@@ -52,6 +52,7 @@ LIBYAML_SOURCES= \
 STAMESKA_EXE = $(OBJDIR)/$(STAMESKA)
 STAMESKA_SOURCES += \
 	$(LIBYAML_SOURCES) \
+	$(STAMESKA_BASEDIR)/src/AutomationBasic.cpp \
 	$(STAMESKA_BASEDIR)/src/Export.cpp \
 	$(STAMESKA_BASEDIR)/src/OpenGL.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \

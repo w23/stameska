@@ -23,3 +23,11 @@ Expected<long int,std::string> intFromString(const std::string &s) {
 			return Unexpected(format("Cannot convert '%s' to int", s.c_str()));
 		return ret;
 }
+
+Expected<float, std::string> floatFromString(const std::string &s) {
+		char *endptr = nullptr;
+		const float ret = strtof(s.c_str(), &endptr);
+		if (s.empty() || endptr[0] != '\0')
+			return Unexpected(format("Cannot convert '%s' to float", s.c_str()));
+		return ret;
+}

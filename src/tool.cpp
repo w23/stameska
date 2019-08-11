@@ -1,5 +1,6 @@
 #include "ProjectSettings.h"
 #include "Rocket.h"
+#include "AutomationBasic.h"
 #include "Variables.h"
 
 #include "video.h"
@@ -232,7 +233,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 			));
 			break;
 		case ProjectSettings::Automation::Type::Basic:
-			// TODO
+			automation.reset(new AutomationBasic(settings.automation.filename));
 			break;
 		case ProjectSettings::Automation::Type::None:
 			MSG("Not using any automation");
