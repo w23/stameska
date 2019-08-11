@@ -12,4 +12,5 @@
 std::string format(const char* str, ...) PRINTF_ATTR(1, 2);
 
 Expected<long int, std::string> intFromString(const std::string &s);
+Expected<float, std::string> floatFromString(const std::string &s);
 
