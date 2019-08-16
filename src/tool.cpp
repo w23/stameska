@@ -69,16 +69,16 @@ static struct {
 } fpstat;
 
 static void paint(ATimeUs ts, float dt) {
+	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
 	const ATimeUs last_print_delta = ts - fpstat.last_print;
 	if (last_print_delta > 1000000) {
-		MSG("avg fps: %.1f %.2f", fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
+		MSG("row=%f, avg fps: %.1f %.2f", time_row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
 		fpstat.frames = 0;
 		fpstat.last_print = ts;
 	}
 
 	++fpstat.frames;
 
-	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
 	if (automation)
 		automation->update(time_row);
 
@@ -164,11 +164,11 @@ static void key(ATimeUs ts, AKey key, int down) {
 	case AK_Z:
 		switch (loop.set) {
 		case 0:
-			loop.start = ((loop.pos / settings.audio.samples_per_row) / 64) * settings.audio.samples_per_row * 64;
+			loop.start = ((loop.pos / settings.audio.samples_per_row) / pattern_length) * settings.audio.samples_per_row * pattern_length;
 			loop.set = 1;
 			break;
 		case 1:
-			loop.end = (((loop.pos / settings.audio.samples_per_row) + 63) / 64) * settings.audio.samples_per_row * 64;
+			loop.end = (((loop.pos / settings.audio.samples_per_row) + (pattern_length-1)) / pattern_length) * settings.audio.samples_per_row * pattern_length;
 			loop.set = 2;
 			break;
 		case 2:
