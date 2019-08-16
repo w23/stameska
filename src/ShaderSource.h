@@ -36,6 +36,7 @@ public:
 		enum class Type {
 			String,
 			Include,
+			Uniform,
 		} type;
 
 		std::string value;
