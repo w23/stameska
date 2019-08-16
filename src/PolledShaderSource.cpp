@@ -31,6 +31,9 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 				case shader::Source::Chunk::Type::Include:
 					chunks.emplace_back(resources_.getShaderSource(chunk.value));
 					break;
+				case shader::Source::Chunk::Type::Uniform:
+					chunks.emplace_back(Chunk::Uniform(), chunk.value);
+					break;
 			}
 		}
 
@@ -70,6 +73,9 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 					if (chunk.include->version() > version)
 						version = chunk.include->version();
 				}
+				break;
+			case Chunk::Type::Uniform:
+				source += chunk.string;
 				break;
 		}
 	}

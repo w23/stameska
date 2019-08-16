@@ -29,7 +29,7 @@ private:
 
 	struct Chunk {
 		enum class Type {
-			String, Include
+			String, Include, Uniform
 		} type;
 
 		std::string string;
@@ -38,6 +38,9 @@ private:
 		Chunk(std::string&& string) : type(Type::String), string(std::move(string)) {}
 		Chunk(const std::string& string) : type(Type::String), string(string) {}
 		Chunk(const shader_ptr &include) : type(Type::Include), include(include) {}
+
+		struct Uniform {};
+		Chunk(Uniform, const std::string& string) : type(Type::Uniform), string(string) {}
 	};
 
 	std::vector<Chunk> chunks_;

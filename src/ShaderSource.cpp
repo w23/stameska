@@ -94,7 +94,10 @@ Expected<Source,std::string> Source::load(std::string_view raw_source) {
 				uniforms[name] = UniformDeclaration{uniform_type, name};
 			}
 
-			current_chunk += name;
+			std::string chunk;
+			std::swap(chunk, current_chunk);
+			chunks.emplace_back(Chunk::Type::String, std::move(chunk));
+			chunks.emplace_back(Chunk::Type::Uniform, name);
 		}
 
 		if (pcmd_kind == PcmdKind::Include) {
