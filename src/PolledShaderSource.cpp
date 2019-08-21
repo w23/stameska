@@ -39,7 +39,6 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 
 		chunks_ = std::move(chunks);
 		uniforms_ = src.uniforms();
-		version_ = src.version();
 		need_full_rebuild = true;
 	}
 
@@ -53,41 +52,37 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 	if (!need_full_rebuild)
 		return false;
 
+	std::vector<shader::Source::Chunk> flat_chunks;
 	shader::UniformsMap uniforms = uniforms_;
-	std::string source;
-	int version = version_;
+	int version = 0;
 	for (const auto& chunk: chunks_) {
 		switch (chunk.type) {
 			case Chunk::Type::String:
-				source += chunk.string;
+				flat_chunks.emplace_back(shader::Source::Chunk::Type::String, chunk.string);
+				break;
+			case Chunk::Type::Uniform:
+				flat_chunks.emplace_back(shader::Source::Chunk::Type::Uniform, chunk.string);
 				break;
 			case Chunk::Type::Include:
 				if (chunk.include) {
-					const auto result = shader::appendUniforms(uniforms, chunk.include->uniforms());
+					const shader::Source &inc_source = chunk.include->flatSource();
+					const auto result = shader::appendUniforms(uniforms, inc_source.uniforms());
 					if (!result.hasValue()) {
 						MSG("Cannot load shader source '%.*s': error while merging uniforms: %s", (int)file_->string().size(), file_->string().data(), result.error().c_str());
 						return false;
 					}
-					source += chunk.include->source();
-					source += "\n";
-					if (chunk.include->version() > version)
-						version = chunk.include->version();
+
+					if (inc_source.version() > version)
+						version = inc_source.version();
+
+					const std::vector<shader::Source::Chunk> &inc_chunks = inc_source.chunks();
+					flat_chunks.insert(flat_chunks.end(), inc_chunks.begin(), inc_chunks.end());
 				}
-				break;
-			case Chunk::Type::Uniform:
-				source += chunk.string;
 				break;
 		}
 	}
 
-	std::string header = (version != 0) ? format("#version %d\n", version) : "";
-	for (const auto &uni: uniforms)
-		header += format("uniform %s %s;\n", uniformName(uni.second.type), uni.second.name.c_str());
-
-	source_ = std::move(source);
-	header_ = std::move(header);
-	uniforms_ = std::move(uniforms);
-	version_ = version;
+	flat_source_ = shader::Source(version, std::move(flat_chunks), std::move(uniforms));
 
 	return endUpdate();
 }

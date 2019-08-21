@@ -51,9 +51,10 @@ public:
 
 	Source& operator=(Source&& other) = default;
 
+	Source(int version, std::vector<Chunk> &&chunks, UniformsMap &&uniforms);
+
 private:
 	Source(const Source&) = delete;
-	Source(int version, std::vector<Chunk>&& chunks, UniformsMap&& uniforms);
 
 	int version_ = 0;
 	std::vector<Chunk> chunks_;

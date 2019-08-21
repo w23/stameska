@@ -4,11 +4,14 @@
 #include "PolledResource.h"
 #include "Program.h"
 
+#include <functional>
+
 class PolledShaderProgram : public PolledResource {
 public:
-	PolledShaderProgram(const std::shared_ptr<PolledShaderSource> &fragment);
+	using Preprocessor = std::function<Expected<std::string, std::string>(const shader::Source &flat_source)>;
+	PolledShaderProgram(Preprocessor preprocessor, const std::shared_ptr<PolledShaderSource> &fragment);
 
-	PolledShaderProgram(const std::shared_ptr<PolledShaderSource> &vertex, const std::shared_ptr<PolledShaderSource> &fragment);
+	PolledShaderProgram(Preprocessor preprocessor, const std::shared_ptr<PolledShaderSource> &vertex, const std::shared_ptr<PolledShaderSource> &fragment);
 
 	bool poll(unsigned int poll_seq);
 
@@ -18,7 +21,9 @@ public:
 	const shader::UniformsMap& uniforms() const { return uniforms_; }
 
 private:
+	const Preprocessor preprocessor_;
 	const std::shared_ptr<PolledShaderSource> vertex_, fragment_;
+
 	shader::UniformsMap uniforms_;
 	Program program_;
 };
