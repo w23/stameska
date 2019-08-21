@@ -16,16 +16,11 @@ public:
 
 	bool poll(unsigned int poll_seq);
 
-	const shader::UniformsMap& uniforms() const { return uniforms_; }
-	const std::string& header() const { return header_; }
-	const std::string& source() const { return source_; }
-	std::string sources() const { return header_ + source_; }
-	int version() const { return version_; }
+	const shader::Source &flatSource() const { return flat_source_; }
 
 private:
 	Resources &resources_;
 	PollMux<PolledFile> file_;
-	int version_;
 
 	struct Chunk {
 		enum class Type {
@@ -45,6 +40,5 @@ private:
 
 	std::vector<Chunk> chunks_;
 	shader::UniformsMap uniforms_;
-	std::string header_;
-	std::string source_;
+	shader::Source flat_source_;
 };

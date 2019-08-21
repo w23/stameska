@@ -4,6 +4,7 @@
 #include "PolledShaderProgram.h"
 #include "Variables.h"
 #include "Texture.h"
+#include "format.h"
 
 #include <set>
 
@@ -76,6 +77,42 @@ static const GLuint draw_buffers[MAX_PASS_TEXTURES] = {
 };
 #endif
 
+static Expected<std::string, std::string> shaderPreprocessor(const shader::Source &flat) {
+	std::string source;
+	if (flat.version() != 0)
+		source = format("#version %d\n", flat.version());
+	for (const auto &[name, decl]: flat.uniforms()) {
+		switch(decl.type) {
+			case shader::UniformType::Float:
+				source += "uniform float ";
+				break;
+			case shader::UniformType::Vec2:
+				source += "uniform vec2 ";
+				break;
+			case shader::UniformType::Vec3:
+				source += "uniform vec3 ";
+				break;
+			case shader::UniformType::Vec4:
+				source += "uniform vec4 ";
+				break;
+		}
+		source += name + ";";
+	}
+
+	for (const auto &chunk: flat.chunks()) {
+		switch (chunk.type) {
+			case shader::Source::Chunk::Type::Uniform:
+			case shader::Source::Chunk::Type::String:
+				source += chunk.value;
+				break;
+			case shader::Source::Chunk::Type::Include:
+				return Unexpected<std::string>("Include chunk is invalid in flat shader source");
+		}
+	}
+
+	return Expected<std::string, std::string>(std::move(source));
+}
+
 VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 	: pipeline_(pipeline)
 {
@@ -113,7 +150,7 @@ VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 		if (p.fragment < 0 || p.fragment >= (int)sources_.size())
 			CRASH("Program fragment source OOB %d (max %d)", p.fragment, (int)sources_.size());
 
-		programs_.emplace_back(sources_[p.vertex], sources_[p.fragment]);
+		programs_.emplace_back(shaderPreprocessor, sources_[p.vertex], sources_[p.fragment]);
 	}
 }
 

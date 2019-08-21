@@ -86,6 +86,43 @@ static Expected<void, std::string> writeShaderSource(FILE *main, const std::stri
 	return Expected<void, std::string>();
 }
 
+// TODO uniform block
+static Expected<std::string, std::string> shaderPreprocessor(const shader::Source &flat) {
+	std::string source;
+	if (flat.version() != 0)
+		source = format("#version %d\n", flat.version());
+	for (const auto &[name, decl]: flat.uniforms()) {
+		switch(decl.type) {
+			case shader::UniformType::Float:
+				source += "uniform float ";
+				break;
+			case shader::UniformType::Vec2:
+				source += "uniform vec2 ";
+				break;
+			case shader::UniformType::Vec3:
+				source += "uniform vec3 ";
+				break;
+			case shader::UniformType::Vec4:
+				source += "uniform vec4 ";
+				break;
+		}
+		source += name + ";";
+	}
+
+	for (const auto &chunk: flat.chunks()) {
+		switch (chunk.type) {
+			case shader::Source::Chunk::Type::Uniform:
+			case shader::Source::Chunk::Type::String:
+				source += chunk.value;
+				break;
+			case shader::Source::Chunk::Type::Include:
+				return Unexpected<std::string>("Include chunk is invalid in flat shader source");
+		}
+	}
+
+	return Expected<std::string, std::string>(std::move(source));
+}
+
 Expected<void, std::string> exportC(const ExportSettings &settings, const renderdesc::Pipeline &p) {
 	const char * const filename = settings.c_source.c_str();
 	MSG("Exporting rendering pipeline to '%s'", filename);
@@ -105,7 +142,11 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 			if (!shader->poll(1))
 				return Unexpected(format("Cannot read shader '%s'", s.c_str()));
 
-			if (auto result = writeShaderSource(f.get(), vname, shader->sources(), settings)) {}
+			auto shader_source = shaderPreprocessor(shader->flatSource());
+			if (!shader_source)
+				return Unexpected(format("Cannot preporcess shader '%s': %s", s.c_str(), shader_source.error().c_str()));
+
+			if (auto result = writeShaderSource(f.get(), vname, shader_source.value(), settings)) {}
 			else
 				return Unexpected(format("Cannot write shader '%s': %s", vname.c_str(), result.error().c_str()));
 		}
@@ -128,8 +169,8 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 		const auto fragment = res.getShaderSource(p.shader_filenames[prog.fragment]);
 
 		// Polled shaders are expected to be loaded
-		auto uniforms = vertex->uniforms();
-		const auto result = shader::appendUniforms(uniforms, fragment->uniforms());
+		auto uniforms = vertex->flatSource().uniforms();
+		const auto result = shader::appendUniforms(uniforms, fragment->flatSource().uniforms());
 		if (!result.hasValue())
 			return Unexpected("Error merging uniforms: " + result.error());
 		for (const auto &[name, decl]: uniforms) {
