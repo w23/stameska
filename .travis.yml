@@ -23,8 +23,8 @@ matrix:
     - name: win64-release
       os: windows
       install:
-        - choco install -y windows-sdk-10.1 --version 10.1.18362.1
-        - choco install -y visualstudio2017buildtools --version 15.9.15.0
+        - travis_wait 30 choco install -y windows-sdk-10.1 --version 10.1.18362.1
+        - travis_wait 30 choco install -y visualstudio2017buildtools --version 15.9.15.0
         - refreshenv
       env:
         - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
