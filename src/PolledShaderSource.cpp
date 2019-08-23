@@ -16,7 +16,7 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 	if (file_.poll(poll_seq)) {
 		auto load_result = shader::Source::load(file_->string());
 		if (!load_result.hasValue()) {
-			MSG("Cannot load shader source '%.*s': %s", (int)file_->string().size(), file_->string().data(), load_result.error().c_str());
+			MSG("Cannot load shader source '%.*s': %s", PRISV(file_->string()), load_result.error().c_str());
 			return false;
 		}
 
@@ -68,7 +68,7 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 					const shader::Source &inc_source = chunk.include->flatSource();
 					const auto result = shader::appendUniforms(uniforms, inc_source.uniforms());
 					if (!result.hasValue()) {
-						MSG("Cannot load shader source '%.*s': error while merging uniforms: %s", (int)file_->string().size(), file_->string().data(), result.error().c_str());
+						MSG("Cannot load shader source '%.*s': error while merging uniforms: %s", PRISV(file_->string()), result.error().c_str());
 						return false;
 					}
 

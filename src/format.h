@@ -9,6 +9,8 @@
 #define PRINTF_ATTR(a, b)
 #endif
 
+#define PRISV(sv) static_cast<int>(sv.size()), sv.data()
+
 std::string format(const char* str, ...) PRINTF_ATTR(1, 2);
 
 Expected<long int, std::string> intFromString(const std::string &s);

@@ -1,4 +1,5 @@
 #include "Export.h"
+#include "Variables.h"
 #include "RenderDesc.h"
 #include "Resources.h"
 #include "PolledShaderSource.h"
@@ -33,7 +34,7 @@ static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::s
 		return Unexpected(format("Cannot open file '%s' for reading", filename.c_str()));
 
 	fseek(in.get(), 0, SEEK_END);
-	const size_t size = ftell(in.get());
+	const size_t size = static_cast<size_t>(ftell(in.get()));
 	fseek(in.get(), 0, SEEK_SET);
 
 	std::vector<unsigned char> data;
@@ -76,7 +77,7 @@ static Expected<void, std::string> writeShaderSource(FILE *main, const std::stri
 			if (rn == std::string::npos)
 				rn = src.length();
 
-			fprintf(main, "\t\"%.*s\\n\"\n", (int)(rn - pos), src.c_str() + pos);
+			fprintf(main, "\t\"%.*s\\n\"\n", static_cast<int>(rn - pos), src.c_str() + pos);
 			pos = rn + srn.length();
 		}
 
@@ -87,11 +88,14 @@ static Expected<void, std::string> writeShaderSource(FILE *main, const std::stri
 }
 
 // TODO uniform block
-static Expected<std::string, std::string> shaderPreprocessor(const shader::Source &flat) {
+static Expected<std::string, std::string> shaderPreprocessor(const shader::Source &flat, const IAutomation::ConstantsMap &constants) {
 	std::string source;
 	if (flat.version() != 0)
 		source = format("#version %d\n", flat.version());
 	for (const auto &[name, decl]: flat.uniforms()) {
+		if (constants.find(name) != constants.end())
+			continue;
+
 		switch(decl.type) {
 			case shader::UniformType::Float:
 				source += "uniform float ";
@@ -112,6 +116,32 @@ static Expected<std::string, std::string> shaderPreprocessor(const shader::Sourc
 	for (const auto &chunk: flat.chunks()) {
 		switch (chunk.type) {
 			case shader::Source::Chunk::Type::Uniform:
+				{
+					const auto uit = flat.uniforms().find(chunk.value);
+					if (uit == flat.uniforms().end())
+						return Unexpected(format("Cannot find uniform chunk '%s' in uniforms", chunk.value.c_str()));
+
+					const auto cit = constants.find(chunk.value);
+					if (cit == constants.end()) {
+						source += chunk.value;
+					} else {
+						switch(uit->second.type) {
+							case shader::UniformType::Float:
+								source += format("%f", cit->second.x);
+								break;
+							case shader::UniformType::Vec2:
+								source += format("vec2(%f,%f)", cit->second.x, cit->second.y);
+								break;
+							case shader::UniformType::Vec3:
+								source += format("vec3(%f,%f,%f)", cit->second.x, cit->second.y, cit->second.z);
+								break;
+							case shader::UniformType::Vec4:
+								source += format("vec4(%f,%f,%f,%f)", cit->second.x, cit->second.y, cit->second.z, cit->second.w);
+								break;
+						}
+					}
+				}
+				break;
 			case shader::Source::Chunk::Type::String:
 				source += chunk.value;
 				break;
@@ -123,7 +153,7 @@ static Expected<std::string, std::string> shaderPreprocessor(const shader::Sourc
 	return Expected<std::string, std::string>(std::move(source));
 }
 
-Expected<void, std::string> exportC(const ExportSettings &settings, const renderdesc::Pipeline &p) {
+Expected<void, std::string> exportC(const ExportSettings &settings, const renderdesc::Pipeline &p, const IAutomation &automation) {
 	const char * const filename = settings.c_source.c_str();
 	MSG("Exporting rendering pipeline to '%s'", filename);
 
@@ -131,7 +161,36 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 	if (!f)
 		return Unexpected(format("Cannot open file '%s' for writing", filename));
 
+
 	Resources res;
+
+	// Extract all uniforms from all programs
+	shader::UniformsMap global_uniforms;
+	for (const auto& prog: p.programs) {
+		// Polled shaders are expected to be loaded
+		{
+			const auto vertex = res.getShaderSource(p.shader_filenames[prog.vertex]);
+			const auto result = shader::appendUniforms(global_uniforms, vertex->flatSource().uniforms());
+			if (!result)
+				return Unexpected("Error merging uniforms from vertex: " + result.error());
+		}
+
+		{
+			const auto fragment = res.getShaderSource(p.shader_filenames[prog.fragment]);
+			const auto result = shader::appendUniforms(global_uniforms, fragment->flatSource().uniforms());
+			if (!result)
+				return Unexpected("Error merging uniforms from fragment: " + result.error());
+		}
+	}
+
+	// Export automation for all known uniforms
+	auto automation_export = automation.writeExport("C", global_uniforms);
+	if (!automation_export)
+		return Unexpected(format("Error exporting automation data: %s", automation_export.error().c_str()));
+
+	const IAutomation::ExportResult automation_result(std::move(automation_export.value()));
+
+	// write shader sources given automation constants
 	{
 		for (const auto &s: p.shader_filenames) {
 			const std::string vname = validateName(s);
@@ -142,7 +201,7 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 			if (!shader->poll(1))
 				return Unexpected(format("Cannot read shader '%s'", s.c_str()));
 
-			auto shader_source = shaderPreprocessor(shader->flatSource());
+			auto shader_source = shaderPreprocessor(shader->flatSource(), automation_result.constants);
 			if (!shader_source)
 				return Unexpected(format("Cannot preporcess shader '%s': %s", s.c_str(), shader_source.error().c_str()));
 
@@ -152,6 +211,8 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 		}
 	}
 
+	// Write global data
+
 	if (!p.textures.empty())
 		fprintf(f.get(), "static GLuint textures[%d];\n", (int)p.textures.size());
 
@@ -160,109 +221,7 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 
 	fprintf(f.get(), "static GLuint programs[%d];\n", (int)p.programs.size());
 
-	std::vector<std::string> rocket_tracks;
-	std::vector<std::pair<int,shader::UniformType>> rocket_tracks_details;
-	std::vector<shader::UniformsMap> program_uniforms;
-	int rocket_track_index = 0;
-	for (const auto& prog: p.programs) {
-		const auto vertex = res.getShaderSource(p.shader_filenames[prog.vertex]);
-		const auto fragment = res.getShaderSource(p.shader_filenames[prog.fragment]);
-
-		// Polled shaders are expected to be loaded
-		auto uniforms = vertex->flatSource().uniforms();
-		const auto result = shader::appendUniforms(uniforms, fragment->flatSource().uniforms());
-		if (!result.hasValue())
-			return Unexpected("Error merging uniforms: " + result.error());
-		for (const auto &[name, decl]: uniforms) {
-			if (name != "R" && name != "t"
-				&& std::find(rocket_tracks.begin(), rocket_tracks.end(), name) == rocket_tracks.end()) {
-
-				rocket_tracks.push_back(name);
-				rocket_tracks_details.emplace_back(rocket_track_index, decl.type);
-
-				switch (decl.type) {
-					case shader::UniformType::Float:
-						rocket_track_index += 1;
-						break;
-					case shader::UniformType::Vec2:
-						rocket_track_index += 2;
-						break;
-					case shader::UniformType::Vec3:
-						rocket_track_index += 3;
-						break;
-					case shader::UniformType::Vec4:
-						rocket_track_index += 4;
-						break;
-				}
-			}
-		}
-		program_uniforms.push_back(std::move(uniforms));
-	}
-
-	fprintf(f.get(), "static struct RocketTrack rocket_tracks[%d] = {\n", rocket_track_index);
-	for (size_t i = 0; i < rocket_tracks.size(); ++i) {
-		const auto &name = rocket_tracks[i];
-		const auto type = rocket_tracks_details[i].second;
-
-		switch (type) {
-			case shader::UniformType::Float:
-#define CALL_CHECK(c) do { \
-	auto result = c; \
-	if (!result) \
-		return Unexpected(result.error()); \
-} while (0)
-				CALL_CHECK(writeUniformTrackData(f.get(), name));
-				break;
-			case shader::UniformType::Vec2:
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
-				break;
-			case shader::UniformType::Vec3:
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".z"));
-				break;
-			case shader::UniformType::Vec4:
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".z"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".w"));
-				break;
-		}
-	}
-	fprintf(f.get(), "};\n\n");
-
-	if (rocket_track_index)
-		fprintf(f.get(), "static const struct sync_track *tracks[%d];\n", rocket_track_index);
-
 	fprintf(f.get(), "\nstatic void videoInit() {\n");
-
-	rocket_track_index = 0;
-	for (size_t i = 0; i < rocket_tracks.size(); ++i) {
-		const auto &name = rocket_tracks[i];
-		const auto type = rocket_tracks_details[i].second;
-
-		switch (type) {
-			case shader::UniformType::Float:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, name.c_str());
-				break;
-			case shader::UniformType::Vec2:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
-				break;
-			case shader::UniformType::Vec3:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
-				break;
-			case shader::UniformType::Vec4:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".w").c_str());
-				break;
-			}
-	}
 
 	if (!p.textures.empty())
 		fprintf(f.get(), "\tglGenTextures(%d, textures);\n", (int)p.textures.size());

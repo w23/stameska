@@ -20,6 +20,7 @@ public:
 	virtual Value getValue(const std::string& name, int comps) override;
 
 	virtual void save() const override;
+	virtual Expected<ExportResult, std::string> writeExport(std::string_view config, const shader::UniformsMap &uniforms) const override;
 
 private:
 	static void pause(void *, int);
