@@ -34,9 +34,9 @@ public:
 		: has_value_(e.has_value_)
 	{
 		if (has_value_)
-			value_ = e.value_;
+			new (&value_) T(e.value_);
 		else
-			error_ = e.error_;
+			new (&error_) UnexpectedType(e.error_);
 	}
 #endif
 
