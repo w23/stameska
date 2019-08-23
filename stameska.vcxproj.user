@@ -3,21 +3,21 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerWorkingDirectory>$(SolutionDir)example</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>simple.json</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>simple.yaml</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerWorkingDirectory>$(SolutionDir)example</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>simple.json</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>simple.yaml</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerWorkingDirectory>$(SolutionDir)example</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>simple.json</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>simple.yaml</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(SolutionDir)example</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>simple.json</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>simple.yaml</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>
