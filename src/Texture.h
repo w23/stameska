@@ -58,7 +58,7 @@ public:
 		w_ = w;
 		h_ = h;
 		GL(glBindTexture(GL_TEXTURE_2D, name_));
-		GL(glTexImage2D(GL_TEXTURE_2D, 0, comp, w, h, 0, GL_RGBA, type, data));
+		GL(glTexImage2D(GL_TEXTURE_2D, 0, comp, w, h, 0, GL_RGBA, static_cast<GLenum>(type), data));
 		GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);// data ? GL_REPEAT : GL_CLAMP);
@@ -66,7 +66,7 @@ public:
 	}
 
 	int bind(int slot) {
-		glActiveTexture(GL_TEXTURE0 + slot);
+		glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(slot));
 		glBindTexture(GL_TEXTURE_2D, name_);
 		return slot;
 	}

@@ -18,6 +18,8 @@ public:
 	virtual void update(float row) override;
 	virtual void save() const override {}
 
+	virtual Expected<std::vector<Section>, std::string> writeExport(const ExportConfig &config) const override;
+
 private:
 	void reread();
 

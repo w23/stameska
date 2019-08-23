@@ -6,6 +6,23 @@ BUILDDIR ?= build
 CC ?= cc
 CXX ?= c++
 CFLAGS += -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/src
+#CFLAGS += -Wshadow
+#CFLAGS += -Wnon-virtual-dtor
+#CFLAGS += -Wold-style-cast
+#CFLAGS += -Wcast-align
+#CFLAGS += -Wunused
+#CFLAGS += -Woverloaded-virtual
+#CFLAGS += -Wpedantic
+#CFLAGS += -Wconversion
+#CFLAGS += -Wsign-conversion
+#CFLAGS += -Wnull-dereference
+#CFLAGS += -Wdouble-promotion
+#CFLAGS += -Wformat=2
+#CFLAGS += -Wduplicated-cond
+#CFLAGS += -Wduplicated-branches
+#CFLAGS += -Wlogical-op
+#CFLAGS += -Wuseless-cast
+# only experimental clang support CFLAGS += -Wlifetime
 CXXFLAGS += -std=c++17 -fno-exceptions -fno-rtti $(CFLAGS)
 
 YAML_MAJOR=0

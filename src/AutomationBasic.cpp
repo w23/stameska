@@ -125,3 +125,8 @@ void AutomationBasic::update(float row) {
 
 	slice_ = std::move(slice);
 }
+
+Expected<std::vector<Section>, std::string> AutomationBasic::writeExport(const ExportConfig &config) const {
+	(void)(config);
+	return Unexpected<std::string>("Not implemented");
+}
