@@ -79,12 +79,42 @@ void Rocket::save() const {
 	sync_save_tracks(rocket_.get());
 }
 
+#if 0
+static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::string &name) {
+	std::string filename = "sync_" + name + ".track";
+
+	const auto in = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "rb"), &fclose);
+	if (!in)
+		return Unexpected(format("Cannot open file '%s' for reading", filename.c_str()));
+
+	fseek(in.get(), 0, SEEK_END);
+	const size_t size = static_cast<size_t>(ftell(in.get()));
+	fseek(in.get(), 0, SEEK_SET);
+
+	std::vector<unsigned char> data;
+	data.resize(size);
+
+	const size_t read = fread(data.data(), 1, size, in.get());
+	if (size != read)
+		return Unexpected(format("Could read only %d of %d bytes from '%s'", (int)read, (int)size, filename.c_str()));
+
+	fprintf(out, "\t{\"%s\", %d, \"", filename.c_str(), (int)size);
+	for (const auto &c: data)
+		fprintf(out, "\\x%x", c);
+	fprintf(out, "\", 0},\n");
+
+	return Expected<void, std::string>();
+}
+#endif
+
 Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string_view config, const shader::UniformsMap &uniforms) const {
 	if (config != "C")
 		return Unexpected(format("Rocket doesn't support export config '%.*s'", PRISV(config)));
 
+	(void)uniforms;
 	return Unexpected<std::string>("Not implemented");
 
+#if 0
 	std::vector<std::string> rocket_tracks;
 	std::vector<std::pair<int,shader::UniformType>> rocket_tracks_details;
 	std::vector<shader::UniformsMap> program_uniforms;
@@ -177,6 +207,48 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 				break;
 			}
 	}
+
+	// uniform loading
+	const auto &uniforms = program_uniforms[pi];
+	for (const auto &[name, decl]: uniforms) {
+		const int track_index = (int)(std::find(rocket_tracks.begin(), rocket_tracks.end(), name) - rocket_tracks.begin());
+		if (track_index != (int)rocket_tracks.size()) {
+			const auto &index_type = rocket_tracks_details[track_index];
+			switch (decl.type) {
+				case shader::UniformType::Float:
+					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"%s\"), sync_get_val(tracks[%d], t));\n", name.c_str(), index_type.first);
+					break;
+				case shader::UniformType::Vec2:
+					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"%s\"), "
+							"sync_get_val(tracks[%d], t), "
+							"sync_get_val(tracks[%d], t));\n", name.c_str(),
+							index_type.first,
+							index_type.first+1);
+					break;
+				case shader::UniformType::Vec3:
+					fprintf(f.get(), "\tglUniform3f(glGetUniformLocation(current_program, \"%s\"), "
+							"sync_get_val(tracks[%d], t), "
+							"sync_get_val(tracks[%d], t), "
+							"sync_get_val(tracks[%d], t));\n", name.c_str(),
+							index_type.first,
+							index_type.first+1,
+							index_type.first+2);
+					break;
+				case shader::UniformType::Vec4:
+					fprintf(f.get(), "\tglUniform4f(glGetUniformLocation(current_program, \"%s\"), "
+							"sync_get_val(tracks[%d], t), "
+							"sync_get_val(tracks[%d], t), "
+							"sync_get_val(tracks[%d], t), "
+							"sync_get_val(tracks[%d], t));\n", name.c_str(),
+							index_type.first,
+							index_type.first+1,
+							index_type.first+2,
+							index_type.first+3);
+					break;
+				}
+		}
+	}
+#endif
 }
 
 void Rocket::pause(void *t, int p) {

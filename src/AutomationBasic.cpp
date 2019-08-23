@@ -126,7 +126,8 @@ void AutomationBasic::update(float row) {
 	slice_ = std::move(slice);
 }
 
-Expected<std::vector<Section>, std::string> AutomationBasic::writeExport(const ExportConfig &config) const {
+Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(std::string_view config, const shader::UniformsMap &uniforms) const {
 	(void)(config);
+	(void)(uniforms);
 	return Unexpected<std::string>("Not implemented");
 }

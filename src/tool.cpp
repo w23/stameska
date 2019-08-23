@@ -154,7 +154,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 
 	case AK_E:
 		automation->save();
-		video_export(settings.exports);
+		video_export(settings.exports, *automation.get());
 		break;
 
 	case AK_Space:
