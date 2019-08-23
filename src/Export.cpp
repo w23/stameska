@@ -26,32 +26,6 @@ static std::string validateName(const std::string &str) {
 	return out;
 }
 
-static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::string &name) {
-	std::string filename = "sync_" + name + ".track";
-
-	const auto in = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "rb"), &fclose);
-	if (!in)
-		return Unexpected(format("Cannot open file '%s' for reading", filename.c_str()));
-
-	fseek(in.get(), 0, SEEK_END);
-	const size_t size = static_cast<size_t>(ftell(in.get()));
-	fseek(in.get(), 0, SEEK_SET);
-
-	std::vector<unsigned char> data;
-	data.resize(size);
-
-	const size_t read = fread(data.data(), 1, size, in.get());
-	if (size != read)
-		return Unexpected(format("Could read only %d of %d bytes from '%s'", (int)read, (int)size, filename.c_str()));
-
-	fprintf(out, "\t{\"%s\", %d, \"", filename.c_str(), (int)size);
-	for (const auto &c: data)
-		fprintf(out, "\\x%x", c);
-	fprintf(out, "\", 0},\n");
-
-	return Expected<void, std::string>();
-}
-
 static Expected<void, std::string> writeFile(const std::string &filename, const void *data, size_t bytes) {
 	const auto out = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "wb"), &fclose);
 	if (!out)
@@ -316,45 +290,9 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 					fprintf(f.get(), "\tglUseProgram(current_program);\n");
 					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"R\"), %d, %d);\n", settings.width, settings.height);
 					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"t\"), t);\n");
-					const auto &uniforms = program_uniforms[pi];
-					for (const auto &[name, decl]: uniforms) {
-						const int track_index = (int)(std::find(rocket_tracks.begin(), rocket_tracks.end(), name) - rocket_tracks.begin());
-						if (track_index != (int)rocket_tracks.size()) {
-							const auto &index_type = rocket_tracks_details[track_index];
-							switch (decl.type) {
-								case shader::UniformType::Float:
-									fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"%s\"), sync_get_val(tracks[%d], t));\n", name.c_str(), index_type.first);
-									break;
-								case shader::UniformType::Vec2:
-									fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"%s\"), "
-											"sync_get_val(tracks[%d], t), "
-											"sync_get_val(tracks[%d], t));\n", name.c_str(),
-											index_type.first,
-											index_type.first+1);
-									break;
-								case shader::UniformType::Vec3:
-									fprintf(f.get(), "\tglUniform3f(glGetUniformLocation(current_program, \"%s\"), "
-											"sync_get_val(tracks[%d], t), "
-											"sync_get_val(tracks[%d], t), "
-											"sync_get_val(tracks[%d], t));\n", name.c_str(),
-											index_type.first,
-											index_type.first+1,
-											index_type.first+2);
-									break;
-								case shader::UniformType::Vec4:
-									fprintf(f.get(), "\tglUniform4f(glGetUniformLocation(current_program, \"%s\"), "
-											"sync_get_val(tracks[%d], t), "
-											"sync_get_val(tracks[%d], t), "
-											"sync_get_val(tracks[%d], t), "
-											"sync_get_val(tracks[%d], t));\n", name.c_str(),
-											index_type.first,
-											index_type.first+1,
-											index_type.first+2,
-											index_type.first+3);
-									break;
-								}
-						}
-					}
+
+					// FIXME load automated uniforms
+
 					first_texture_slot = 0;
 					break;
 				}

@@ -51,9 +51,9 @@ void video_paint(float row, float dt, IScope &scope) {
 		g.engine->paint(frame_seq, g.preview.w, g.preview.h, row, dt, scope);
 }
 
-void video_export(const ExportSettings &settings) {
+void video_export(const ExportSettings &settings, const IAutomation &automation) {
 	if (g.polled_pipeline && g.polled_pipeline->get()) {
-		auto result = exportC(settings, *g.polled_pipeline->get().get());
+		auto result = exportC(settings, *g.polled_pipeline->get().get(), automation);
 		if (!result)
 			MSG("Export error: %s", result.error().c_str());
 	}
