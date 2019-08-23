@@ -26,6 +26,19 @@ public:
 	Expected(const T& value) : value_(value), has_value_(true) {}
 	Expected(T &&value) : value_(std::move(value)), has_value_(true) {}
 	Expected(UnexpectedType &&unexpected) : error_(std::move(unexpected)), has_value_(false) {}
+	Expected(Expected &&) = default;
+
+#ifdef _MSC_VER
+	// LOL MSVC will fail in random unrelated places if copy constructor is not present
+	Expected(const Expected &e)
+		: has_value_(e.has_value_)
+	{
+		if (has_value_)
+			value_ = e.value_;
+		else
+			error_ = e.error_;
+	}
+#endif
 
 	~Expected() {
 		if (has_value_)

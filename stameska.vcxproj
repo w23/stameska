@@ -26,12 +26,19 @@
     <ClInclude Include="3p\rocket\lib\sync.h" />
     <ClInclude Include="3p\rocket\lib\track.h" />
     <ClInclude Include="src\AutomationBasic.h" />
+    <ClInclude Include="src\Expected.h" />
+    <ClInclude Include="src\Export.h" />
     <ClInclude Include="src\Framebuffer.h" />
     <ClInclude Include="src\OpenGL.h" />
     <ClInclude Include="src\PolledFile.h" />
+    <ClInclude Include="src\PolledPipelineDesc.h" />
     <ClInclude Include="src\PolledResource.h" />
+    <ClInclude Include="src\PolledShaderProgram.h" />
+    <ClInclude Include="src\PolledShaderSource.h" />
     <ClInclude Include="src\Program.h" />
     <ClInclude Include="src\ProjectSettings.h" />
+    <ClInclude Include="src\RenderDesc.h" />
+    <ClInclude Include="src\Resources.h" />
     <ClInclude Include="src\ShaderSource.h" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\Rocket.h" />
@@ -42,6 +49,7 @@
     <ClInclude Include="src\pcg32.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\video.h" />
+    <ClInclude Include="src\YamlParser.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3p\atto\src\app_windows.c" />
@@ -106,7 +114,7 @@
     <ProjectGuid>{AA462482-D90E-49F9-8488-5348955A6ADB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>tool</RootNamespace>
-    <WindowsTargetPlatformVersion>10.1.18362.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
