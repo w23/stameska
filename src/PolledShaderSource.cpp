@@ -37,6 +37,7 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 			}
 		}
 
+		version_ = src.version();
 		chunks_ = std::move(chunks);
 		uniforms_ = src.uniforms();
 		need_full_rebuild = true;
@@ -54,7 +55,7 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 
 	std::vector<shader::Source::Chunk> flat_chunks;
 	shader::UniformsMap uniforms = uniforms_;
-	int version = 0;
+	int version = version_;
 	for (const auto& chunk: chunks_) {
 		switch (chunk.type) {
 			case Chunk::Type::String:
@@ -82,6 +83,7 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 		}
 	}
 
+	version_ = version;
 	flat_source_ = shader::Source(version, std::move(flat_chunks), std::move(uniforms));
 
 	return endUpdate();
