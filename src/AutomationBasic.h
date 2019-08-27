@@ -33,8 +33,12 @@ private:
 		bool operator<(const Keypoint &lhs) { return row < lhs.row; }
 	};
 
-	using Sequence = std::vector<Keypoint>;
-	using Data = std::map<std::string, Sequence>;
+	struct Variable {
+		int components;
+		std::vector<Keypoint> sequence;
+	};
+
+	using Data = std::map<std::string, Variable>;
 
 	Data data_;
 
