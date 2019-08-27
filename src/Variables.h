@@ -10,12 +10,10 @@ struct Section {
 	enum class Type {
 		Data,
 		Code,
-		BSS,
 	} type;
 
 	std::string name;
 	std::string comment;
-	size_t size; // For BSS, as data will be empty
 	std::vector<char> data;
 };
 
@@ -42,16 +40,18 @@ public:
 	virtual void update(float row) = 0;
 	virtual void save() const = 0;
 
-	struct ExportConfig {
-		std::string config;
-		const shader::UniformsMap &uniforms;
-	};
+	struct ExportedUniform {
+		int offset; // < 0 == constant
+		Value constant;
 
-	using ConstantsMap = std::map<std::string_view, Value>;
+		ExportedUniform(Value constant) : offset(-1), constant(constant) {}
+		ExportedUniform(int offset) : offset(offset) {}
+	};
 
 	struct ExportResult {
 		std::vector<Section> sections;
-		ConstantsMap constants;
+		std::map<std::string_view, ExportedUniform> uniforms;
+		int buffer_size;
 	};
 
 	virtual Expected<ExportResult, std::string> writeExport(std::string_view config, const shader::UniformsMap &uniforms) const = 0;

@@ -61,31 +61,12 @@ static Expected<void, std::string> writeShaderSource(FILE *main, const std::stri
 	return Expected<void, std::string>();
 }
 
-// TODO uniform block
-static Expected<std::string, std::string> shaderPreprocessor(const shader::Source &flat, const IAutomation::ConstantsMap &constants) {
+static Expected<std::string, std::string> shaderPreprocessor(const shader::Source &flat, const IAutomation::ExportResult &export_result) {
 	std::string source;
 	if (flat.version() != 0)
 		source = format("#version %d\n", flat.version());
-	for (const auto &[name, decl]: flat.uniforms()) {
-		if (constants.find(name) != constants.end())
-			continue;
-
-		switch(decl.type) {
-			case shader::UniformType::Float:
-				source += "uniform float ";
-				break;
-			case shader::UniformType::Vec2:
-				source += "uniform vec2 ";
-				break;
-			case shader::UniformType::Vec3:
-				source += "uniform vec3 ";
-				break;
-			case shader::UniformType::Vec4:
-				source += "uniform vec4 ";
-				break;
-		}
-		source += name + ";";
-	}
+	if (export_result.buffer_size > 0)
+		source += format("uniform float u[%d];\n", export_result.buffer_size);
 
 	for (const auto &chunk: flat.chunks()) {
 		switch (chunk.type) {
@@ -95,22 +76,40 @@ static Expected<std::string, std::string> shaderPreprocessor(const shader::Sourc
 					if (uit == flat.uniforms().end())
 						return Unexpected(format("Cannot find uniform chunk '%s' in uniforms", chunk.value.c_str()));
 
-					const auto cit = constants.find(chunk.value);
-					if (cit == constants.end()) {
-						source += chunk.value;
-					} else {
+					const auto eit = export_result.uniforms.find(chunk.value);
+					if (eit == export_result.uniforms.end())
+						return Unexpected(format("Cannot find uniform '%s' in exported uniforms", chunk.value.c_str()));
+
+					if (eit->second.offset < 0) {
+						const Value value = eit->second.constant;
 						switch(uit->second.type) {
 							case shader::UniformType::Float:
-								source += format("%f", cit->second.x);
+								source += format("%f", value.x);
 								break;
 							case shader::UniformType::Vec2:
-								source += format("vec2(%f,%f)", cit->second.x, cit->second.y);
+								source += format("vec2(%f,%f)", value.x, value.y);
 								break;
 							case shader::UniformType::Vec3:
-								source += format("vec3(%f,%f,%f)", cit->second.x, cit->second.y, cit->second.z);
+								source += format("vec3(%f,%f,%f)", value.x, value.y, value.z);
 								break;
 							case shader::UniformType::Vec4:
-								source += format("vec4(%f,%f,%f,%f)", cit->second.x, cit->second.y, cit->second.z, cit->second.w);
+								source += format("vec4(%f,%f,%f,%f)", value.x, value.y, value.z, value.w);
+								break;
+						}
+					} else {
+						const int offset = eit->second.offset;
+						switch(uit->second.type) {
+							case shader::UniformType::Float:
+								source += format("u[%d]", offset);
+								break;
+							case shader::UniformType::Vec2:
+								source += format("vec2(u[%d],u[%d])", offset, offset+1);
+								break;
+							case shader::UniformType::Vec3:
+								source += format("vec3(u[%d],u[%d],u[%d])", offset, offset+1, offset+2);
+								break;
+							case shader::UniformType::Vec4:
+								source += format("vec4(u[%d],u[%d],u[%d],u[%d])", offset, offset+1, offset+2, offset+3);
 								break;
 						}
 					}
@@ -164,7 +163,7 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 
 	const IAutomation::ExportResult automation_result(std::move(automation_export.value()));
 
-	// write shader sources given automation constants
+	// write shader sources given automation export
 	{
 		for (const auto &s: p.shader_filenames) {
 			const std::string vname = validateName(s);
@@ -175,7 +174,7 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 			if (!shader->poll(1))
 				return Unexpected(format("Cannot read shader '%s'", s.c_str()));
 
-			auto shader_source = shaderPreprocessor(shader->flatSource(), automation_result.constants);
+			auto shader_source = shaderPreprocessor(shader->flatSource(), automation_result);
 			if (!shader_source)
 				return Unexpected(format("Cannot preporcess shader '%s': %s", s.c_str(), shader_source.error().c_str()));
 
@@ -186,6 +185,11 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 	}
 
 	// Write global data
+	for (const auto &it: automation_result.sections) {
+		if (it.type == Section::Type::Data) {
+			fprintf(f.get(), "%.*s\n", static_cast<int>(it.data.size()), it.data.data());
+		}
+	}
 
 	if (!p.textures.empty())
 		fprintf(f.get(), "static GLuint textures[%d];\n", (int)p.textures.size());

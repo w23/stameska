@@ -10,7 +10,7 @@
 namespace shader {
 
 enum class UniformType {
-	Float, Vec2, Vec3, Vec4
+	Float = 1, Vec2, Vec3, Vec4
 };
 
 const char *uniformName(shader::UniformType type);
