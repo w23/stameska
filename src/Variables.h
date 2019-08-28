@@ -50,7 +50,7 @@ public:
 
 	struct ExportResult {
 		std::vector<Section> sections;
-		std::map<std::string_view, ExportedUniform> uniforms;
+		std::map<std::string, ExportedUniform> uniforms;
 		int buffer_size;
 	};
 

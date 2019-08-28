@@ -164,12 +164,12 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 
 		// Don't write if its constant
 		if (it->second.sequence.size() == 1) {
-			result.uniforms.emplace(std::pair(n, it->second.sequence[0].value));
+			result.uniforms.insert({n, it->second.sequence[0].value});
 			continue;
 		}
 
 		// Write output offset in uniform block
-		result.uniforms.emplace(std::pair(n, uniform_block_offset));
+		result.uniforms.insert({n, uniform_block_offset});
 		uniform_block_offset += it->second.components;
 
 		// Write lengths
