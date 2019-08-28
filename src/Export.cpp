@@ -134,26 +134,21 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 	if (!f)
 		return Unexpected(format("Cannot open file '%s' for writing", filename));
 
-
 	Resources res;
 
-	// Extract all uniforms from all programs
+	// Extract all uniforms from all shaders
 	shader::UniformsMap global_uniforms;
-	for (const auto& prog: p.programs) {
-		// Polled shaders are expected to be loaded
-		{
-			const auto vertex = res.getShaderSource(p.shader_filenames[prog.vertex]);
-			const auto result = shader::appendUniforms(global_uniforms, vertex->flatSource().uniforms());
-			if (!result)
-				return Unexpected("Error merging uniforms from vertex: " + result.error());
-		}
+	for (const auto &s: p.shader_filenames) {
+		const auto shader = res.getShaderSource(s);
+		if (!shader)
+			return Unexpected(format("Cannot open shader '%s'", s.c_str()));
 
-		{
-			const auto fragment = res.getShaderSource(p.shader_filenames[prog.fragment]);
-			const auto result = shader::appendUniforms(global_uniforms, fragment->flatSource().uniforms());
-			if (!result)
-				return Unexpected("Error merging uniforms from fragment: " + result.error());
-		}
+		if (!shader->poll(1))
+			return Unexpected(format("Cannot read shader '%s'", s.c_str()));
+
+		const auto result = shader::appendUniforms(global_uniforms, shader->flatSource().uniforms());
+		if (!result)
+			return Unexpected("Error merging uniforms from vertex: " + result.error());
 	}
 
 	// Export automation for all known uniforms
@@ -164,24 +159,17 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 	const IAutomation::ExportResult automation_result(std::move(automation_export.value()));
 
 	// write shader sources given automation export
-	{
-		for (const auto &s: p.shader_filenames) {
-			const std::string vname = validateName(s);
-			const auto shader = res.getShaderSource(s);
-			if (!shader)
-				return Unexpected(format("Cannot open shader '%s'", s.c_str()));
+	for (const auto &s: p.shader_filenames) {
+		const std::string vname = validateName(s);
+		const auto shader = res.getShaderSource(s);
 
-			if (!shader->poll(1))
-				return Unexpected(format("Cannot read shader '%s'", s.c_str()));
+		auto shader_source = shaderPreprocessor(shader->flatSource(), automation_result);
+		if (!shader_source)
+			return Unexpected(format("Cannot preporcess shader '%s': %s", s.c_str(), shader_source.error().c_str()));
 
-			auto shader_source = shaderPreprocessor(shader->flatSource(), automation_result);
-			if (!shader_source)
-				return Unexpected(format("Cannot preporcess shader '%s': %s", s.c_str(), shader_source.error().c_str()));
-
-			if (auto result = writeShaderSource(f.get(), vname, shader_source.value(), settings)) {}
-			else
-				return Unexpected(format("Cannot write shader '%s': %s", vname.c_str(), result.error().c_str()));
-		}
+		if (auto result = writeShaderSource(f.get(), vname, shader_source.value(), settings)) {}
+		else
+			return Unexpected(format("Cannot write shader '%s': %s", vname.c_str(), result.error().c_str()));
 	}
 
 	// Write global data
