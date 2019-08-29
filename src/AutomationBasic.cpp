@@ -180,9 +180,14 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 		for (int i = 0; i < it->second.components; ++i)
 			times_table.emplace_back(static_cast<int>(time_data.size()));
 
-		// Write time table
-		for (const auto &kv: it->second.sequence)
-			time_data.emplace_back(kv.row);
+		// Write time table (delta)
+		{
+			float prev_time = 0.f;
+			for (const auto &kv: it->second.sequence) {
+				time_data.emplace_back(kv.row - prev_time);
+				prev_time = kv.row;
+			}
+		}
 
 		// Write values
 		for (int i = 0; i < it->second.components; ++i) {
@@ -224,7 +229,7 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 		std::vector<char>(values_table_str.begin(), values_table_str.end())});
 
 	// Time data
-	std::string time_data_str = "static const float automation_time_data[AUTOMATION_SIZE] = {\n";
+	std::string time_data_str = "static const float automation_time_data[] = {\n";
 	for (const auto &it: time_data)
 		time_data_str += format("\t%f,\n", it);
 	time_data_str += "};\n";
@@ -232,12 +237,17 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 		std::vector<char>(time_data_str.begin(), time_data_str.end())});
 
 	// Value data
-	std::string value_data_str = "static const float automation_value_data[AUTOMATION_SIZE] = {\n";
+	std::string value_data_str = "static const float automation_value_data[] = {\n";
 	for (const auto &it: value_data)
 		value_data_str += format("\t%f,\n", it);
 	value_data_str += "};\n";
 	result.sections.emplace_back(Section{Section::Type::Data, "automation_value_data", "",
 		std::vector<char>(value_data_str.begin(), value_data_str.end())});
+
+	// Include player
+	const char include_player[] = "#include \"stameska_automation.h\"\n";
+	result.sections.emplace_back(Section{Section::Type::Data, "automation_player", "",
+		std::vector<char>(include_player, include_player + sizeof(include_player)-1)});
 
 	return result;
 }
