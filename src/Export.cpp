@@ -175,6 +175,7 @@ Expected<void, std::string> exportC(const ExportSettings &settings, const render
 	// Write global data
 	for (const auto &it: automation_result.sections) {
 		if (it.type == Section::Type::Data) {
+			fprintf(f.get(), "#pragma data_seg(.%s)\n", it.name.c_str());
 			fprintf(f.get(), "%.*s\n", static_cast<int>(it.data.size()), it.data.data());
 		}
 	}
