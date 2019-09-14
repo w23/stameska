@@ -189,11 +189,14 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 			}
 		}
 
-		// Write values
+		// Write values (delta)
 		for (int i = 0; i < it->second.components; ++i) {
 			values_table.emplace_back(static_cast<int>(value_data.size()));
-			for (const auto &kv: it->second.sequence) {
-				value_data.emplace_back((&kv.value.x)[i]);
+			float prev_value = 0.f;
+			for (const auto &kv : it->second.sequence) {
+				const float v = (&kv.value.x)[i];
+				value_data.emplace_back(v - prev_value);
+				prev_value = v;
 			}
 		}
 	}
