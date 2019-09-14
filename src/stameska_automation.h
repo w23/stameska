@@ -10,14 +10,14 @@ void automationUnpack(float t) {
 		float pv = 0.f;
 		float tt = t;
 		for (int j = 0; j < len; ++j) {
-			const float dt = times[j], cv = values[j];
+			const float dt = times[j], dv = values[j];
 			if (dt >= tt) {
 				tt /= dt;
-				pv += (cv - pv) * tt;
+				pv += dv * tt;
 				break;
 			}
 			tt -= dt;
-			pv = cv;
+			pv += dv;
 		}
 		uniforms[i] = pv;
 	}
