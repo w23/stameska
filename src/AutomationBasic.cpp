@@ -205,7 +205,7 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 		std::vector<char>(head_str.begin(), head_str.end())});
 
 	// Lengths table
-	std::string lengths_table_str = "static const int automation_lengths_table[AUTOMATION_SIZE] = {\n";
+	std::string lengths_table_str = "static const unsigned char automation_lengths_table[AUTOMATION_SIZE] = {\n";
 	for (const auto &it: lengths_table)
 		lengths_table_str += format("\t%d,\n", it);
 	lengths_table_str += "};\n";
@@ -213,7 +213,7 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 		std::vector<char>(lengths_table_str.begin(), lengths_table_str.end())});
 
 	// Times table
-	std::string times_table_str = "static const int automation_times_table[AUTOMATION_SIZE] = {\n";
+	std::string times_table_str = "static const unsigned char automation_times_table[AUTOMATION_SIZE] = {\n";
 	for (const auto &it: times_table)
 		times_table_str += format("\t%d,\n", it);
 	times_table_str += "};\n";
@@ -221,7 +221,7 @@ Expected<IAutomation::ExportResult, std::string> AutomationBasic::writeExport(st
 		std::vector<char>(times_table_str.begin(), times_table_str.end())});
 
 	// Times table
-	std::string values_table_str = "static const int automation_values_table[AUTOMATION_SIZE] = {\n";
+	std::string values_table_str = "static const unsigned char automation_values_table[AUTOMATION_SIZE] = {\n";
 	for (const auto &it: values_table)
 		values_table_str += format("\t%d,\n", it);
 	values_table_str += "};\n";
