@@ -27,11 +27,14 @@ static struct {
 	int set;
 } loop;
 
+bool mute = false;
+
 static struct { int w, h; } canvas_sizes[] = {
 	{1920, 1080},
 	{1280, 720},
 	{960, 540},
-	{640, 360}
+	{640, 360},
+	{320, 180},
 };
 static int canvas_size_cursor = 0;
 
@@ -75,6 +78,11 @@ static void paint(ATimeUs ts, float dt) {
 		MSG("row=%f, avg fps: %.1f %.2f", time_row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
 		fpstat.frames = 0;
 		fpstat.last_print = ts;
+	}
+
+	if (mute && !loop.paused) {
+		const int nsamples = dt * settings.audio.samplerate;
+		loop.pos = (loop.pos + nsamples) % settings.audio.samples;
 	}
 
 	++fpstat.frames;
@@ -191,14 +199,20 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	loop.set = 0;
 	fpstat.last_print = 0;
+	const char *settings_filename = nullptr;
 
-	if (a_app_state->argc != 2) {
-		MSG("Usage: %s project.json", a_app_state->argv[0]);
+	if (a_app_state->argc < 2) {
+		MSG("Usage: %s <--mute> project.yaml", a_app_state->argv[0]);
 		aAppTerminate(1);
 	}
 
+	for (int i = 1; i < a_app_state->argc; ++i) {
+		const char *arg = a_app_state->argv[i];
+		if (strcmp(arg,"--mute") == 0) mute = true;
+		else settings_filename = arg;
+	}
+
 	{
-		const char *settings_filename = a_app_state->argv[1];
 		auto settings_result = ProjectSettings::readFromFile(settings_filename);
 		if (!settings_result) {
 			MSG("Error reading project file %s: %s", settings_filename, settings_result.error().c_str());
@@ -249,6 +263,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 		canvas_sizes[canvas_size_cursor].h);
 
 #ifndef ATTO_PLATFORM_RPI
-	audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
+	if (!mute)
+		audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
 #endif
 }
