@@ -249,7 +249,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 			));
 			break;
 		case ProjectSettings::Automation::Type::Basic:
-			automation.reset(new AutomationBasic(project_root/settings.automation.filename));
+			automation.reset(new AutomationBasic((project_root/settings.automation.filename).string()));
 			break;
 		case ProjectSettings::Automation::Type::None:
 			MSG("Not using any automation");
