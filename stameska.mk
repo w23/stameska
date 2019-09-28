@@ -24,6 +24,7 @@ CFLAGS += -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/s
 #CFLAGS += -Wuseless-cast
 # only experimental clang support CFLAGS += -Wlifetime
 CXXFLAGS += -std=c++17 -fno-exceptions -fno-rtti $(CFLAGS)
+LIBS += -lstdc++fs
 
 YAML_MAJOR=0
 YAML_MINOR=2

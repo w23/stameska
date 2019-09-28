@@ -6,6 +6,7 @@
 #include "PolledPipelineDesc.h"
 #include "VideoEngine.h"
 #include "Export.h"
+#include "Resources.h"
 
 #include <memory>
 
@@ -13,6 +14,7 @@ static struct {
 	struct { int w, h; } preview;
 	struct { int w, h; } canvas;
 	std::unique_ptr<PolledPipelineDesc> polled_pipeline;
+	std::unique_ptr<Resources> resources;
 	std::unique_ptr<VideoEngine> engine;
 } g;
 
@@ -28,14 +30,16 @@ void video_preview_resize(int w, int h) {
 	g.preview.h = h;
 }
 
-void video_init(const char *config) {
+void video_init(std::filesystem::path project_root, std::string_view video_config_filename) {
 	GL_LOAD_FUNCS
 
 	g.canvas.w = 1280;
 	g.canvas.h = 720;
 
 	g.polled_pipeline.reset(new PolledPipelineDesc(
-			std::shared_ptr<PolledFile>(new PolledFile(config))));
+			std::shared_ptr<PolledFile>(new PolledFile((project_root/video_config_filename).string()))));
+
+	g.resources.reset(new Resources(project_root));
 }
 
 void video_paint(float row, float dt, IScope &scope) {
@@ -43,7 +47,7 @@ void video_paint(float row, float dt, IScope &scope) {
 	frame_seq++;
 
 	if (g.polled_pipeline->poll(frame_seq)) {
-		g.engine.reset(new VideoEngine(g.polled_pipeline->get()));
+		g.engine.reset(new VideoEngine(*g.resources, g.polled_pipeline->get()));
 		g.engine->setCanvasResolution(g.canvas.w, g.canvas.h);
 	}
 
@@ -53,7 +57,7 @@ void video_paint(float row, float dt, IScope &scope) {
 
 void video_export(const ExportSettings &settings, const IAutomation &automation) {
 	if (g.polled_pipeline && g.polled_pipeline->get()) {
-		auto result = exportC(settings, *g.polled_pipeline->get().get(), automation);
+		auto result = exportC(*g.resources, settings, *g.polled_pipeline->get().get(), automation);
 		if (!result)
 			MSG("Export error: %s", result.error().c_str());
 	}

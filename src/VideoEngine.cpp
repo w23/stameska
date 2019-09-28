@@ -113,8 +113,9 @@ static Expected<std::string, std::string> shaderPreprocessor(const shader::Sourc
 	return Expected<std::string, std::string>(std::move(source));
 }
 
-VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
-	: pipeline_(pipeline)
+VideoEngine::VideoEngine(Resources &resources, const std::shared_ptr<renderdesc::Pipeline> &pipeline)
+	: resources_(resources)
+	, pipeline_(pipeline)
 {
 	for (const auto& t: pipeline->textures) {
 		Texture tex;
@@ -142,7 +143,7 @@ VideoEngine::VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline)
 	GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
 	for (const auto& s: pipeline->shader_filenames)
-		sources_.emplace_back(new PolledShaderSource(resources_, std::shared_ptr<PolledFile>(new PolledFile(s))));
+		sources_.emplace_back(resources_.getShaderSource(s));
 
 	for (const auto& p: pipeline->programs) {
 		if (p.vertex < 0 || p.vertex >= (int)sources_.size())

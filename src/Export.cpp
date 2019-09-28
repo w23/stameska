@@ -126,15 +126,13 @@ static Expected<std::string, std::string> shaderPreprocessor(const shader::Sourc
 	return Expected<std::string, std::string>(std::move(source));
 }
 
-Expected<void, std::string> exportC(const ExportSettings &settings, const renderdesc::Pipeline &p, const IAutomation &automation) {
+Expected<void, std::string> exportC(Resources &res, const ExportSettings &settings, const renderdesc::Pipeline &p, const IAutomation &automation) {
 	const char * const filename = settings.c_source.c_str();
 	MSG("Exporting rendering pipeline to '%s'", filename);
 
 	const auto f = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename, "w"), &fclose);
 	if (!f)
 		return Unexpected(format("Cannot open file '%s' for writing", filename));
-
-	Resources res;
 
 	// Extract all uniforms from all shaders
 	shader::UniformsMap global_uniforms;
