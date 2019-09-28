@@ -5,6 +5,7 @@
 
 #include "video.h"
 #include "utils.h"
+#include "filesystem.h"
 #ifndef ATTO_PLATFORM_RPI
 #define AUDIO_IMPLEMENT
 #include "aud_io.h"
@@ -222,7 +223,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 		settings = std::move(settings_result).value();
 	}
 
-	std::filesystem::path project_root = std::filesystem::path(settings_filename).remove_filename();
+	fs::path project_root = fs::path(settings_filename).remove_filename();
 
 	loop.start = 0;
 	loop.end = settings.audio.samples / settings.audio.samples_per_row;

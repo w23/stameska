@@ -30,7 +30,7 @@ void video_preview_resize(int w, int h) {
 	g.preview.h = h;
 }
 
-void video_init(std::filesystem::path project_root, std::string_view video_config_filename) {
+void video_init(fs::path project_root, std::string_view video_config_filename) {
 	GL_LOAD_FUNCS
 
 	g.canvas.w = 1280;
