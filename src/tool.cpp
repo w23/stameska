@@ -222,6 +222,8 @@ void attoAppInit(struct AAppProctable *proctable) {
 		settings = std::move(settings_result).value();
 	}
 
+	std::filesystem::path project_root = std::filesystem::path(settings_filename).remove_filename();
+
 	loop.start = 0;
 	loop.end = settings.audio.samples / settings.audio.samples_per_row;
 
@@ -247,14 +249,14 @@ void attoAppInit(struct AAppProctable *proctable) {
 			));
 			break;
 		case ProjectSettings::Automation::Type::Basic:
-			automation.reset(new AutomationBasic(settings.automation.filename));
+			automation.reset(new AutomationBasic(project_root/settings.automation.filename));
 			break;
 		case ProjectSettings::Automation::Type::None:
 			MSG("Not using any automation");
 			break;
 	}
 
-	video_init(settings.video.config_filename.c_str());
+	video_init(std::move(project_root), settings.video.config_filename);
 	MSG("Set resolution: %dx%d",
 		canvas_sizes[canvas_size_cursor].w,
 		canvas_sizes[canvas_size_cursor].h);

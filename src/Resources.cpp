@@ -22,7 +22,7 @@ std::shared_ptr<PolledShaderSource> Resources::getShaderSource(const std::string
 
 	const std::shared_ptr<PolledShaderSource> source(
 		new PolledShaderSource(*this,
-			std::shared_ptr<PolledFile>(new PolledFile(filename))));
+			std::shared_ptr<PolledFile>(new PolledFile((project_root_/filename).string()))));
 	shader_sources_[filename] = source;
 	return source;
 }

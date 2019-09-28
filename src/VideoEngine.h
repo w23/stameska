@@ -14,7 +14,7 @@ class Texture;
 
 class VideoEngine {
 public:
-	VideoEngine(const std::shared_ptr<renderdesc::Pipeline> &pipeline);
+	VideoEngine(Resources& resources, const std::shared_ptr<renderdesc::Pipeline> &pipeline);
 	~VideoEngine();
 
 	void setCanvasResolution(int w, int h);
@@ -35,8 +35,8 @@ private:
 		bool attachColorTexture(int i, const Texture &);
 	};
 
+	Resources& resources_;
 	const std::shared_ptr<renderdesc::Pipeline> pipeline_;
-	Resources resources_;
 	std::vector<Texture> textures_;
 	std::vector<Framebuffer> framebuffer_;
 	std::vector<std::shared_ptr<PolledShaderSource>> sources_;
