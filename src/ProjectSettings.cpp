@@ -1,8 +1,8 @@
 #include "ProjectSettings.h"
 #include "YamlParser.h"
 #include "utils.h"
+#include "filesystem.h"
 
-#include <filesystem>
 #include <stdio.h>
 #include <string.h>
 
@@ -47,7 +47,7 @@ Expected<ProjectSettings, std::string> ProjectSettings::readFromFile(const char 
 	settings.audio.samples = 0;
 
 	if (!raw_file.empty()) {
-		FILE *f = fopen((std::filesystem::path(filename).remove_filename()/raw_file).string().c_str(), "rb");
+		FILE *f = fopen((fs::path(filename).remove_filename()/raw_file).string().c_str(), "rb");
 		if (f) {
 			fseek(f, 0L, SEEK_END);
 			settings.audio.samples = ftell(f) / (sizeof(float) * settings.audio.channels);
