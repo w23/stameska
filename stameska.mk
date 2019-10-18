@@ -1,3 +1,9 @@
+ifeq ($(ASAN), 1)
+	CONFIG:=$(CONFIG)-asan
+	CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+	LIBS += -fsanitize=address
+endif
+
 ATTO_BASEDIR=$(STAMESKA_BASEDIR)/3p/atto
 include $(STAMESKA_BASEDIR)/3p/atto/atto.mk
 
@@ -42,12 +48,6 @@ CFLAGS += \
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -DDEBUG
-endif
-
-ifeq ($(ASAN), 1)
-	CONFIG:=$(CONFIG)-asan
-	CFLAGS += -fsanitize=address -fno-omit-frame-pointer
-	LIBS += -fsanitize=address
 endif
 
 ifneq ($(RASPBERRY), 1)
