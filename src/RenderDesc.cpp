@@ -212,7 +212,7 @@ class Loader {
 					const int index = (int)pipeline_.framebuffers.size();
 					pipeline_.framebuffers.push_back(fb);
 					names_.framebuffer.push_back(name + "@pong");
-					indexes_.framebuffer.emplace_back(Command::Index(index, Command::Index::Pingpong::Pong));
+					indexes_.framebuffer.emplace_back(Command::Index(index));
 				}
 			} else {
 				const int index = (int)pipeline_.framebuffers.size();
