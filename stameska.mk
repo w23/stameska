@@ -85,6 +85,7 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/Rocket.cpp \
 	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 	$(STAMESKA_BASEDIR)/src/YamlParser.cpp \
+	$(STAMESKA_BASEDIR)/src/midi.c \
 	$(STAMESKA_BASEDIR)/src/tool.cpp \
 	$(STAMESKA_BASEDIR)/src/format.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \

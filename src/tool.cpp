@@ -3,6 +3,7 @@
 #include "AutomationBasic.h"
 #include "Variables.h"
 
+#include "midi.h"
 #include "video.h"
 #include "utils.h"
 #include "filesystem.h"
@@ -90,6 +91,9 @@ static void paint(ATimeUs ts, float dt) {
 
 	if (automation)
 		automation->update(time_row);
+
+	// FIXME re-open on error
+	midiPoll();
 
 	DummyScope dummy_scope;
 	IScope *dummy = &dummy_scope;
@@ -269,4 +273,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 	if (!mute)
 		audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
 #endif
+
+	midiOpenAll();
 }
