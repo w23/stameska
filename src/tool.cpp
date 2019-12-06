@@ -39,6 +39,7 @@ static struct { int w, h; } canvas_sizes[] = {
 	{320, 180},
 };
 static int canvas_size_cursor = 0;
+static int canvas_width = 0, canvas_height = 0;
 
 #ifndef ATTO_PLATFORM_RPI
 static void audioCallback(void *unused, float *samples, int nsamples) {
@@ -114,6 +115,15 @@ static void timeShift(int rows) {
 	MSG("pos = %d", next_pos / settings.audio.samples_per_row);
 }
 
+static void apply_canvas_size() {
+	if (canvas_size_cursor >= 0) {
+		canvas_width = canvas_sizes[canvas_size_cursor].w;
+		canvas_height = canvas_sizes[canvas_size_cursor].h;
+	}
+	MSG("Set canvas resolution: %dx%d", canvas_width, canvas_height);
+	video_canvas_resize(canvas_width, canvas_height);
+}
+
 static void key(ATimeUs ts, AKey key, int down) {
 	(void)ts;
 
@@ -131,24 +141,14 @@ static void key(ATimeUs ts, AKey key, int down) {
 	case AK_KeypadPlus:
 		if (canvas_size_cursor > 0) {
 			--canvas_size_cursor;
-			MSG("Change resolution: %dx%d",
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
-			video_canvas_resize(
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
+			apply_canvas_size();
 		}
 		break;
 	case AK_Minus:
 	case AK_KeypadMinus:
-		if (canvas_size_cursor < (int)(COUNTOF(canvas_sizes) - 1)) {
+		if (canvas_size_cursor >= 0 && canvas_size_cursor < (int)(COUNTOF(canvas_sizes) - 1)) {
 			++canvas_size_cursor;
-			MSG("Change resolution: %dx%d",
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
-			video_canvas_resize(
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
+			apply_canvas_size();
 		}
 		break;
 
@@ -211,9 +211,18 @@ void attoAppInit(struct AAppProctable *proctable) {
 		aAppTerminate(1);
 	}
 
-	for (int i = 1; i < a_app_state->argc; ++i) {
-		const char *arg = a_app_state->argv[i];
+	const char *const *argv = a_app_state->argv;
+	const int argc = a_app_state->argc;
+	for (int i = 1; i < argc; ++i) {
+		const char *arg = argv[i];
+		const char *param = i < (argc-1) ? argv[i+1] : NULL;
 		if (strcmp(arg,"--mute") == 0) mute = true;
+		else if (strcmp(arg,"--mode") == 0) {
+			// FIXME param?, valid format, valid values
+			sscanf(param, "%dx%d", &canvas_width, &canvas_height);
+			if (canvas_width > 160 && canvas_height > 100)
+				canvas_size_cursor = -1;
+		}
 		else settings_filename = arg;
 	}
 
@@ -262,12 +271,8 @@ void attoAppInit(struct AAppProctable *proctable) {
 	}
 
 	video_init(std::move(project_root), settings.video.config_filename);
-	MSG("Set resolution: %dx%d",
-		canvas_sizes[canvas_size_cursor].w,
-		canvas_sizes[canvas_size_cursor].h);
-	video_canvas_resize(
-		canvas_sizes[canvas_size_cursor].w,
-		canvas_sizes[canvas_size_cursor].h);
+
+	apply_canvas_size();
 
 #ifndef ATTO_PLATFORM_RPI
 	if (!mute)
