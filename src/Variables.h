@@ -26,7 +26,41 @@ public:
 	virtual ~IScope() {}
 
 	virtual Value getValue(const std::string& name, int comps) = 0;
+	//virtual Value getValue(const std::string& name, int comps) const = 0;
 };
+
+/*
+class NonCopyable {
+protected:
+	NonCopyable() {}
+
+private:
+	NonCopyable(const NonCopyable&) = delete;
+	NonCopyable& operator=(const NonCopyable&) = delete;
+};
+
+class ScopeMultiplexer : public IScope, NonCopyable {
+public:
+	ScopeMultiplexer(std::tuple<const IScope&> scopes) : scopes_(std::move(scopes)) {}
+
+	virtual Value getValue(const std::string& name, int comps) override;
+
+private:
+	const std::tuple<const IScope&> scopes_;
+};
+
+class ScopeMultiplexerDynamic : public IScope, NonCopyable {
+public:
+	void push_front(const IScope *scope) { scopes_.push_back(scope); }
+	void push_back(const IScope *scope) { scopes_.insert(scopes_.begin(), scope); }
+
+	virtual Value getValue(const std::string& name, int comps) override {
+	}
+
+private:
+	std::vector<const IScope*> scopes_;
+};
+*/
 
 class DummyScope : public IScope {
 public:

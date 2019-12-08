@@ -1,12 +1,35 @@
+#include "PolledFile.h"
+#include "Variables.h"
+#include "YamlParser.h"
+#include "utils.h"
+
+#include "MIDI.h"
+
 #ifndef __linux__
 #error Not supported
 #else
-#include "midi.h"
-#include "utils.h"
 #include <alsa/asoundlib.h>
 #include <stdio.h>
+#endif
 
 #define MSG_ERR(msg, ...) MSG("[ERR] " msg "", ## __VA_ARGS__)
+
+/*
+class MIDIDevice : NonCopyable {
+public:
+	Expected<MIDIDevice, std::string> open(std::string name);
+
+	bool poll(unsigned char *ctl);
+
+private:
+	MIDIDevice(std::string name);
+	~MIDIDevice();
+
+private:
+	const std::string name_;
+	const snd_rawmidi_t *handle_;
+};
+*/
 
 #ifndef MIDI_MAX_DEVICES
 #define MIDI_MAX_DEVICES 8
@@ -26,15 +49,17 @@ static struct {
 
 
 static int midiAddDevice(const char *name) {
-	if (g.num_devices == MIDI_MAX_DEVICES)
+	int slot = -1;
+	for (int i = 0; i < MIDI_MAX_DEVICES; ++i) {
+		if (g.devices[i].handle) {
+			if (strncmp(g.devices[i].name, name, sizeof(g.devices[i].name)) == 0)
+				return 0;
+		} else if (slot < 0)
+			slot = i;
+	}
+
+	if (slot < 0)
 		return 1;
-
-	int slot = 0;
-	for (; slot < MIDI_MAX_DEVICES; ++slot)
-		if (!g.devices[slot].handle)
-			break;
-
-	assert(slot != MIDI_MAX_DEVICES);
 
 	AlsaMidiDevice *dev = g.devices + slot;
 	strncpy(dev->name, name, sizeof(dev->name));
@@ -128,7 +153,7 @@ void midiClose() {
 	}
 }
 
-unsigned char midi_ctls[256];
+static unsigned char midi_ctls[256];
 
 int midiPoll() {
 	for (int d = 0; d < MIDI_MAX_DEVICES; ++d) {
@@ -177,4 +202,82 @@ int midiPoll() {
 	return 0;
 }
 
-#endif
+class MIDIScope : public IScope {
+public:
+	MIDIScope(std::string_view filename)
+		: file_(filename)
+	{
+	}
+
+	bool poll(unsigned int poll_seq) {
+		if (!file_.poll(poll_seq))
+			return false;
+
+		const auto result = yaml::parse(file_.string());
+		if (!result) {
+			MSG("Error parsing constants: %s", result.error().c_str());
+			return false;
+		}
+
+		const auto mapping_result = result.value().getMapping();
+		if (!mapping_result) {
+			MSG("Error getting toplevel yaml mapping: %s", mapping_result.error().c_str());
+			return false;
+		}
+
+		const yaml::Mapping &map = mapping_result.value();
+
+		std::map<std::string, int> newmap;
+		for (auto const &[name, value]: map.map()) {
+			const auto expect_int = value.getInt();
+			if (!expect_int) {
+				MSG("Error parsing mapping: %s", expect_int.error().c_str());
+				return false;
+			}
+
+			const long int index = expect_int.value();
+			if (index < 0 || index > 127) {
+				MSG("Index for %s is %ld and out of [0, 127] bounds",name.c_str(), index);
+				return false;
+			}
+
+			newmap[name] = (int)index;
+		}
+
+		map_ = std::move(newmap);
+
+		return true;
+	}
+
+	virtual Value getValue(const std::string& name, int comps) override {
+		(void)(comps);
+		const auto &it = map_.find(name);
+		if (it == map_.end())
+			return Value{0,0,0,0};
+
+		const float f = midi_ctls[it->second] / 127.f;
+		return Value{f,f,f,f};
+	}
+
+private:
+	PolledFile file_;
+	std::map<std::string, int> map_;
+};
+
+static std::unique_ptr<MIDIScope> scope;
+
+void MIDI::init(std::string_view filename) {
+	scope.reset(new MIDIScope(filename));
+	midiOpenAll();
+}
+
+bool MIDI::active() { return !!scope; }
+
+void MIDI::poll() {
+	static unsigned int poll_seq = 0;
+	scope->poll(poll_seq++);
+	if (!midiPoll())
+		midiOpenAll();
+}
+
+IScope &MIDI::getScope() { return *scope.get(); }

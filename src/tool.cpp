@@ -2,8 +2,7 @@
 #include "Rocket.h"
 #include "AutomationBasic.h"
 #include "Variables.h"
-
-#include "midi.h"
+#include "MIDI.h"
 #include "video.h"
 #include "utils.h"
 #include "filesystem.h"
@@ -93,13 +92,18 @@ static void paint(ATimeUs ts, float dt) {
 	if (automation)
 		automation->update(time_row);
 
-	// FIXME re-open on error
-	midiPoll();
+	if (MIDI::active())
+		MIDI::poll();
 
-	DummyScope dummy_scope;
-	IScope *dummy = &dummy_scope;
+	/*
+	ScopeMultiplexerDynamic scopemux;
+	if (automation)
+		scopemux.push_front(automation.get());
+	if (midi_overlay)
+		scopemux.push_front(&midi_overlay.getScope());
+	*/
 
-	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
+	video_paint(time_row, dt, MIDI::getScope());
 }
 
 const int pattern_length = 16;
@@ -270,6 +274,9 @@ void attoAppInit(struct AAppProctable *proctable) {
 			break;
 	}
 
+	if (!settings.automation.midi_overlay_filename.empty())
+		MIDI::init((project_root / settings.automation.midi_overlay_filename).string());
+
 	video_init(std::move(project_root), settings.video.config_filename);
 
 	apply_canvas_size();
@@ -278,6 +285,4 @@ void attoAppInit(struct AAppProctable *proctable) {
 	if (!mute)
 		audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
 #endif
-
-	midiOpenAll();
 }

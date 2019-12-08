@@ -19,6 +19,7 @@ struct ProjectSettings {
 	struct Automation {
 		enum class Type { None, Basic, Rocket } type = Type::None;
 		std::string filename;
+		std::string midi_overlay_filename;
 	} automation;
 
 	ExportSettings exports;

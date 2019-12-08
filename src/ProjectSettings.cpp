@@ -70,20 +70,24 @@ Expected<ProjectSettings, std::string> ProjectSettings::readFromFile(const char 
 	if (auto automation = config.getMapping("automation")) {
 		const yaml::Mapping &yautomation = automation.value();
 		auto type = yautomation.getString("type");
-		if (!type)
-			return Unexpected("Cannot read automation: " + type.error());
-		const std::string &ytype = type.value();
-		if (ytype == "Rocket")
-			settings.automation.type = Automation::Type::Rocket;
-		else if (ytype == "Basic") {
-			settings.automation.type = Automation::Type::Basic;
-			auto filename = yautomation.getString("file");
-			if (!filename)
-				return Unexpected("Cannot read basic automation file: " + filename.error());
-			settings.automation.filename = filename.value();
-		} else if (ytype == "None") {
-		} else
-			return Unexpected("Unexpected automation type " + ytype);
+		if (type) {
+			const std::string &ytype = type.value();
+			if (ytype == "Rocket")
+				settings.automation.type = Automation::Type::Rocket;
+			else if (ytype == "Basic") {
+				settings.automation.type = Automation::Type::Basic;
+				auto filename = yautomation.getString("file");
+				if (!filename)
+					return Unexpected("Cannot read basic automation file: " + filename.error());
+				settings.automation.filename = filename.value();
+			} else if (ytype == "None") {
+			} else
+				return Unexpected("Unexpected automation type " + ytype);
+		}
+
+		const auto midi_overlay_expect = yautomation.getString("midi_overlay");
+		if (midi_overlay_expect)
+			settings.automation.midi_overlay_filename = std::move(midi_overlay_expect.value());
 	}
 
 	if (auto map_export = config.getMapping("export")) {

@@ -11,6 +11,7 @@ STAMESKA ?= stameska
 BUILDDIR ?= build
 CC ?= cc
 CXX ?= c++
+CFLAGS += -ggdb3
 CFLAGS += -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/src
 #CFLAGS += -Wshadow
 #CFLAGS += -Wnon-virtual-dtor
@@ -60,6 +61,10 @@ $(OBJDIR)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(COMPILE.cc) -c $< -o $@
 
+$(OBJDIR)/%.cc.o: %.cc
+	@mkdir -p $(dir $@)
+	$(COMPILE.cc) -c $< -o $@
+
 LIBYAML_SOURCES= \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/api.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/loader.c \
@@ -85,7 +90,7 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/Rocket.cpp \
 	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 	$(STAMESKA_BASEDIR)/src/YamlParser.cpp \
-	$(STAMESKA_BASEDIR)/src/midi.c \
+	$(STAMESKA_BASEDIR)/src/MIDI.cc \
 	$(STAMESKA_BASEDIR)/src/tool.cpp \
 	$(STAMESKA_BASEDIR)/src/format.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \
