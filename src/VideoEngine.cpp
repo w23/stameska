@@ -130,6 +130,20 @@ VideoEngine::VideoEngine(Resources &resources, const std::shared_ptr<renderdesc:
 		textures_.push_back(std::move(tex));
 	}
 
+	{ // FIXME fft
+		Texture tex;
+		tex.alloc(1024, 1, R32F);
+		fft_smooth_index_ = textures_.size();
+		textures_.push_back(std::move(tex));
+	}
+
+	{ // FIXME fft
+		Texture tex;
+		tex.alloc(1024, 1, R32F);
+		fft_integrated_index_ = textures_.size();
+		textures_.push_back(std::move(tex));
+	}
+
 	for (const auto& f: pipeline->framebuffers) {
 		Framebuffer fb;
 		GL(glBindFramebuffer(GL_FRAMEBUFFER, fb.name));
@@ -166,11 +180,12 @@ VideoEngine::~VideoEngine() {
 }
 
 void VideoEngine::uploadFFT(const FFT::Frame &f) {
-	Texture &fft = textures_[fft_index_];
-	fft.upload(f.fft.size(), 1, R32F, f.fft.data());
+	textures_[fft_index_].upload(f.len, 1, R32F, f.fft);
+	textures_[fft_smooth_index_].upload(f.len, 1, R32F, f.fft_smooth);
+	textures_[fft_integrated_index_].upload(f.len, 1, R32F, f.fft_integrated);
 }
 
-static const std::set<std::string> internal_uniforms = {"R", "t", "s1fft"};
+static const std::set<std::string> internal_uniforms = {"R", "t", "s1fft", "s1ffts", "s1ffti"};
 
 static void useProgram(const PolledShaderProgram& program, int w, int h, float row, float dt, IScope &scope) {
 	const Program& p = program.get();
@@ -202,6 +217,8 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 
 	p.setUniform("R", w, h).setUniform("t", row).setUniform("dt", dt);
 	p.setUniform("s1fft", 0);
+	p.setUniform("s1ffts", 1);
+	p.setUniform("s1ffti", 2);
 }
 
 void VideoEngine::setCanvasResolution(int w, int h) {
@@ -232,6 +249,8 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 
 	int first_slot = 0;
 	textures_[fft_index_].bind(first_slot++);
+	textures_[fft_smooth_index_].bind(first_slot++);
+	textures_[fft_integrated_index_].bind(first_slot++);
 
 	struct {
 		int w, h;

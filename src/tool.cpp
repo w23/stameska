@@ -104,10 +104,7 @@ static void paint(ATimeUs ts, float dt) {
 		scopemux.push_front(&midi_overlay.getScope());
 	*/
 
-	FFT::Frame f;
-	FFT::read(f);
-
-	video_paint(time_row, dt, MIDI::getScope(), f);
+	video_paint(time_row, dt, MIDI::getScope(), FFT::read());
 }
 
 const int pattern_length = 16;

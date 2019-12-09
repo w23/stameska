@@ -5,14 +5,13 @@ namespace FFT {
 	constexpr int width = 1024;
 
 	struct Frame {
-		std::vector<float> fft;
-		/*
-		std::vector<float> ffts; // smoothed
-		std::vector<float> ffti; // integrated
-		*/
+		int len;
+		const float *fft;
+		const float *fft_smooth;
+		const float *fft_integrated;
 	};
 
 	bool open();
-	bool read(Frame &);
+	Frame read();
 	void close();
 }

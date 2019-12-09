@@ -45,7 +45,7 @@ private:
 	std::vector<std::shared_ptr<PolledShaderSource>> sources_;
 	std::vector<PolledShaderProgram> programs_;
 
-	int fft_index_ = -1;
+	int fft_index_ = -1, fft_smooth_index_ = -1, fft_integrated_index_ = -1;
 
 	class Canvas;
 	std::unique_ptr<Canvas> canvas_;
