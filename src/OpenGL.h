@@ -93,6 +93,7 @@ enum PixelType {
 #ifndef ATTO_PLATFORM_RPI
 	RGBA16F,
 	RGBA32F,
+	R32F,
 #endif
 	//Depth24,
 };

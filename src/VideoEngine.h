@@ -2,6 +2,7 @@
 
 #include "Resources.h"
 #include "OpenGL.h"
+#include "FFT.h"
 
 #include <memory>
 #include <vector>
@@ -19,6 +20,8 @@ public:
 
 	void setCanvasResolution(int w, int h);
 	void paint(unsigned int frame_seq, int w, int h, float row, float dt, IScope &scope);
+
+	void uploadFFT(const FFT::Frame &f);
 
 private:
 	struct Framebuffer {
@@ -41,6 +44,8 @@ private:
 	std::vector<Framebuffer> framebuffer_;
 	std::vector<std::shared_ptr<PolledShaderSource>> sources_;
 	std::vector<PolledShaderProgram> programs_;
+
+	int fft_index_ = -1;
 
 	class Canvas;
 	std::unique_ptr<Canvas> canvas_;

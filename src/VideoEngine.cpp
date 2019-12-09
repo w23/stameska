@@ -123,6 +123,13 @@ VideoEngine::VideoEngine(Resources &resources, const std::shared_ptr<renderdesc:
 		textures_.push_back(std::move(tex));
 	}
 
+	{ // FIXME fft
+		Texture tex;
+		tex.alloc(1024, 1, R32F);
+		fft_index_ = textures_.size();
+		textures_.push_back(std::move(tex));
+	}
+
 	for (const auto& f: pipeline->framebuffers) {
 		Framebuffer fb;
 		GL(glBindFramebuffer(GL_FRAMEBUFFER, fb.name));
@@ -158,7 +165,12 @@ VideoEngine::VideoEngine(Resources &resources, const std::shared_ptr<renderdesc:
 VideoEngine::~VideoEngine() {
 }
 
-static const std::set<std::string> internal_uniforms = {"R", "t"};
+void VideoEngine::uploadFFT(const FFT::Frame &f) {
+	Texture &fft = textures_[fft_index_];
+	fft.upload(f.fft.size(), 1, R32F, f.fft.data());
+}
+
+static const std::set<std::string> internal_uniforms = {"R", "t", "s1fft"};
 
 static void useProgram(const PolledShaderProgram& program, int w, int h, float row, float dt, IScope &scope) {
 	const Program& p = program.get();
@@ -189,6 +201,7 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 	}
 
 	p.setUniform("R", w, h).setUniform("t", row).setUniform("dt", dt);
+	p.setUniform("s1fft", 0);
 }
 
 void VideoEngine::setCanvasResolution(int w, int h) {
@@ -217,14 +230,19 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 	}
 #endif
 
+	int first_slot = 0;
+	textures_[fft_index_].bind(first_slot++);
+
 	struct {
 		int w, h;
 		const Program *program = nullptr;
 		// TODO better texture tracking mechanism to support texture changes between draw calls
-		int first_availabale_texture_slot = 0;
+		int first_availabale_texture_slot;
 	} runtime = {
 		canvas_ ? canvas_->width() : preview_width,
-		canvas_ ? canvas_->height() : preview_height
+		canvas_ ? canvas_->height() : preview_height,
+		nullptr,
+		first_slot
 	};
 
 #ifndef ATTO_PLATFORM_RPI
@@ -273,7 +291,7 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 					const PolledShaderProgram &prog = programs_[cmdp.program.index];
 					useProgram(prog, runtime.w, runtime.h, row, dt, scope);
 					runtime.program = &prog.get();
-					runtime.first_availabale_texture_slot = 0; // TODO bound textures will leak
+					runtime.first_availabale_texture_slot = first_slot; // TODO bound textures will leak
 					break;
 				}
 

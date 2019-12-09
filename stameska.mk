@@ -31,14 +31,16 @@ CFLAGS += -I$(STAMESKA_BASEDIR) -I$(STAMESKA_BASEDIR)/3p -I$(STAMESKA_BASEDIR)/s
 #CFLAGS += -Wuseless-cast
 # only experimental clang support CFLAGS += -Wlifetime
 CXXFLAGS += -std=c++17 -fno-exceptions -fno-rtti $(CFLAGS)
-LIBS += -lstdc++fs
+LIBS += -lstdc++fs -ldl
 
 YAML_MAJOR=0
 YAML_MINOR=2
 YAML_PATCH=1
 
 CFLAGS += \
+	-I$(STAMESKA_BASEDIR)/3p/kissfft \
 	-I$(STAMESKA_BASEDIR)/3p/libyaml/include \
+	-I$(STAMESKA_BASEDIR)/3p/miniaudio \
 	-DYAML_MAJOR=$(YAML_MAJOR) \
 	-DYAML_MINOR=$(YAML_MINOR) \
 	-DYAML_PATCH=$(YAML_PATCH) \
@@ -71,12 +73,16 @@ LIBYAML_SOURCES= \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/parser.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/reader.c \
 	$(STAMESKA_BASEDIR)/3p/libyaml/src/scanner.c \
+	$(STAMESKA_BASEDIR)/3p/kissfft/kiss_fft.c \
+	$(STAMESKA_BASEDIR)/3p/kissfft/tools/kiss_fftr.c \
 
 STAMESKA_EXE = $(OBJDIR)/$(STAMESKA)
 STAMESKA_SOURCES += \
 	$(LIBYAML_SOURCES) \
 	$(STAMESKA_BASEDIR)/src/AutomationBasic.cpp \
 	$(STAMESKA_BASEDIR)/src/Export.cpp \
+	$(STAMESKA_BASEDIR)/src/FFT.cc \
+	$(STAMESKA_BASEDIR)/src/MIDI.cc \
 	$(STAMESKA_BASEDIR)/src/OpenGL.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledFile.cpp \
 	$(STAMESKA_BASEDIR)/src/PolledPipelineDesc.cpp \
@@ -90,7 +96,6 @@ STAMESKA_SOURCES += \
 	$(STAMESKA_BASEDIR)/src/Rocket.cpp \
 	$(STAMESKA_BASEDIR)/src/VideoEngine.cpp \
 	$(STAMESKA_BASEDIR)/src/YamlParser.cpp \
-	$(STAMESKA_BASEDIR)/src/MIDI.cc \
 	$(STAMESKA_BASEDIR)/src/tool.cpp \
 	$(STAMESKA_BASEDIR)/src/format.cpp \
 	$(STAMESKA_BASEDIR)/src/video.cpp \

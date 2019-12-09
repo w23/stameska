@@ -213,6 +213,10 @@ Expected<void, std::string> exportC(Resources &res, const ExportSettings &settin
 					comp = "GL_RGBA32F";
 					type = "GL_FLOAT";
 					break;
+				case R32F:
+					comp = "GL_R32F";
+					type = "GL_FLOAT";
+					break;
 #endif
 			}
 

@@ -42,7 +42,7 @@ void video_init(fs::path project_root, std::string_view video_config_filename) {
 	g.resources.reset(new Resources(project_root));
 }
 
-void video_paint(float row, float dt, IScope &scope) {
+void video_paint(float row, float dt, IScope &scope, const FFT::Frame &f) {
 	static unsigned int frame_seq = 0;
 	frame_seq++;
 
@@ -51,8 +51,10 @@ void video_paint(float row, float dt, IScope &scope) {
 		g.engine->setCanvasResolution(g.canvas.w, g.canvas.h);
 	}
 
-	if (g.engine)
+	if (g.engine) {
+		g.engine->uploadFFT(f);
 		g.engine->paint(frame_seq, g.preview.w, g.preview.h, row, dt, scope);
+	}
 }
 
 void video_export(const ExportSettings &settings, const IAutomation &automation) {

@@ -2,6 +2,7 @@
 #include "Rocket.h"
 #include "AutomationBasic.h"
 #include "Variables.h"
+#include "FFT.h"
 #include "MIDI.h"
 #include "video.h"
 #include "utils.h"
@@ -103,7 +104,10 @@ static void paint(ATimeUs ts, float dt) {
 		scopemux.push_front(&midi_overlay.getScope());
 	*/
 
-	video_paint(time_row, dt, MIDI::getScope());
+	FFT::Frame f;
+	FFT::read(f);
+
+	video_paint(time_row, dt, MIDI::getScope(), f);
 }
 
 const int pattern_length = 16;
@@ -280,6 +284,8 @@ void attoAppInit(struct AAppProctable *proctable) {
 	video_init(std::move(project_root), settings.video.config_filename);
 
 	apply_canvas_size();
+
+	FFT::open();
 
 #ifndef ATTO_PLATFORM_RPI
 	if (!mute)

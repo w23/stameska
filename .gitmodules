@@ -7,3 +7,9 @@
 [submodule "3p/libyaml"]
 	path = 3p/libyaml
 	url = https://github.com/yaml/libyaml.git
+[submodule "3p/miniaudio"]
+	path = 3p/miniaudio
+	url = https://github.com/dr-soft/miniaudio.git
+[submodule "3p/kissfft"]
+	path = 3p/kissfft
+	url = https://github.com/mborgerding/kissfft.git
