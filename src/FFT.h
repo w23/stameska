@@ -13,5 +13,6 @@ namespace FFT {
 
 	bool open();
 	Frame read();
+	int samples();
 	void close();
 }

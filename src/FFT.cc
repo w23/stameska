@@ -19,6 +19,7 @@ static struct {
 	ma_context context;
 	ma_device captureDevice;
 	int audio_ring_buffer_cursor = 0;
+	int samples = 0;
 	float audio_ring_buffer[ring_buffer_len];
 	float fft_buffer_in[FFT::width*2];
 	float fft[FFT::width];
@@ -42,6 +43,37 @@ void onReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_u
 	for (int i = 0; i < (int)frameCount; ++i) {
 		g.audio_ring_buffer[g.audio_ring_buffer_cursor] = (samples[i*2] + samples[i*2+1]) * .5f;
 		g.audio_ring_buffer_cursor = (g.audio_ring_buffer_cursor + 1) % ring_buffer_len;
+	}
+
+	g.samples += frameCount;
+
+	kiss_fft_cpx out[width + 1];
+
+	const int cur = g.audio_ring_buffer_cursor;
+	if (cur < width*2) {
+		const int head_len = width*2 - cur;
+		memcpy(g.fft_buffer_in, g.audio_ring_buffer + ring_buffer_len - head_len, head_len * sizeof(float));
+		memcpy(g.fft_buffer_in+head_len, g.audio_ring_buffer, cur * sizeof(float));
+	} else {
+		memcpy(g.fft_buffer_in, g.audio_ring_buffer + (cur - width*2), width*2 * sizeof(float));
+	}
+
+	kiss_fftr(g.fftcfg, g.fft_buffer_in, out);
+
+	constexpr float scaling = 1.0f / (float)width;
+  const static float max_integral_value = 1024.0f;
+  const float smooth_factor = 0.9f; // higher value, smoother FFT
+  const float less_smooth_factor = 0.6f; // higher value, smoother FFT
+	for (int i = 0; i < width; i++) {
+		const float s = 2.f * sqrtf(out[i].r * out[i].r + out[i].i * out[i].i) * scaling;
+		g.fft[i] = s;
+
+		g.fft_smooth[i] = g.fft_smooth[i] * smooth_factor + (1 - smooth_factor) * s;
+
+		g.fft_smooth_less[i] = g.fft_smooth_less[i] * less_smooth_factor + (1 - less_smooth_factor) * s;
+		g.fft_integrated[i] = g.fft_integrated[i] + g.fft_smooth_less[i];
+		if (g.fft_integrated[i] > max_integral_value)
+			g.fft_integrated[i] -= max_integral_value;
 	}
 }
 
@@ -88,37 +120,10 @@ bool open() {
 }
 
 Frame read() {
-	kiss_fft_cpx out[width + 1];
-
-	const int cur = g.audio_ring_buffer_cursor;
-	if (cur < width*2) {
-		const int head_len = width*2 - cur;
-		memcpy(g.fft_buffer_in, g.audio_ring_buffer + ring_buffer_len - head_len, head_len * sizeof(float));
-		memcpy(g.fft_buffer_in+head_len, g.audio_ring_buffer, cur * sizeof(float));
-	} else {
-		memcpy(g.fft_buffer_in, g.audio_ring_buffer + (cur - width*2), width*2 * sizeof(float));
-	}
-
-	kiss_fftr(g.fftcfg, g.fft_buffer_in, out);
-
-	constexpr float scaling = 1.0f / (float)width;
-  const static float max_integral_value = 1024.0f;
-  const float smooth_factor = 0.9f; // higher value, smoother FFT
-  const float less_smooth_factor = 0.6f; // higher value, smoother FFT
-	for (int i = 0; i < width; i++) {
-		const float s = 2.f * sqrtf(out[i].r * out[i].r + out[i].i * out[i].i) * scaling;
-		g.fft[i] = s;
-
-		g.fft_smooth[i] = g.fft_smooth[i] * smooth_factor + (1 - smooth_factor) * s;
-
-		g.fft_smooth_less[i] = g.fft_smooth_less[i] * less_smooth_factor + (1 - less_smooth_factor) * s;
-		g.fft_integrated[i] = g.fft_integrated[i] + g.fft_smooth_less[i];
-		if (g.fft_integrated[i] > max_integral_value)
-			g.fft_integrated[i] -= max_integral_value;
-	}
-
 	return Frame{width, g.fft, g.fft_smooth, g.fft_integrated};
 }
+
+int samples() { return g.samples; }
 
 void close() {
 	ma_device_stop(&g.captureDevice);

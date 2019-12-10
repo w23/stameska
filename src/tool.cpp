@@ -75,7 +75,7 @@ static struct {
 } fpstat;
 
 static void paint(ATimeUs ts, float dt) {
-	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
+	const float time_row = ts / 1e6f;//(float)loop.pos / settings.audio.samples_per_row;
 	const ATimeUs last_print_delta = ts - fpstat.last_print;
 	if (last_print_delta > 1000000) {
 		MSG("row=%f, avg fps: %.1f %.2f", time_row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
