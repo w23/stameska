@@ -1,0 +1,72 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(stameska)
+
+set(YAML_SOURCES
+	3p/libyaml/src/api.c
+	3p/libyaml/src/loader.c
+	3p/libyaml/src/parser.c
+	3p/libyaml/src/reader.c
+	3p/libyaml/src/scanner.c
+)
+add_library(yaml STATIC ${YAML_SOURCES})
+target_include_directories(yaml PUBLIC 3p/libyaml/include)
+set(YAML_MAJOR 0)
+set(YAML_MINOR 2)
+set(YAML_PATCH 1)
+target_compile_definitions(yaml PRIVATE
+	YAML_MAJOR=${YAML_MAJOR}
+	YAML_MINOR=${YAML_MINOR}
+	YAML_PATCH=${YAML_PATCH}
+	YAML_VERSION_MAJOR=${YAML_MAJOR}
+	YAML_VERSION_MINOR=${YAML_MINOR}
+	YAML_VERSION_PATCH=${YAML_PATCH}
+	YAML_VERSION_STRING="${YAML_MAJOR}.${YAML_MINOR}.${YAML_PATCH}"
+)
+
+set(ROCKET_SOURCES
+	3p/rocket/lib/device.c
+	3p/rocket/lib/track.c
+)
+add_library(rocket STATIC ${ROCKET_SOURCES})
+target_include_directories(rocket PUBLIC 3p)
+
+set(ATTO_SOURCES
+	3p/atto/src/app_x11.c
+	3p/atto/src/app_linux.c
+)
+
+add_library(atto STATIC ${ATTO_SOURCES} ${ATTO_HEADERS})
+target_include_directories(atto PUBLIC 3p/atto/include)
+find_package(OpenGL REQUIRED)
+find_package(X11 REQUIRED)
+target_link_libraries(atto ${X11_LIBRARIES} ${X11_Xext_LIB} ${X11_Xfixes_LIB} OpenGL::GL)
+target_include_directories(atto PRIVATE ${X11_INCLUDE_DIR})
+
+set(SOURCES
+	src/AutomationBasic.cpp
+	src/Export.cpp
+	src/OpenGL.cpp
+	src/PolledFile.cpp
+	src/PolledPipelineDesc.cpp
+	src/PolledShaderProgram.cpp
+	src/PolledShaderSource.cpp
+	src/Program.cpp
+	src/ProjectSettings.cpp
+	src/RenderDesc.cpp
+	src/Resources.cpp
+	src/ShaderSource.cpp
+	src/Rocket.cpp
+	src/VideoEngine.cpp
+	src/YamlParser.cpp
+	src/tool.cpp
+	src/format.cpp
+	src/video.cpp
+)
+
+add_executable(stameska ${SOURCES} ${HEADERS})
+set_property(TARGET stameska PROPERTY CXX_STANDARD 17)
+find_package(Threads REQUIRED)
+find_package(ALSA REQUIRED)
+target_link_libraries(stameska
+	rocket atto Threads::Threads stdc++fs ALSA::ALSA yaml)
