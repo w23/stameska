@@ -23,6 +23,7 @@ target_compile_definitions(yaml PRIVATE
 	YAML_VERSION_PATCH=${YAML_PATCH}
 	YAML_VERSION_STRING="${YAML_MAJOR}.${YAML_MINOR}.${YAML_PATCH}"
 )
+target_compile_definitions(yaml PUBLIC YAML_DECLARE_STATIC)
 
 set(ROCKET_SOURCES
 	3p/rocket/lib/device.c
@@ -30,18 +31,33 @@ set(ROCKET_SOURCES
 )
 add_library(rocket STATIC ${ROCKET_SOURCES})
 target_include_directories(rocket PUBLIC 3p)
+if(WIN32)
+	target_link_libraries(rocket wsock32 ws2_32)
+endif()
 
-set(ATTO_SOURCES
-	3p/atto/src/app_x11.c
-	3p/atto/src/app_linux.c
-)
+if (LINUX)
+	set(ATTO_SOURCES
+		3p/atto/src/app_x11.c
+		3p/atto/src/app_linux.c
+	)
+	find_package(OpenGL REQUIRED)
+	find_package(X11 REQUIRED)
+elseif(WIN32)
+	set(ATTO_SOURCES
+		3p/atto/src/app_windows.c
+	)
+endif()
 
 add_library(atto STATIC ${ATTO_SOURCES} ${ATTO_HEADERS})
 target_include_directories(atto PUBLIC 3p/atto/include)
 find_package(OpenGL REQUIRED)
-find_package(X11 REQUIRED)
-target_link_libraries(atto ${X11_LIBRARIES} ${X11_Xext_LIB} ${X11_Xfixes_LIB} OpenGL::GL)
-target_include_directories(atto PRIVATE ${X11_INCLUDE_DIR})
+target_link_libraries(atto OpenGL::GL)
+if (LINUX)
+	find_package(X11 REQUIRED)
+	target_link_libraries(atto ${X11_LIBRARIES} ${X11_Xext_LIB} ${X11_Xfixes_LIB})
+	target_include_directories(atto PRIVATE ${X11_INCLUDE_DIR})
+elseif(WIN32)
+endif()
 
 set(SOURCES
 	src/AutomationBasic.cpp
@@ -64,9 +80,21 @@ set(SOURCES
 	src/video.cpp
 )
 
-add_executable(stameska ${SOURCES} ${HEADERS})
+if (WIN32)
+	add_executable(stameska WIN32 ${SOURCES} ${HEADERS})
+else()
+	add_executable(stameska ${SOURCES} ${HEADERS})
+endif()
 set_property(TARGET stameska PROPERTY CXX_STANDARD 17)
 find_package(Threads REQUIRED)
-find_package(ALSA REQUIRED)
+if (LINUX)
+	find_package(ALSA REQUIRED)
+	target_link_libraries(stameska ALSA::ALSA stdc++fs)
+elseif(WIN32)
+	target_link_libraries(stameska winmm)
+endif()
 target_link_libraries(stameska
-	rocket atto Threads::Threads stdc++fs ALSA::ALSA yaml)
+	rocket
+	atto
+	Threads::Threads
+	yaml)
