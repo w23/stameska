@@ -22,13 +22,14 @@ matrix:
         - MATRIX_EVAL="CC=clang && CXX=clang++"
     - name: win64-release
       os: windows
-#      install:
-#        - choco install -y windows-sdk-10.1 --version 10.1.17763.1
       env:
         - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
       script:
         - export PATH=$MSBUILD_PATH:$PATH
-        - msbuild.exe stameska.sln -p:Configuration=Release -p:Platform=x64 -t:stameska
+        - mkdir build
+        - cd build
+        - cmake -G "Visual Studio 15 2017" -Ax64 ..
+        - cmake --build . --config Release
 
 before_install:
     - eval "${MATRIX_EVAL}"
