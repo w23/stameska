@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 
 project(stameska)
 
+if(CMAKE_SYSTEM_NAME MATCHES ".*Linux")
+	set(LINUX TRUE)
+endif()
+
+add_subdirectory(3p/atto)
+
 set(YAML_SOURCES
 	3p/libyaml/src/api.c
 	3p/libyaml/src/loader.c
@@ -34,8 +40,6 @@ target_include_directories(rocket PUBLIC 3p)
 if(WIN32)
 	target_link_libraries(rocket wsock32 ws2_32)
 endif()
-
-add_subdirectory(3p/atto)
 
 set(SOURCES
 	src/AutomationBasic.cpp
@@ -70,6 +74,8 @@ if (LINUX)
 	target_link_libraries(stameska ALSA::ALSA stdc++fs)
 elseif(WIN32)
 	target_link_libraries(stameska winmm)
+else()
+	message(FATAL_ERROR "Not ported")
 endif()
 target_link_libraries(stameska
 	rocket
