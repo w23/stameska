@@ -35,29 +35,7 @@ if(WIN32)
 	target_link_libraries(rocket wsock32 ws2_32)
 endif()
 
-if (LINUX)
-	set(ATTO_SOURCES
-		3p/atto/src/app_x11.c
-		3p/atto/src/app_linux.c
-	)
-	find_package(OpenGL REQUIRED)
-	find_package(X11 REQUIRED)
-elseif(WIN32)
-	set(ATTO_SOURCES
-		3p/atto/src/app_windows.c
-	)
-endif()
-
-add_library(atto STATIC ${ATTO_SOURCES} ${ATTO_HEADERS})
-target_include_directories(atto PUBLIC 3p/atto/include)
-find_package(OpenGL REQUIRED)
-target_link_libraries(atto OpenGL::GL)
-if (LINUX)
-	find_package(X11 REQUIRED)
-	target_link_libraries(atto ${X11_LIBRARIES} ${X11_Xext_LIB} ${X11_Xfixes_LIB})
-	target_include_directories(atto PRIVATE ${X11_INCLUDE_DIR})
-elseif(WIN32)
-endif()
+add_subdirectory(3p/atto)
 
 set(SOURCES
 	src/AutomationBasic.cpp
