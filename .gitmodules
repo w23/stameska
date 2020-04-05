@@ -7,3 +7,6 @@
 [submodule "3p/libyaml"]
 	path = 3p/libyaml
 	url = https://github.com/yaml/libyaml.git
+[submodule "3p/imgui"]
+	path = 3p/imgui
+	url = https://github.com/ocornut/imgui

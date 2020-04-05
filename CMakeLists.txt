@@ -8,6 +8,14 @@ endif()
 
 add_subdirectory(3p/atto)
 
+add_library(imgui STATIC
+	3p/imgui/imgui_demo.cpp
+	3p/imgui/imgui_draw.cpp
+	3p/imgui/imgui_widgets.cpp
+	3p/imgui/examples/imgui_impl_opengl2.cpp
+	3p/imgui/imgui.cpp)
+target_include_directories(imgui PUBLIC 3p/imgui)
+
 set(YAML_SOURCES
 	3p/libyaml/src/api.c
 	3p/libyaml/src/loader.c
@@ -78,6 +86,7 @@ else()
 	message(FATAL_ERROR "Not ported")
 endif()
 target_link_libraries(stameska
+	imgui
 	rocket
 	atto
 	Threads::Threads
