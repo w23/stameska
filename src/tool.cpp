@@ -3,6 +3,7 @@
 #include "AutomationBasic.h"
 #include "Variables.h"
 
+#include "ui.h"
 #include "video.h"
 #include "utils.h"
 #include "filesystem.h"
@@ -13,9 +14,6 @@
 #include "atto/app.h"
 #include "atto/platform.h"
 #include "OpenGL.h"
-
-#include "imgui.h"
-#include "examples/imgui_impl_opengl2.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -69,10 +67,7 @@ static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
 	(void)w; (void)h;
 	video_preview_resize(a_app_state->width, a_app_state->height);
-
-  ImGuiIO& io = ImGui::GetIO();
-	io.DisplaySize = ImVec2((float)a_app_state->width, (float)a_app_state->height);
-  io.DisplayFramebufferScale = ImVec2(1.f, 1.f);
+	ui_resize();
 }
 
 static struct {
@@ -103,27 +98,7 @@ static void paint(ATimeUs ts, float dt) {
 	IScope *dummy = &dummy_scope;
 
 	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
-
-	// if (ImGui::Button("Save"))
-	// 	    MySaveFunction();
-	// ImGui::InputText("string", buf, IM_ARRAYSIZE(buf));
-	// ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-
-	glUseProgram(0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	{
-		ImGui_ImplOpenGL2_NewFrame();
-		ImGuiIO& io = ImGui::GetIO();
-		io.DeltaTime = dt;
-		IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
-
-		ImGui::NewFrame();
-	}
-	ImGui::Text("Hello, world %d", 123);
-	bool show_demo_window = true;
-  ImGui::ShowDemoWindow(&show_demo_window);
-  ImGui::Render();
-  ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+	ui_paint(dt);
 }
 
 const int pattern_length = 16;
@@ -223,14 +198,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 }
 
 static void pointer(ATimeUs, int dx, int dy, unsigned int dbtn) {
-	const unsigned int btn = a_app_state->pointer.buttons;
-	const int x = a_app_state->pointer.x;
-	const int y = a_app_state->pointer.y;
-	ImGuiIO& io = ImGui::GetIO();
-	io.MousePos = ImVec2((float)x, (float)y);
-	io.MouseDown[0] = !!(btn & AB_Left);
-	io.MouseDown[1] = !!(btn & AB_Right);
-	io.MouseDown[2] = !!(btn & AB_Middle);
+	ui_mouse();
 }
 
 void attoAppInit(struct AAppProctable *proctable) {
@@ -306,13 +274,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 		canvas_sizes[canvas_size_cursor].w,
 		canvas_sizes[canvas_size_cursor].h);
 
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-	io.BackendPlatformName = "atto";
-  ImGui::StyleColorsDark();
-  //ImGui::StyleColorsClassic();
-  ImGui_ImplOpenGL2_Init();
+	ui_init();
 
 #ifndef ATTO_PLATFORM_RPI
 	if (!mute)

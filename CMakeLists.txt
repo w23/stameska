@@ -61,12 +61,13 @@ set(SOURCES
 	src/ProjectSettings.cpp
 	src/RenderDesc.cpp
 	src/Resources.cpp
-	src/ShaderSource.cpp
 	src/Rocket.cpp
+	src/ShaderSource.cpp
 	src/VideoEngine.cpp
 	src/YamlParser.cpp
-	src/tool.cpp
 	src/format.cpp
+	src/tool.cpp
+	src/ui.cpp
 	src/video.cpp
 )
 
