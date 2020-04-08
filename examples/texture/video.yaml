@@ -1,0 +1,12 @@
+programs:
+  raymarch:
+    vertex: vertex.glsl
+    fragment: fragment.glsl
+textures:
+  testure:
+    file: checker.png
+paint:
+  - useProgram: raymarch
+  - bindTexture:
+      testure: testure
+  - drawFullscreen
