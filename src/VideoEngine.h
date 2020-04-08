@@ -9,6 +9,7 @@
 namespace renderdesc { class Pipeline; }
 class PolledShaderProgram;
 class PolledShaderSource;
+class PolledTexture;
 class IScope;
 class Texture;
 
@@ -37,7 +38,7 @@ private:
 
 	Resources& resources_;
 	const std::shared_ptr<renderdesc::Pipeline> pipeline_;
-	std::vector<Texture> textures_;
+	std::vector<std::shared_ptr<PolledTexture>> textures_;
 	std::vector<Framebuffer> framebuffer_;
 	std::vector<std::shared_ptr<PolledShaderSource>> sources_;
 	std::vector<PolledShaderProgram> programs_;

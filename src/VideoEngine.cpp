@@ -2,8 +2,8 @@
 #include "VideoEngine.h"
 #include "RenderDesc.h"
 #include "PolledShaderProgram.h"
+#include "PolledTexture.h"
 #include "Variables.h"
-#include "Texture.h"
 #include "format.h"
 
 #include <set>
@@ -118,9 +118,11 @@ VideoEngine::VideoEngine(Resources &resources, const std::shared_ptr<renderdesc:
 	, pipeline_(pipeline)
 {
 	for (const auto& t: pipeline->textures) {
-		Texture tex;
-		tex.alloc(t.w, t.h, t.pixel_type);
-		textures_.push_back(std::move(tex));
+		if (t.file.empty()) {
+			textures_.emplace_back(std::shared_ptr<PolledTexture>(new PolledTexture(t.w, t.h, t.pixel_type)));
+		} else {
+			textures_.emplace_back(resources_.getTexture(t.file));
+		}
 	}
 
 	for (const auto& f: pipeline->framebuffers) {
@@ -131,7 +133,7 @@ VideoEngine::VideoEngine(Resources &resources, const std::shared_ptr<renderdesc:
 			if (index < 0 || index >= (int)textures_.size())
 				CRASH("Fb texture %d OOB %d (max %d)", i, index, (int)textures_.size());
 
-			if (!fb.attachColorTexture(i, textures_[index]))
+			if (!fb.attachColorTexture(i, textures_[index]->texture()))
 				CRASH("Framebuffer %d is not complete", (int)framebuffer_.size());
 		}
 
@@ -205,6 +207,9 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 
 	for (auto &p: programs_)
 		p.poll(frame_seq);
+
+	for (auto &t: textures_)
+		t->poll(frame_seq);
 
 	glViewport(0, 0, preview_width, preview_height);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -286,7 +291,7 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 					const int index = cmdtex.texture.index + pingpong[cmdtex.texture.pingpong];
 					// FIXME validate index
 					const int slot = (runtime.first_availabale_texture_slot++);
-					textures_[index].bind(slot);
+					textures_[index]->texture().bind(slot);
 					runtime.program->setUniform(cmdtex.name.c_str(), slot);
 					break;
 				}
