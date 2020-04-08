@@ -8,10 +8,12 @@
 namespace renderdesc {
 
 struct Texture {
-	int w, h;
+	int w = -1, h = -1;
 	PixelType pixel_type;
+	std::string file;
 
 	Texture(int w, int h, PixelType type) : w(w), h(h), pixel_type(type) {}
+	Texture(std::string file) : file(file) {}
 };
 
 #define MAX_TARGET_TEXTURES 4

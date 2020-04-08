@@ -7,12 +7,7 @@
 
 namespace renderdesc {
 
-static Expected<PixelType, std::string> pixelTypeFromValue(const yaml::Value &v) {
-	auto s_result = v.getString();
-	if (!s_result)
-		return Unexpected("Cannot read PixelType: " + s_result.error());
-
-	const std::string &s = s_result.value();
+static Expected<PixelType, std::string> pixelTypeFromString(const std::string& s) {
 	if (s == "RGBA8") return PixelType::RGBA8;
 #ifndef ATTO_PLATFORM_RPI
 	if (s == "RGBA16F") return PixelType::RGBA16F;
@@ -21,6 +16,14 @@ static Expected<PixelType, std::string> pixelTypeFromValue(const yaml::Value &v)
 	//if (s == "Depth24") return PixelType::Depth24;
 
 	return Unexpected(format("Unexpected pixel type %s", s.c_str()));
+}
+
+static Expected<PixelType, std::string> pixelTypeFromValue(const yaml::Value &v) {
+	auto s_result = v.getString();
+	if (!s_result)
+		return Unexpected("Cannot read PixelType: " + s_result.error());
+
+	return pixelTypeFromString(s_result.value());
 }
 
 static Expected<Command::Flag, std::string> flagFromValue(const yaml::Value &v) {
@@ -114,10 +117,22 @@ class Loader {
 		return ret;
 	}
 
-	void addTexture(const int index, Command::Index::Pingpong pp, const std::string &name, int width, int height, PixelType tex_type) {
+	Expected<void, std::string> registerTexture(int index, Command::Index::Pingpong pp, const std::string &name, Texture tex) {
+		if (index < 0) {
+			index = names_.texture.size();
+			assert(index == pipeline_.textures.size());
+		}
+
+		for (const auto &it: names_.texture) {
+			if (it == name)
+				return Unexpected("Already have texture with name " + name);
+		}
+
 		names_.texture.emplace_back(name);
-		pipeline_.textures.emplace_back(width, height, tex_type);
+		pipeline_.textures.emplace_back(tex);
 		indexes_.texture.emplace_back(Command::Index(index, pp));
+
+		return Expected<void, std::string>();
 	}
 
 	Expected<void, std::string> loadFramebuffers() {
@@ -186,11 +201,23 @@ class Loader {
 				const size_t tex_index = names_.texture.size();
 				assert(tex_index == pipeline_.textures.size());
 
+				Texture texture{width, height, tex_type};
 				if (pingpong) {
-					addTexture(tex_index, Command::Index::Pingpong::Ping, name + "@ping." + tex_name, width, height, tex_type);
-					addTexture(tex_index, Command::Index::Pingpong::Pong, name + "@pong." + tex_name, width, height, tex_type);
+					{
+						auto result = registerTexture(tex_index, Command::Index::Pingpong::Ping, name + "@ping." + tex_name, texture);
+						if (!result)
+							return Unexpected(result.error());
+					}
+
+					{
+						auto result = registerTexture(tex_index, Command::Index::Pingpong::Pong, name + "@pong." + tex_name, texture);
+						if (!result)
+							return Unexpected(result.error());
+					}
 				} else {
-					addTexture(tex_index, Command::Index::Pingpong::Fixed, name + "." + tex_name, width, height, tex_type);
+					auto result = registerTexture(tex_index, Command::Index::Pingpong::Fixed, name + "." + tex_name, texture);
+					if (!result)
+						return Unexpected(result.error());
 				}
 
 				fb.textures[fb.textures_count] = (int)tex_index;
@@ -220,6 +247,30 @@ class Loader {
 				names_.framebuffer.push_back(name);
 				indexes_.framebuffer.emplace_back(Command::Index(index));
 			}
+		}
+
+		return Expected<void, std::string>();
+	}
+
+	Expected<void,std::string> loadTextures() {
+		auto map_textures_result = root_.getMapping("textures");
+		if (!map_textures_result)
+			return Unexpected(map_textures_result.error());
+
+		for (const auto &[name, ytex]: map_textures_result.value().get().map()) {
+			auto yt_result = ytex.getMapping();
+			if (!yt_result)
+				return Unexpected("Texture " + name + " desc object is not a mapping");
+			const yaml::Mapping &yt = yt_result.value();
+
+#define GET_STRING(collection, varname, name) \
+			auto varname ## _result = collection.getString(name); \
+			if (!varname ## _result) \
+				return Unexpected(varname ## _result.error()); \
+			const auto varname = varname ## _result.value()
+
+			GET_STRING(yt, file, "file");
+			return registerTexture(-1, Command::Index::Pingpong::Fixed, name, Texture{file});
 		}
 
 		return Expected<void, std::string>();
@@ -364,6 +415,12 @@ public:
 	Expected<void, std::string> load() {
 		if (root_.hasKey("framebuffers")) {
 			auto result = loadFramebuffers();
+			if (!result)
+				return Unexpected(result.error());
+		}
+
+		if (root_.hasKey("textures")) {
+			auto result = loadTextures();
 			if (!result)
 				return Unexpected(result.error());
 		}

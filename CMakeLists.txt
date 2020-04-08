@@ -57,6 +57,7 @@ set(SOURCES
 	src/PolledPipelineDesc.cpp
 	src/PolledShaderProgram.cpp
 	src/PolledShaderSource.cpp
+	src/PolledTexture.cpp
 	src/Program.cpp
 	src/ProjectSettings.cpp
 	src/RenderDesc.cpp
