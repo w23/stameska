@@ -4,8 +4,9 @@
 #include "examples/imgui_impl_opengl2.h"
 #include "atto/app.h"
 
+#define FRAMES 512
 static struct {
-	float frame_times[512] = {};
+	float frame_times[FRAMES] = {};
 	unsigned frame_times_cursor = 0;
 } g;
 
@@ -36,7 +37,7 @@ void ui_mouse() {
 }
 
 void ui_paint(float dt) {
-	g.frame_times[g.frame_times_cursor] = dt;
+	g.frame_times[g.frame_times_cursor] = dt * 1000.f;
 	g.frame_times_cursor = (g.frame_times_cursor + 1) % COUNTOF(g.frame_times);
 	// if (ImGui::Button("Save"))
 	// 	    MySaveFunction();
@@ -58,7 +59,9 @@ void ui_paint(float dt) {
 	//bool show_demo_window = true;
   //ImGui::ShowDemoWindow(&show_demo_window);
 
-	ImGui::PlotLines("frame time, s", g.frame_times, COUNTOF(g.frame_times));
+	ImGui::PlotLines("frame time", g.frame_times, COUNTOF(g.frame_times), g.frame_times_cursor, NULL, FLT_MAX, FLT_MAX, ImVec2(0, 100));
+	ImGui::LabelText("", "dt: %.3fms", 1000.f * dt);
+	ImGui::LabelText("", "fps: %.3f", 1.f / dt);
 
   ImGui::Render();
   ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());

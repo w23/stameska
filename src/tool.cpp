@@ -198,6 +198,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 }
 
 static void pointer(ATimeUs, int dx, int dy, unsigned int dbtn) {
+	(void)dx; (void)dy; (void)dbtn;
 	ui_mouse();
 }
 
