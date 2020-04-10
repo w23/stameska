@@ -98,7 +98,7 @@ static void paint(ATimeUs ts, float dt) {
 	IScope *dummy = &dummy_scope;
 
 	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
-	ui_paint(dt);
+	ui_paint(dt, time_row, (float)loop.pos / (float)settings.audio.samplerate);
 }
 
 const int pattern_length = 16;
