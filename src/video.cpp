@@ -8,6 +8,8 @@
 #include "Export.h"
 #include "Resources.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #include <memory>
 
 static struct {
@@ -61,5 +63,13 @@ void video_export(const ExportSettings &settings, const IAutomation &automation)
 		if (!result)
 			MSG("Export error: %s", result.error().c_str());
 	}
+}
 
+void video_screenshot(const char *filename) {
+	if (!g.engine)
+		return;
+
+	const Image screen = g.engine->makeScreenshot();
+	const int result = stbi_write_jpg(filename, screen.w, screen.h, 3, screen.data.data(), 80);
+	MSG("screenshot written to file %s, result: %d", filename, result);
 }

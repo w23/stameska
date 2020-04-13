@@ -45,8 +45,6 @@ void ui_paint(float dt, float row, float sec) {
 	// ImGui::InputText("string", buf, IM_ARRAYSIZE(buf));
 	// ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
 
-	glUseProgram(0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	{
 		ImGui_ImplOpenGL2_NewFrame();
 		ImGuiIO& io = ImGui::GetIO();
@@ -66,6 +64,8 @@ void ui_paint(float dt, float row, float sec) {
 	ImGui::LabelText("", "row: %d", (int)row);
 	ImGui::LabelText("", "t: %02d:%06.3f", (int)(sec/60), fmodf(sec,60.f));
 
+	glUseProgram(0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
   ImGui::Render();
   ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 }
