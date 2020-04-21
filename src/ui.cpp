@@ -37,7 +37,7 @@ void ui_mouse() {
 	io.MouseDown[2] = !!(btn & AB_Middle);
 }
 
-void ui_paint(float dt, float row, float sec) {
+void ui_begin(float dt, float row, float sec) {
 	g.frame_times[g.frame_times_cursor] = dt * 1000.f;
 	g.frame_times_cursor = (g.frame_times_cursor + 1) % COUNTOF(g.frame_times);
 	// if (ImGui::Button("Save"))
@@ -55,15 +55,17 @@ void ui_paint(float dt, float row, float sec) {
 	}
 
 	//ImGui::Text("Hello, world %d", 123);
-	//bool show_demo_window = true;
-  //ImGui::ShowDemoWindow(&show_demo_window);
+	bool show_demo_window = true;
+  ImGui::ShowDemoWindow(&show_demo_window);
 
 	ImGui::PlotLines("frame time", g.frame_times, COUNTOF(g.frame_times), g.frame_times_cursor, NULL, 0, FLT_MAX, ImVec2(0, 100));
 	ImGui::LabelText("", "dt: %.3fms", 1000.f * dt);
 	ImGui::LabelText("", "fps: %.3f", 1.f / dt);
 	ImGui::LabelText("", "row: %d", (int)row);
 	ImGui::LabelText("", "t: %02d:%06.3f", (int)(sec/60), fmodf(sec,60.f));
+}
 
+void ui_end() {
 	glUseProgram(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
   ImGui::Render();

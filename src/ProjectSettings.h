@@ -17,7 +17,7 @@ struct ProjectSettings {
 	} audio;
 
 	struct Automation {
-		enum class Type { None, Basic, Rocket } type = Type::None;
+		enum class Type { None, Basic, Rocket, Gui } type = Type::None;
 		std::string filename;
 	} automation;
 

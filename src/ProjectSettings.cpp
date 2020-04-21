@@ -75,6 +75,8 @@ Expected<ProjectSettings, std::string> ProjectSettings::readFromFile(const char 
 		const std::string &ytype = type.value();
 		if (ytype == "Rocket")
 			settings.automation.type = Automation::Type::Rocket;
+		else if (ytype == "Gui")
+			settings.automation.type = Automation::Type::Gui;
 		else if (ytype == "Basic") {
 			settings.automation.type = Automation::Type::Basic;
 			auto filename = yautomation.getString("file");

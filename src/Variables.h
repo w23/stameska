@@ -39,6 +39,7 @@ public:
 
 	virtual void update(float row) = 0;
 	virtual void save() const = 0;
+	virtual void paint() {};
 
 	struct ExportedUniform {
 		int offset; // < 0 == constant

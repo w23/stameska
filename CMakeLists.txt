@@ -52,6 +52,7 @@ endif()
 set(SOURCES
 	src/AutomationBasic.cpp
 	src/Export.cpp
+	src/GuiScope.cpp
 	src/OpenGL.cpp
 	src/PolledFile.cpp
 	src/PolledPipelineDesc.cpp

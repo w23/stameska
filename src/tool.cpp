@@ -1,6 +1,7 @@
 #include "ProjectSettings.h"
 #include "Rocket.h"
 #include "AutomationBasic.h"
+#include "GuiScope.h"
 #include "Variables.h"
 
 #include "ui.h"
@@ -98,7 +99,10 @@ static void paint(ATimeUs ts, float dt) {
 	IScope *dummy = &dummy_scope;
 
 	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
-	ui_paint(dt, time_row, (float)loop.pos / (float)settings.audio.samplerate);
+	ui_begin(dt, time_row, (float)loop.pos / (float)settings.audio.samplerate);
+	if (automation)
+		automation->paint();
+	ui_end();
 }
 
 const int pattern_length = 16;
@@ -261,6 +265,9 @@ void attoAppInit(struct AAppProctable *proctable) {
 			break;
 		case ProjectSettings::Automation::Type::Basic:
 			automation.reset(new AutomationBasic((project_root/settings.automation.filename).string()));
+			break;
+		case ProjectSettings::Automation::Type::Gui:
+			automation.reset(new GuiScope());
 			break;
 		case ProjectSettings::Automation::Type::None:
 			MSG("Not using any automation");
