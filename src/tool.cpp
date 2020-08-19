@@ -3,15 +3,12 @@
 #include "AutomationBasic.h"
 #include "GuiScope.h"
 #include "Variables.h"
+#include "AudioCtl.h"
 
 #include "ui.h"
 #include "video.h"
 #include "utils.h"
 #include "filesystem.h"
-#ifndef ATTO_PLATFORM_RPI
-#define AUDIO_IMPLEMENT
-#include "aud_io.h"
-#endif
 #include "atto/app.h"
 #include "atto/platform.h"
 #include "OpenGL.h"
@@ -23,15 +20,7 @@
 
 static std::unique_ptr<IAutomation> automation;
 static ProjectSettings settings;
-
-static struct {
-	std::atomic<int> pos;
-	std::atomic<int> paused;
-	int start, end;
-	int set;
-} loop;
-
-bool mute = false;
+static std::unique_ptr<AudioCtl> g_audio_ctl;
 
 static struct { int w, h; } canvas_sizes[] = {
 	{1920, 1080},
@@ -41,28 +30,6 @@ static struct { int w, h; } canvas_sizes[] = {
 	{320, 180},
 };
 static int canvas_size_cursor = 0;
-
-#ifndef ATTO_PLATFORM_RPI
-static void audioCallback(void *unused, float *samples, int nsamples) {
-	(void)unused;
-	if (loop.paused || !settings.audio.data) {
-		memset(samples, 0, sizeof(*samples) * nsamples * 2);
-		if (!loop.paused)
-			loop.pos = (loop.pos + nsamples) % settings.audio.samples;
-		return;
-	}
-
-	for (int i = 0; i < nsamples; ++i) {
-		samples[i * 2] = settings.audio.data[loop.pos * 2];
-		samples[i * 2 + 1] = settings.audio.data[loop.pos * 2 + 1];
-		loop.pos = (loop.pos + 1) % settings.audio.samples;
-
-		if (loop.set == 2)
-			if (loop.pos >= loop.end)
-				loop.pos = loop.start;
-	}
-}
-#endif
 
 static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
@@ -77,29 +44,27 @@ static struct {
 } fpstat;
 
 static void paint(ATimeUs ts, float dt) {
-	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
-	const ATimeUs last_print_delta = ts - fpstat.last_print;
-	if (last_print_delta > 1000000) {
-		MSG("row=%f, avg fps: %.1f %.2f", time_row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
-		fpstat.frames = 0;
-		fpstat.last_print = ts;
-	}
+	const Timecode timecode = g_audio_ctl->timecode(ts, dt);
 
-	if (mute && !loop.paused) {
-		const int nsamples = dt * settings.audio.samplerate;
-		loop.pos = (loop.pos + nsamples) % settings.audio.samples;
-	}
+	{
+		const ATimeUs last_print_delta = ts - fpstat.last_print;
+		if (last_print_delta > 1000000) {
+			MSG("row=%f, avg fps: %.1f %.2f", timecode.row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
+			fpstat.frames = 0;
+			fpstat.last_print = ts;
+		}
 
-	++fpstat.frames;
+		++fpstat.frames;
+	}
 
 	if (automation)
-		automation->update(time_row);
+		automation->update(timecode.row);
 
 	DummyScope dummy_scope;
 	IScope *dummy = &dummy_scope;
 
-	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
-	ui_begin(dt, time_row, (float)loop.pos / (float)settings.audio.samplerate);
+	video_paint(timecode.row, dt, automation ? *automation.get() : *dummy);
+	ui_begin(dt, timecode.row, timecode.sec);
 	if (automation)
 		automation->paint();
 	ui_end();
@@ -107,19 +72,11 @@ static void paint(ATimeUs ts, float dt) {
 
 const int pattern_length = 16;
 
-static void timeShift(int rows) {
-	int next_pos = loop.pos + rows * settings.audio.samples_per_row;
-	const int loop_length = loop.end - loop.start;
-	while (next_pos < loop.start)
-		next_pos += loop_length;
-	while (next_pos > loop.end)
-		next_pos -= loop_length;
-	loop.pos = next_pos;
-	MSG("pos = %d", next_pos / settings.audio.samples_per_row);
-}
-
 static void key(ATimeUs ts, AKey key, int down) {
 	(void)ts;
+
+	if (g_audio_ctl->key(key, down))
+		return;
 
 	if (!down)
 		return;
@@ -156,43 +113,9 @@ static void key(ATimeUs ts, AKey key, int down) {
 		}
 		break;
 
-	case AK_Left:
-		timeShift(-pattern_length);
-		break;
-	case AK_Right:
-		timeShift(pattern_length);
-		break;
-	case AK_Up:
-		timeShift(4*pattern_length);
-		break;
-	case AK_Down:
-		timeShift(-4*pattern_length);
-		break;
-
 	case AK_E:
 		automation->save();
 		video_export(settings.exports, *automation.get());
-		break;
-
-	case AK_Space:
-		loop.paused ^= 1;
-		break;
-
-	case AK_Z:
-		switch (loop.set) {
-		case 0:
-			loop.start = ((loop.pos / settings.audio.samples_per_row) / pattern_length) * settings.audio.samples_per_row * pattern_length;
-			loop.set = 1;
-			break;
-		case 1:
-			loop.end = (((loop.pos / settings.audio.samples_per_row) + (pattern_length-1)) / pattern_length) * settings.audio.samples_per_row * pattern_length;
-			loop.set = 2;
-			break;
-		case 2:
-			loop.start = 0;
-			loop.end = settings.audio.samples;
-			loop.set = 0;
-		}
 		break;
 
 	default:
@@ -212,7 +135,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 	proctable->key = key;
 	proctable->pointer = pointer;
 
-	loop.set = 0;
 	fpstat.last_print = 0;
 	const char *settings_filename = nullptr;
 
@@ -223,7 +145,7 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	for (int i = 1; i < a_app_state->argc; ++i) {
 		const char *arg = a_app_state->argv[i];
-		if (strcmp(arg,"--mute") == 0) mute = true;
+		if (strcmp(arg,"--mute") == 0) g_audio_ctl.reset(new AudioCtl());
 		else settings_filename = arg;
 	}
 
@@ -239,27 +161,18 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	fs::path project_root = fs::path(settings_filename).remove_filename();
 
-	loop.start = 0;
-	loop.end = settings.audio.samples / settings.audio.samples_per_row;
-
-	loop.start *= settings.audio.samples_per_row;
-	loop.end *= settings.audio.samples_per_row;
-
-	loop.pos = loop.start;
-
-	MSG("float t = s / %f;", (float)settings.audio.samples_per_row * sizeof(float) * settings.audio.channels);
-
 	switch (settings.automation.type) {
 		case ProjectSettings::Automation::Type::Rocket:
 			automation.reset(new Rocket(
 				[](int pause) {
-					loop.paused = pause;
+					// FIXME loop.paused = pause;
 				},
 				[](int row) {
-					loop.pos = row * settings.audio.samples_per_row;
+					// FIXME loop.pos = row * settings.audio.samples_per_row;
 				},
 				[]() {
-					return !loop.paused.load();
+					// FIXME return !loop.paused.load();
+					return false;
 				}
 			));
 			break;
@@ -284,8 +197,6 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	ui_init();
 
-#ifndef ATTO_PLATFORM_RPI
-	if (!mute)
-		audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
-#endif
+	if (!g_audio_ctl)
+		g_audio_ctl.reset(new AudioCtl(settings));
 }
