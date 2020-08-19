@@ -70,8 +70,6 @@ static void paint(ATimeUs ts, float dt) {
 	ui_end();
 }
 
-const int pattern_length = 16;
-
 static void key(ATimeUs ts, AKey key, int down) {
 	(void)ts;
 
@@ -145,8 +143,9 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	for (int i = 1; i < a_app_state->argc; ++i) {
 		const char *arg = a_app_state->argv[i];
-		if (strcmp(arg,"--mute") == 0) g_audio_ctl.reset(new AudioCtl());
-		else settings_filename = arg;
+		// if (strcmp(arg,"--mute") == 0) g_audio_ctl.reset(new AudioCtl());
+		// else
+		settings_filename = arg;
 	}
 
 	{
@@ -197,6 +196,5 @@ void attoAppInit(struct AAppProctable *proctable) {
 
 	ui_init();
 
-	if (!g_audio_ctl)
-		g_audio_ctl.reset(new AudioCtl(settings));
+	g_audio_ctl.reset(new AudioCtl(settings));
 }

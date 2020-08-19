@@ -50,6 +50,7 @@ if(WIN32)
 endif()
 
 set(SOURCES
+	src/AudioCtl.cc
 	src/AutomationBasic.cpp
 	src/Export.cpp
 	src/GuiScope.cpp

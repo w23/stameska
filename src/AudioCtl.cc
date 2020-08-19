@@ -1,106 +1,104 @@
 #include "AudioCtl.h"
 
-#ifndef ATTO_PLATFORM_RPI
 #define AUDIO_IMPLEMENT
 #include "aud_io.h"
-#endif
 
-#ifndef ATTO_PLATFORM_RPI
-static void audioCallback(void *unused, float *samples, int nsamples) {
-	(void)unused;
-	if (loop.paused || !settings.audio.data) {
+AudioCtl::AudioCtl(const ProjectSettings& settings) noexcept
+	: settings_(settings.audio)
+	, end_(settings_.samples) {
+	MSG("float t = s / %f;", (float)settings_.samples_per_row * sizeof(float) * settings_.channels);
+	audioOpen(settings_.samplerate, settings_.channels, this, audioCallback, nullptr, nullptr);
+}
+
+bool AudioCtl::key(AKey key, bool pressed) noexcept {
+	switch (key) {
+	case AK_Left:
+		timeShift(-settings_.pattern_length);
+		break;
+	case AK_Right:
+		timeShift(settings_.pattern_length);
+		break;
+	case AK_Up:
+		timeShift(4*settings_.pattern_length);
+		break;
+	case AK_Down:
+		timeShift(-4*settings_.pattern_length);
+		break;
+
+	case AK_M:
+		muted_ = !muted_;
+		break;
+
+	case AK_Space:
+		paused_ ^= 1;
+		break;
+
+	case AK_Z:
+		switch (set_) {
+		case 0:
+			start_ = ((pos_ / settings_.samples_per_row) / settings_.pattern_length) * settings_.samples_per_row * settings_.pattern_length;
+			set_ = 1;
+			break;
+		case 1:
+			end_ = (((pos_ / settings_.samples_per_row) + (settings_.pattern_length-1)) / settings_.pattern_length) * settings_.samples_per_row * settings_.pattern_length;
+			set_ = 2;
+			break;
+		case 2:
+			start_ = 0;
+			end_ = settings_.samples;
+			set_ = 0;
+		}
+		break;
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+void AudioCtl::timeShift(int rows) noexcept {
+	int next_pos = pos_ + rows * settings_.samples_per_row;
+	const int loop_length = end_ - start_;
+	while (next_pos < start_)
+		next_pos += loop_length;
+	while (next_pos > end_)
+		next_pos -= loop_length;
+	pos_ = next_pos;
+	MSG("pos = %d", next_pos / settings_.samples_per_row);
+}
+
+Timecode AudioCtl::timecode(ATimeUs ts, float dt) noexcept {
+	// if (muted_ && !paused_) {
+	// 	const int nsamples = dt * settings_.samplerate;
+	// 	pos_ = (pos_ + nsamples) % settings_.samples;
+	// }
+
+	const float fpos = (float)pos_;
+	return Timecode {
+		fpos / (float)settings_.samples_per_row,
+		fpos / (float)settings_.samplerate,
+	};
+}
+
+void AudioCtl::audioCallback(void *actl, float *samples, int nsamples) noexcept {
+	((AudioCtl*)actl)->audioCallback(samples, nsamples);
+}
+
+void AudioCtl::audioCallback(float *samples, int nsamples) noexcept {
+	if (paused_ || !settings_.data || muted_) {
 		memset(samples, 0, sizeof(*samples) * nsamples * 2);
-		if (!loop.paused)
-			loop.pos = (loop.pos + nsamples) % settings.audio.samples;
+		if (!paused_)
+			pos_ = (pos_ + nsamples) % settings_.samples;
 		return;
 	}
 
 	for (int i = 0; i < nsamples; ++i) {
-		samples[i * 2] = settings.audio.data[loop.pos * 2];
-		samples[i * 2 + 1] = settings.audio.data[loop.pos * 2 + 1];
-		loop.pos = (loop.pos + 1) % settings.audio.samples;
+		samples[i * 2] = settings_.data[pos_ * 2];
+		samples[i * 2 + 1] = settings_.data[pos_ * 2 + 1];
+		pos_ = (pos_ + 1) % settings_.samples;
 
-		if (loop.set == 2)
-			if (loop.pos >= loop.end)
-				loop.pos = loop.start;
+		if (set_ == 2)
+			if (pos_ >= end_)
+				pos_ = start_;
 	}
-}
-#endif
-
-#ifndef ATTO_PLATFORM_RPI
-	if (!mute)
-		audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
-#endif
-
-static void timeShift(int rows) {
-	int next_pos = loop.pos + rows * settings.audio.samples_per_row;
-	const int loop_length = loop.end - loop.start;
-	while (next_pos < loop.start)
-		next_pos += loop_length;
-	while (next_pos > loop.end)
-		next_pos -= loop_length;
-	loop.pos = next_pos;
-	MSG("pos = %d", next_pos / settings.audio.samples_per_row);
-}
-
-	Timecode timecode() const noexcept {
-		const float fpos = (float)pos_;
-		return Timecode {
-			fpos / (float)settings_.samples_per_row,
-			fpos / (float)settings_.samplerate,
-		};
-	}
-
-	if (mute && !loop.paused) {
-		const int nsamples = dt * settings.audio.samplerate;
-		loop.pos = (loop.pos + nsamples) % settings.audio.samples;
-	}
-
-void AudioCtl::AudioCtl(ProjectSettings settings) {
-	loop.start = 0;
-	loop.end = settings.audio.samples / settings.audio.samples_per_row;
-
-	loop.start *= settings.audio.samples_per_row;
-	loop.end *= settings.audio.samples_per_row;
-
-	loop.pos = loop.start;
-
-	MSG("float t = s / %f;", (float)settings.audio.samples_per_row * sizeof(float) * settings.audio.channels);
-
-}
-
-void AudioCtl::key(AKey key, bool pressed) {
-	case AK_Left:
-		timeShift(-pattern_length);
-		break;
-	case AK_Right:
-		timeShift(pattern_length);
-		break;
-	case AK_Up:
-		timeShift(4*pattern_length);
-		break;
-	case AK_Down:
-		timeShift(-4*pattern_length);
-		break;
-
-	case AK_Space:
-		loop.paused ^= 1;
-		break;
-
-	case AK_Z:
-		switch (loop.set) {
-		case 0:
-			loop.start = ((loop.pos / settings.audio.samples_per_row) / pattern_length) * settings.audio.samples_per_row * pattern_length;
-			loop.set = 1;
-			break;
-		case 1:
-			loop.end = (((loop.pos / settings.audio.samples_per_row) + (pattern_length-1)) / pattern_length) * settings.audio.samples_per_row * pattern_length;
-			loop.set = 2;
-			break;
-		case 2:
-			loop.start = 0;
-			loop.end = settings.audio.samples;
-			loop.set = 0;
-		}
-		break;
 }
