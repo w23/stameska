@@ -18,13 +18,15 @@ public:
 
 	bool key(AKey key, bool pressed) noexcept;
 
+	void paint() noexcept;
+
 private:
 	const ProjectSettings::Audio& settings_;
 
 	bool muted_ = false;
 
 	std::atomic<int> pos_ = {0};
-	std::atomic<int> paused_ = {0};
+	bool paused_ = false;
 	int start_ = 0, end_ = 0;
 	int set_ = 0;
 

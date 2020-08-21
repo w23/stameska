@@ -67,6 +67,7 @@ static void paint(ATimeUs ts, float dt) {
 	ui_begin(dt, timecode.row, timecode.sec);
 	if (automation)
 		automation->paint();
+	g_audio_ctl->paint();
 	ui_end();
 }
 

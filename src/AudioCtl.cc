@@ -3,6 +3,8 @@
 #define AUDIO_IMPLEMENT
 #include "aud_io.h"
 
+#include "imgui.h"
+
 AudioCtl::AudioCtl(const ProjectSettings& settings) noexcept
 	: settings_(settings.audio)
 	, end_(settings_.samples) {
@@ -85,9 +87,10 @@ void AudioCtl::audioCallback(void *actl, float *samples, int nsamples) noexcept 
 }
 
 void AudioCtl::audioCallback(float *samples, int nsamples) noexcept {
-	if (paused_ || !settings_.data || muted_) {
+	const bool paused = paused_;
+	if (paused || !settings_.data || muted_) {
 		memset(samples, 0, sizeof(*samples) * nsamples * 2);
-		if (!paused_)
+		if (!paused)
 			pos_ = (pos_ + nsamples) % settings_.samples;
 		return;
 	}
@@ -101,4 +104,23 @@ void AudioCtl::audioCallback(float *samples, int nsamples) noexcept {
 			if (pos_ >= end_)
 				pos_ = start_;
 	}
+}
+
+void AudioCtl::paint() noexcept {
+	if (ImGui::Begin("AudioCtl")) {
+		ImGui::Checkbox("Pause", &paused_);
+
+		const Timecode tc = timecode(0,0);
+		ImGui::LabelText("Pos", "%.3f (%.3fsec)", tc.row, tc.sec);
+
+		if (settings_.data) {
+			if (ImGui::BeginChild("timeline", ImVec2(-1, 0.f), false, ImGuiWindowFlags_HorizontalScrollbar)) {
+				ImGui::SetNextItemWidth(-1);
+				ImGui::PlotLines("", settings_.data, settings_.samples, 0, "", -1.f, 1.f, ImVec2(settings_.samples / 4410.f, 100));
+			}
+			ImGui::EndChild();
+		}
+	}
+
+	ImGui::End();
 }
