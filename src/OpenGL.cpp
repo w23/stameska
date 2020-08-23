@@ -1,3 +1,4 @@
+#define GL_DECLARE_FUNC(type, name) PFNGL ## type ## PROC gl ## name;
 #include "OpenGL.h"
 
 #ifndef _WIN32

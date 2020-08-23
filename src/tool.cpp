@@ -4,9 +4,9 @@
 #include "GuiScope.h"
 #include "Variables.h"
 #include "AudioCtl.h"
+#include "VideoNode.h"
 
 #include "ui.h"
-#include "video.h"
 #include "utils.h"
 #include "filesystem.h"
 #include "atto/app.h"
@@ -21,20 +21,12 @@
 static std::unique_ptr<IAutomation> automation;
 static ProjectSettings settings;
 static std::unique_ptr<AudioCtl> g_audio_ctl;
-
-static struct { int w, h; } canvas_sizes[] = {
-	{1920, 1080},
-	{1280, 720},
-	{960, 540},
-	{640, 360},
-	{320, 180},
-};
-static int canvas_size_cursor = 0;
+static std::unique_ptr<VideoNode> g_video;
 
 static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
 	(void)w; (void)h;
-	video_preview_resize(a_app_state->width, a_app_state->height);
+	g_video->resize(a_app_state->width, a_app_state->height);
 	ui_resize();
 }
 
@@ -63,8 +55,10 @@ static void paint(ATimeUs ts, float dt) {
 	DummyScope dummy_scope;
 	IScope *dummy = &dummy_scope;
 
-	video_paint(timecode.row, dt, automation ? *automation.get() : *dummy);
+	g_video->paint(dt, timecode, automation ? *automation.get() : *dummy);
+
 	ui_begin(dt, timecode.row, timecode.sec);
+	g_video->paintUi();
 	if (automation)
 		automation->paint();
 	g_audio_ctl->paint();
@@ -86,6 +80,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 		aAppTerminate(0);
 		break;
 
+/*
 	case AK_Plus:
 	case AK_Equal:
 	case AK_KeypadPlus:
@@ -116,6 +111,7 @@ static void key(ATimeUs ts, AKey key, int down) {
 		automation->save();
 		video_export(settings.exports, *automation.get());
 		break;
+		*/
 
 	default:
 		MSG("Unknown key %d", key);
@@ -187,15 +183,8 @@ void attoAppInit(struct AAppProctable *proctable) {
 			break;
 	}
 
-	video_init(std::move(project_root), settings.video.config_filename);
-	MSG("Set resolution: %dx%d",
-		canvas_sizes[canvas_size_cursor].w,
-		canvas_sizes[canvas_size_cursor].h);
-	video_canvas_resize(
-		canvas_sizes[canvas_size_cursor].w,
-		canvas_sizes[canvas_size_cursor].h);
+	g_video.reset(new VideoNode(std::move(project_root), settings.video.config_filename));
+	g_audio_ctl.reset(new AudioCtl(settings));
 
 	ui_init();
-
-	g_audio_ctl.reset(new AudioCtl(settings));
 }

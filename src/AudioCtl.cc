@@ -13,6 +13,9 @@ AudioCtl::AudioCtl(const ProjectSettings& settings) noexcept
 }
 
 bool AudioCtl::key(AKey key, bool pressed) noexcept {
+	if (!pressed)
+		return false;
+
 	switch (key) {
 	case AK_Left:
 		timeShift(-settings_.pattern_length);

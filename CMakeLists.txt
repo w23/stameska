@@ -67,11 +67,11 @@ set(SOURCES
 	src/Rocket.cpp
 	src/ShaderSource.cpp
 	src/VideoEngine.cpp
+	src/VideoNode.cc
 	src/YamlParser.cpp
 	src/format.cpp
 	src/tool.cpp
 	src/ui.cpp
-	src/video.cpp
 )
 
 if (WIN32)

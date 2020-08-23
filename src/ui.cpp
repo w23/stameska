@@ -56,7 +56,7 @@ void ui_begin(float dt, float row, float sec) {
 
 	//ImGui::Text("Hello, world %d", 123);
 	bool show_demo_window = true;
-  ImGui::ShowDemoWindow(&show_demo_window);
+	ImGui::ShowDemoWindow(&show_demo_window);
 
 	ImGui::PlotLines("frame time", g.frame_times, COUNTOF(g.frame_times), g.frame_times_cursor, NULL, 0, FLT_MAX, ImVec2(0, 100));
 	ImGui::LabelText("", "dt: %.3fms", 1000.f * dt);
