@@ -36,7 +36,8 @@ void VideoNode::resize(int w, int h) {
 }
 
 VideoNode::VideoNode(fs::path project_root, std::string_view video_config_filename)
-    : preview{1280, 720}
+    : INode("VideoNode", "video")
+    , preview{1280, 720}
     , polled_pipeline(new PolledPipelineDesc(
         std::shared_ptr<PolledFile>(
             new PolledFile(
