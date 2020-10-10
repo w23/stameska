@@ -16,11 +16,10 @@ public:
     VideoNode(fs::path project_root, std::string_view video_config_filename);
     ~VideoNode();
 
-    virtual void visitChildren(std::function<void(INode*)> visitor) noexcept override {}
+    virtual void doUi() noexcept override;
 
     void resize(int w, int h);
     void paint(float dt, const Timecode& tc, IScope& automation);
-    void paintUi();
 
 private:
     int mode_index = 1;

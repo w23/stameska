@@ -69,12 +69,7 @@ void VideoNode::paint(float dt, const Timecode& tc, IScope &scope) {
 // 	}
 // }
 
-void VideoNode::paintUi() {
-    if  (!ImGui::Begin("Video")) {
-        ImGui::End();
-        return;
-    }
-
+void VideoNode::doUi() noexcept {
     if (ImGui::Combo("Resolution", &mode_index, c_mode_names, COUNTOF(c_mode_names))) {
      	if (engine)
             engine->setCanvasResolution(c_mode_res[mode_index].w, c_mode_res[mode_index].h);
@@ -90,6 +85,4 @@ void VideoNode::paintUi() {
         const int result = stbi_write_jpg(filename, screen.w, screen.h, 3, screen.data.data(), 80);
         MSG("screenshot written to file %s, result: %d", filename, result);
     }
-
-    ImGui::End();
 }

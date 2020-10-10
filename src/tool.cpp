@@ -13,6 +13,8 @@
 #include "atto/platform.h"
 #include "OpenGL.h"
 
+#include "imgui.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <memory>
@@ -79,12 +81,19 @@ public:
 
 		video_.paint(dt, timecode, automation_ ? *automation_.get() : *dummy);
 
-		ui_begin(dt, timecode.row, timecode.sec);
-		video_.paintUi();
-		if (automation_)
-			automation_->paint();
-		audio_.paint();
-		ui_end();
+		{
+			ui_begin(dt, timecode.row, timecode.sec);
+
+			if (ImGui::Begin("NodeTree")) {
+				visitChildren(nodeTreeFunc);
+			}
+			ImGui::End();
+
+			if (automation_)
+				automation_->paint();
+			audio_.paint();
+			ui_end();
+		}
 	}
 
 	void key(ATimeUs ts, AKey key, int down) {
@@ -139,8 +148,16 @@ public:
 		}
 	}
 
-	virtual void visitChildren(std::function<void(INode*)> visitor) noexcept override {
+	virtual void visitChildren(const std::function<void(INode*)>& visitor) noexcept override {
 		visitor(&video_);
+	}
+
+private:
+	static void nodeTreeFunc(INode* node) {
+		if (ImGui::TreeNode(node->getName().c_str())) {
+			node->doUi();
+			node->visitChildren(nodeTreeFunc);
+		}
 	}
 
 private:
