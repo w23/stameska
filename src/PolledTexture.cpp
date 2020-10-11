@@ -34,7 +34,7 @@ bool PolledTexture::poll(unsigned int poll_seq) {
 			return false;
 	}
 
-	texture_.upload(w, h, n, GL_UNSIGNED_BYTE, pixels);
+	texture_.upload(w, h, n, n, GL_UNSIGNED_BYTE, pixels);
 	stbi_image_free(pixels);
 	return endUpdate();
 }
