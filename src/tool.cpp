@@ -157,6 +157,7 @@ private:
 		if (ImGui::TreeNode(node->getName().c_str())) {
 			node->doUi();
 			node->visitChildren(nodeTreeFunc);
+			ImGui::TreePop();
 		}
 	}
 
