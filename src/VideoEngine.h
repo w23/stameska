@@ -13,6 +13,11 @@ class PolledTexture;
 class IScope;
 class Texture;
 
+struct Image {
+	int w, h;
+	std::vector<unsigned char> data;
+};
+
 class VideoEngine {
 public:
 	VideoEngine(Resources& resources, const std::shared_ptr<renderdesc::Pipeline> &pipeline);
@@ -20,6 +25,8 @@ public:
 
 	void setCanvasResolution(int w, int h);
 	void paint(unsigned int frame_seq, int w, int h, float row, float dt, IScope &scope);
+
+	Image makeScreenshot() const;
 
 private:
 	struct Framebuffer {

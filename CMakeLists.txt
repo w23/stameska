@@ -8,6 +8,14 @@ endif()
 
 add_subdirectory(3p/atto)
 
+add_library(imgui STATIC
+	3p/imgui/imgui_demo.cpp
+	3p/imgui/imgui_draw.cpp
+	3p/imgui/imgui_widgets.cpp
+	3p/imgui/examples/imgui_impl_opengl2.cpp
+	3p/imgui/imgui.cpp)
+target_include_directories(imgui PUBLIC 3p/imgui)
+
 set(YAML_SOURCES
 	3p/libyaml/src/api.c
 	3p/libyaml/src/loader.c
@@ -42,8 +50,10 @@ if(WIN32)
 endif()
 
 set(SOURCES
+	src/AudioCtl.cc
 	src/AutomationBasic.cpp
 	src/Export.cpp
+	src/GuiScope.cpp
 	src/OpenGL.cpp
 	src/PolledFile.cpp
 	src/PolledPipelineDesc.cpp
@@ -54,13 +64,14 @@ set(SOURCES
 	src/ProjectSettings.cpp
 	src/RenderDesc.cpp
 	src/Resources.cpp
-	src/ShaderSource.cpp
 	src/Rocket.cpp
+	src/ShaderSource.cpp
 	src/VideoEngine.cpp
+	src/VideoNode.cc
 	src/YamlParser.cpp
-	src/tool.cpp
 	src/format.cpp
-	src/video.cpp
+	src/tool.cpp
+	src/ui.cpp
 )
 
 if (WIN32)
@@ -79,6 +90,7 @@ else()
 	message(FATAL_ERROR "Not ported")
 endif()
 target_link_libraries(stameska
+	imgui
 	rocket
 	atto
 	Threads::Threads

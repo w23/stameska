@@ -1,216 +1,221 @@
 #include "ProjectSettings.h"
 #include "Rocket.h"
 #include "AutomationBasic.h"
+#include "GuiScope.h"
 #include "Variables.h"
+#include "AudioCtl.h"
+#include "VideoNode.h"
 
-#include "video.h"
+#include "ui.h"
 #include "utils.h"
 #include "filesystem.h"
-#ifndef ATTO_PLATFORM_RPI
-#define AUDIO_IMPLEMENT
-#include "aud_io.h"
-#endif
 #include "atto/app.h"
 #include "atto/platform.h"
+#include "OpenGL.h"
+
+#include "imgui.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <memory>
 #include <atomic>
 
-static std::unique_ptr<IAutomation> automation;
-static ProjectSettings settings;
 
-static struct {
-	std::atomic<int> pos;
-	std::atomic<int> paused;
-	int start, end;
-	int set;
-} loop;
+class RootNode : public INode {
+public:
+	RootNode(const fs::path &root, const ProjectSettings &settings)
+		: INode("RootNode", "/")
+		, video_(root, settings.video.config_filename)
+		, audio_(settings)
+	{
+		switch (settings.automation.type) {
+			case ProjectSettings::Automation::Type::Rocket:
+				automation_.reset(new Rocket(
+					[](int pause) {
+						// FIXME loop.paused = pause;
+					},
+					[](int row) {
+						// FIXME loop.pos = row * g_settings.audio.samples_per_row;
+					},
+					[]() {
+						// FIXME return !loop.paused.load();
+						return false;
+					}
+				));
+				break;
+			case ProjectSettings::Automation::Type::Basic:
+				automation_.reset(new AutomationBasic((root/settings.automation.filename).string()));
+				break;
+			case ProjectSettings::Automation::Type::Gui:
+				automation_.reset(new GuiScope());
+				break;
+			case ProjectSettings::Automation::Type::None:
+				MSG("Not using any automation");
+				break;
+		}
+	}
+    void resize(int w, int h) {
+		ui_resize();
+		video_.resize(w,h);
+	}
+	
+    void paint(ATimeUs ts, float dt) {
+		const Timecode timecode = audio_.timecode(ts, dt);
 
-bool mute = false;
+		{
+			const ATimeUs last_print_delta = ts - fpstat.last_print;
+			if (last_print_delta > 1000000) {
+				MSG("row=%f, avg fps: %.1f %.2f", timecode.row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
+				fpstat.frames = 0;
+				fpstat.last_print = ts;
+			}
 
-static struct { int w, h; } canvas_sizes[] = {
-	{1920, 1080},
-	{1280, 720},
-	{960, 540},
-	{640, 360},
-	{320, 180},
+			++fpstat.frames;
+		}
+
+		if (automation_)
+			automation_->update(timecode.row);
+
+		DummyScope dummy_scope;
+		IScope *dummy = &dummy_scope;
+
+		video_.paint(dt, timecode, automation_ ? *automation_.get() : *dummy);
+
+		{
+			ui_begin(dt, timecode.row, timecode.sec);
+
+			if (ImGui::Begin("NodeTree")) {
+				visitChildren(nodeTreeFunc);
+			}
+			ImGui::End();
+
+			if (automation_)
+				automation_->paint();
+			audio_.paint();
+			ui_end();
+		}
+	}
+
+	void key(ATimeUs ts, AKey key, int down) {
+		if (audio_.key(key, down))
+			return;
+
+		if (!down)
+			return;
+
+		switch (key) {
+		case AK_Esc:
+			//audioClose();
+			aAppTerminate(0);
+			break;
+
+	/*
+		case AK_Plus:
+		case AK_Equal:
+		case AK_KeypadPlus:
+			if (canvas_size_cursor > 0) {
+				--canvas_size_cursor;
+				MSG("Change resolution: %dx%d",
+					canvas_sizes[canvas_size_cursor].w,
+					canvas_sizes[canvas_size_cursor].h);
+				video_canvas_resize(
+					canvas_sizes[canvas_size_cursor].w,
+					canvas_sizes[canvas_size_cursor].h);
+			}
+			break;
+		case AK_Minus:
+		case AK_KeypadMinus:
+			if (canvas_size_cursor < (int)(COUNTOF(canvas_sizes) - 1)) {
+				++canvas_size_cursor;
+				MSG("Change resolution: %dx%d",
+					canvas_sizes[canvas_size_cursor].w,
+					canvas_sizes[canvas_size_cursor].h);
+				video_canvas_resize(
+					canvas_sizes[canvas_size_cursor].w,
+					canvas_sizes[canvas_size_cursor].h);
+			}
+			break;
+
+		case AK_E:
+			automation->save();
+			video_export(g_settings.exports, *automation.get());
+			break;
+			*/
+
+		default:
+			MSG("Unknown key %d", key);
+			break;
+		}
+	}
+
+	virtual void visitChildren(const std::function<void(INode*)>& visitor) noexcept override {
+		visitor(&video_);
+	}
+
+private:
+	static void nodeTreeFunc(INode* node) {
+		if (ImGui::TreeNode(node->getName().c_str())) {
+			node->doUi();
+			node->visitChildren(nodeTreeFunc);
+			ImGui::TreePop();
+		}
+	}
+
+private:
+	static std::string root_node_class_name_;
+	std::unique_ptr<IAutomation> automation_;
+	AudioCtl audio_;
+	VideoNode video_;
+
+	struct {
+		ATimeUs last_print = 0;
+		int frames = 0;
+	} fpstat;
 };
-static int canvas_size_cursor = 0;
 
-#ifndef ATTO_PLATFORM_RPI
-static void audioCallback(void *unused, float *samples, int nsamples) {
-	(void)unused;
-	if (loop.paused || !settings.audio.data) {
-		memset(samples, 0, sizeof(*samples) * nsamples * 2);
-		if (!loop.paused)
-			loop.pos = (loop.pos + nsamples) % settings.audio.samples;
-		return;
-	}
+std::string RootNode::root_node_class_name_ = "RootNode";
 
-	for (int i = 0; i < nsamples; ++i) {
-		samples[i * 2] = settings.audio.data[loop.pos * 2];
-		samples[i * 2 + 1] = settings.audio.data[loop.pos * 2 + 1];
-		loop.pos = (loop.pos + 1) % settings.audio.samples;
-
-		if (loop.set == 2)
-			if (loop.pos >= loop.end)
-				loop.pos = loop.start;
-	}
-}
-#endif
+static std::unique_ptr<RootNode> g_root;
+static ProjectSettings g_settings;
 
 static void resize(ATimeUs ts, unsigned int w, unsigned int h) {
 	(void)ts;
 	(void)w; (void)h;
-	video_preview_resize(a_app_state->width, a_app_state->height);
+	g_root->resize(a_app_state->width, a_app_state->height);
 }
-
-static struct {
-	ATimeUs last_print;
-	int frames;
-} fpstat;
 
 static void paint(ATimeUs ts, float dt) {
-	const float time_row = (float)loop.pos / settings.audio.samples_per_row;
-	const ATimeUs last_print_delta = ts - fpstat.last_print;
-	if (last_print_delta > 1000000) {
-		MSG("row=%f, avg fps: %.1f %.2f", time_row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
-		fpstat.frames = 0;
-		fpstat.last_print = ts;
-	}
-
-	if (mute && !loop.paused) {
-		const int nsamples = dt * settings.audio.samplerate;
-		loop.pos = (loop.pos + nsamples) % settings.audio.samples;
-	}
-
-	++fpstat.frames;
-
-	if (automation)
-		automation->update(time_row);
-
-	DummyScope dummy_scope;
-	IScope *dummy = &dummy_scope;
-
-	video_paint(time_row, dt, automation ? *automation.get() : *dummy);
-}
-
-const int pattern_length = 16;
-
-static void timeShift(int rows) {
-	int next_pos = loop.pos + rows * settings.audio.samples_per_row;
-	const int loop_length = loop.end - loop.start;
-	while (next_pos < loop.start)
-		next_pos += loop_length;
-	while (next_pos > loop.end)
-		next_pos -= loop_length;
-	loop.pos = next_pos;
-	MSG("pos = %d", next_pos / settings.audio.samples_per_row);
+	g_root->paint(ts, dt);
 }
 
 static void key(ATimeUs ts, AKey key, int down) {
 	(void)ts;
+	g_root->key(ts, key, down);
+}
 
-	if (!down)
-		return;
-
-	switch (key) {
-	case AK_Esc:
-		//audioClose();
-		aAppTerminate(0);
-		break;
-
-	case AK_Plus:
-	case AK_Equal:
-	case AK_KeypadPlus:
-		if (canvas_size_cursor > 0) {
-			--canvas_size_cursor;
-			MSG("Change resolution: %dx%d",
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
-			video_canvas_resize(
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
-		}
-		break;
-	case AK_Minus:
-	case AK_KeypadMinus:
-		if (canvas_size_cursor < (int)(COUNTOF(canvas_sizes) - 1)) {
-			++canvas_size_cursor;
-			MSG("Change resolution: %dx%d",
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
-			video_canvas_resize(
-				canvas_sizes[canvas_size_cursor].w,
-				canvas_sizes[canvas_size_cursor].h);
-		}
-		break;
-
-	case AK_Left:
-		timeShift(-pattern_length);
-		break;
-	case AK_Right:
-		timeShift(pattern_length);
-		break;
-	case AK_Up:
-		timeShift(4*pattern_length);
-		break;
-	case AK_Down:
-		timeShift(-4*pattern_length);
-		break;
-
-	case AK_E:
-		automation->save();
-		video_export(settings.exports, *automation.get());
-		break;
-
-	case AK_Space:
-		loop.paused ^= 1;
-		break;
-
-	case AK_Z:
-		switch (loop.set) {
-		case 0:
-			loop.start = ((loop.pos / settings.audio.samples_per_row) / pattern_length) * settings.audio.samples_per_row * pattern_length;
-			loop.set = 1;
-			break;
-		case 1:
-			loop.end = (((loop.pos / settings.audio.samples_per_row) + (pattern_length-1)) / pattern_length) * settings.audio.samples_per_row * pattern_length;
-			loop.set = 2;
-			break;
-		case 2:
-			loop.start = 0;
-			loop.end = settings.audio.samples;
-			loop.set = 0;
-		}
-		break;
-
-	default:
-		MSG("Unknown key %d", key);
-		break;
-	}
+static void pointer(ATimeUs, int dx, int dy, unsigned int dbtn) {
+	(void)dx; (void)dy; (void)dbtn;
+	ui_mouse();
 }
 
 void attoAppInit(struct AAppProctable *proctable) {
 	proctable->resize = resize;
 	proctable->paint = paint;
 	proctable->key = key;
+	proctable->pointer = pointer;
 
-	loop.set = 0;
-	fpstat.last_print = 0;
 	const char *settings_filename = nullptr;
 
 	if (a_app_state->argc < 2) {
-		MSG("Usage: %s <--mute> project.yaml", a_app_state->argv[0]);
+		MSG("Usage: %s project.yaml", a_app_state->argv[0]);
 		aAppTerminate(1);
 	}
 
 	for (int i = 1; i < a_app_state->argc; ++i) {
 		const char *arg = a_app_state->argv[i];
-		if (strcmp(arg,"--mute") == 0) mute = true;
-		else settings_filename = arg;
+		// if (strcmp(arg,"--mute") == 0) g_audio_ctl.reset(new AudioCtl());
+		// else
+		settings_filename = arg;
 	}
 
 	{
@@ -220,53 +225,10 @@ void attoAppInit(struct AAppProctable *proctable) {
 			aAppTerminate(2);
 		}
 
-		settings = std::move(settings_result).value();
+		g_settings = std::move(settings_result).value();
 	}
 
-	fs::path project_root = fs::path(settings_filename).remove_filename();
+	g_root.reset(new RootNode(fs::path(settings_filename).remove_filename(), g_settings));
 
-	loop.start = 0;
-	loop.end = settings.audio.samples / settings.audio.samples_per_row;
-
-	loop.start *= settings.audio.samples_per_row;
-	loop.end *= settings.audio.samples_per_row;
-
-	loop.pos = loop.start;
-
-	MSG("float t = s / %f;", (float)settings.audio.samples_per_row * sizeof(float) * settings.audio.channels);
-
-	switch (settings.automation.type) {
-		case ProjectSettings::Automation::Type::Rocket:
-			automation.reset(new Rocket(
-				[](int pause) {
-					loop.paused = pause;
-				},
-				[](int row) {
-					loop.pos = row * settings.audio.samples_per_row;
-				},
-				[]() {
-					return !loop.paused.load();
-				}
-			));
-			break;
-		case ProjectSettings::Automation::Type::Basic:
-			automation.reset(new AutomationBasic((project_root/settings.automation.filename).string()));
-			break;
-		case ProjectSettings::Automation::Type::None:
-			MSG("Not using any automation");
-			break;
-	}
-
-	video_init(std::move(project_root), settings.video.config_filename);
-	MSG("Set resolution: %dx%d",
-		canvas_sizes[canvas_size_cursor].w,
-		canvas_sizes[canvas_size_cursor].h);
-	video_canvas_resize(
-		canvas_sizes[canvas_size_cursor].w,
-		canvas_sizes[canvas_size_cursor].h);
-
-#ifndef ATTO_PLATFORM_RPI
-	if (!mute)
-		audioOpen(settings.audio.samplerate, settings.audio.channels, nullptr, audioCallback, nullptr, nullptr);
-#endif
+	ui_init();
 }

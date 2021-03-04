@@ -350,3 +350,9 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 	glRects(-1,-1,1,1);
 #endif
 } // void VideoEngine::paint()
+
+Image VideoEngine::makeScreenshot() const {
+	std::vector<unsigned char> data((size_t)(canvas_->width() * canvas_->height() * 3), 0);
+	glReadPixels(0, 0, canvas_->width(), canvas_->height(), GL_RGB, GL_UNSIGNED_BYTE, data.data());
+	return Image{canvas_->width(), canvas_->height(), std::move(data)};
+}
