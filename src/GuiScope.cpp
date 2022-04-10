@@ -28,8 +28,9 @@ Expected<IAutomation::ExportResult, std::string> GuiScope::writeExport(std::stri
 void GuiScope::paint() {
 	if (ImGui::Begin("Uniforms")) {
 		for(auto &[name, v]: vars_) {
-			ImGui::LabelText("", "%s", name.c_str());
-			ImGui::DragScalarN("", ImGuiDataType_Float, &v.value.x, v.components, .01f);
+			//MSG("%s -> %d", name.c_str(), v.components);
+			//ImGui::LabelText("", "%s", name.c_str());
+			ImGui::DragScalarN(name.c_str(), ImGuiDataType_Float, &v.value.x, v.components, .01f);
 		}
 	}
 

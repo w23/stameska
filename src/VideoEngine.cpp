@@ -173,7 +173,7 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 		if (internal_uniforms.find(it.first) != internal_uniforms.end())
 			continue;
 
-		const Value v = scope.getValue(it.first, static_cast<int>(it.second.type) + 1);
+		const Value v = scope.getValue(it.first, static_cast<int>(it.second.type));
 		switch (it.second.type) {
 			case shader::UniformType::Float:
 				p.setUniform(it.first.c_str(), v.x);
