@@ -250,3 +250,4 @@ audio.raw
 tags
 build/
 compile_commands.json
+.cache
