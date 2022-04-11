@@ -91,6 +91,8 @@ void RootNode::paint(ATimeUs ts, float dt) {
 }
 
 void RootNode::key(ATimeUs ts, AKey key, int down) {
+	ui_key(key, down);
+
 	if (audio_.key(key, down))
 		return;
 
