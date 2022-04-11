@@ -65,7 +65,7 @@ set(SOURCES
 	src/RenderDesc.cpp
 	src/Resources.cpp
 	src/Rocket.cpp
-	src/Root.cc
+	src/RootNode.cc
 	src/ShaderSource.cpp
 	src/VideoEngine.cpp
 	src/VideoNode.cc
