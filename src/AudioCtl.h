@@ -20,6 +20,10 @@ public:
 
 	void paint() noexcept;
 
+	void pause(int pause) { paused_ = !!pause; }
+	void setTimeRow(int row) { pos_ = settings_.samples_per_row * row; }
+	bool paused() { return paused_; }
+
 private:
 	const ProjectSettings::Audio& settings_;
 

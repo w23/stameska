@@ -20,15 +20,17 @@ RootNode::RootNode(const fs::path &root, const ProjectSettings &settings)
 	switch (settings.automation.type) {
 		case ProjectSettings::Automation::Type::Rocket:
 			automation_.reset(new Rocket(
-				[](int pause) {
-					// FIXME loop.paused = pause;
+				[this](int pause) {
+					MSG("pause %d", pause);
+					audio_.pause(pause);
 				},
-				[](int row) {
+				[this](int row) {
+					MSG("row %d", row);
+					audio_.setTimeRow(row);
 					// FIXME loop.pos = row * g_settings.audio.samples_per_row;
 				},
-				[]() {
-					// FIXME return !loop.paused.load();
-					return false;
+				[this]() {
+					return audio_.paused();
 				}
 			));
 			break;
