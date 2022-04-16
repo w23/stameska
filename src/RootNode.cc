@@ -62,7 +62,7 @@ void RootNode::paint(ATimeUs ts, float dt) {
 	{
 		const ATimeUs last_print_delta = ts - fpstat.last_print;
 		if (last_print_delta > 1000000) {
-			MSG("row=%f, avg fps: %.1f %.2f", timecode.row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
+			//MSG("row=%f, avg fps: %.1f %.2f", timecode.row, fpstat.frames * 1000000.f / last_print_delta, dt*1e3f);
 			fpstat.frames = 0;
 			fpstat.last_print = ts;
 		}

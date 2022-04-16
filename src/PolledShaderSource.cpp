@@ -11,7 +11,7 @@ PolledShaderSource::PolledShaderSource(Resources &resources, const std::shared_p
 }
 
 bool PolledShaderSource::readSources() {
-		MSG("Loaded %.*s", PRISV(file_->string()));
+		//MSG("Loaded %.*s", PRISV(file_->string()));
 		auto load_result = shader::Source::load(file_->string());
 		if (!load_result.hasValue()) {
 			MSG("Cannot load shader source '%.*s': %s", PRISV(file_->string()), load_result.error().c_str());

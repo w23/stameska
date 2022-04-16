@@ -43,7 +43,7 @@ public:
 					sv.remove_prefix(line_end + add);
 				}
 			} else {
-				error_string = src;
+				//error_string = src;
 			}
 
 			return Unexpected(format("Shader compilation error: %s", error_string.c_str()));
