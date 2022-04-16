@@ -214,6 +214,9 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 	glViewport(0, 0, preview_width, preview_height);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	// FIXME
+	glEnable(GL_POINT_SPRITE);
+
 #ifndef ATTO_PLATFORM_RPI
 	if (!canvas_) {
 		glViewport(0, 0, preview_width, preview_height);

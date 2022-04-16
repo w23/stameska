@@ -86,3 +86,7 @@ void VideoNode::doUi() noexcept {
 		MSG("screenshot written to file %s, result: %d", filename, result);
 	}
 }
+
+const renderdesc::Pipeline& VideoNode::getPipelineDesc() const {
+	return *polled_pipeline->get().get();
+}

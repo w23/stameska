@@ -80,7 +80,7 @@ void Rocket::save() const {
 }
 
 #if 0
-static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::string &name) {
+static Expected<std::string, std::string> writeUniformTrackData(const std::string &name) {
 	std::string filename = "sync_" + name + ".track";
 
 	const auto in = std::unique_ptr<FILE, decltype(&fclose)>(fopen(filename.c_str(), "rb"), &fclose);
@@ -98,12 +98,13 @@ static Expected<void, std::string> writeUniformTrackData(FILE *out, const std::s
 	if (size != read)
 		return Unexpected(format("Could read only %d of %d bytes from '%s'", (int)read, (int)size, filename.c_str()));
 
-	fprintf(out, "\t{\"%s\", %d, \"", filename.c_str(), (int)size);
+	std::string out;
+	out += format("\t{\"%s\", %d, \"", filename.c_str(), (int)size);
 	for (const auto &c: data)
-		fprintf(out, "\\x%x", c);
-	fprintf(out, "\", 0},\n");
+		out += format("\\x%x", c);
+	out += format("\", 0},\n");
 
-	return Expected<void, std::string>();
+	return Expected<std::string, std::string>(out);
 }
 #endif
 
@@ -143,7 +144,8 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 		}
 	}
 
-	fprintf(f.get(), "static struct RocketTrack rocket_tracks[%d] = {\n", rocket_track_index);
+	std::string out;
+	out += format("static struct RocketTrack rocket_tracks[%d] = {\n", rocket_track_index);
 	for (size_t i = 0; i < rocket_tracks.size(); ++i) {
 		const auto &name = rocket_tracks[i];
 		const auto type = rocket_tracks_details[i].second;
@@ -154,32 +156,33 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 	auto result = c; \
 	if (!result) \
 		return Unexpected(result.error()); \
+	out += result.value(); \
 } while (0)
-				CALL_CHECK(writeUniformTrackData(f.get(), name));
+				CALL_CHECK(writeUniformTrackData(name));
 				break;
 			case shader::UniformType::Vec2:
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
+				CALL_CHECK(writeUniformTrackData(name + ".x"));
+				CALL_CHECK(writeUniformTrackData(name + ".y"));
 				break;
 			case shader::UniformType::Vec3:
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".z"));
+				CALL_CHECK(writeUniformTrackData(name + ".x"));
+				CALL_CHECK(writeUniformTrackData(name + ".y"));
+				CALL_CHECK(writeUniformTrackData(name + ".z"));
 				break;
 			case shader::UniformType::Vec4:
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".x"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".y"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".z"));
-				CALL_CHECK(writeUniformTrackData(f.get(), name + ".w"));
+				CALL_CHECK(writeUniformTrackData(name + ".x"));
+				CALL_CHECK(writeUniformTrackData(name + ".y"));
+				CALL_CHECK(writeUniformTrackData(name + ".z"));
+				CALL_CHECK(writeUniformTrackData(name + ".w"));
 				break;
 		}
 	}
-	fprintf(f.get(), "};\n\n");
+	out += "};\n\n";
 
 	if (rocket_track_index)
-		fprintf(f.get(), "static const struct sync_track *tracks[%d];\n", rocket_track_index);
+		out += format("static const struct sync_track *tracks[%d];\n", rocket_track_index);
 
-	// fprintf(f.get(), "\nstatic void videoInit() {\n");
+	// out += format("\nstatic void videoInit() {\n");
 
 	rocket_track_index = 0;
 	for (size_t i = 0; i < rocket_tracks.size(); ++i) {
@@ -188,22 +191,22 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 
 		switch (type) {
 			case shader::UniformType::Float:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, name.c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, name.c_str());
 				break;
 			case shader::UniformType::Vec2:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
 				break;
 			case shader::UniformType::Vec3:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
 				break;
 			case shader::UniformType::Vec4:
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
-				fprintf(f.get(), "\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".w").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".x").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".y").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".z").c_str());
+				out += format("\ttracks[%d] = sync_get_track(rocket_device, \"%s\");\n", rocket_track_index++, (name + ".w").c_str());
 				break;
 			}
 	}
@@ -216,17 +219,17 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 			const auto &index_type = rocket_tracks_details[track_index];
 			switch (decl.type) {
 				case shader::UniformType::Float:
-					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"%s\"), sync_get_val(tracks[%d], t));\n", name.c_str(), index_type.first);
+					out += format("\tglUniform1f(glGetUniformLocation(current_program, \"%s\"), sync_get_val(tracks[%d], t));\n", name.c_str(), index_type.first);
 					break;
 				case shader::UniformType::Vec2:
-					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"%s\"), "
+					out += format("\tglUniform2f(glGetUniformLocation(current_program, \"%s\"), "
 							"sync_get_val(tracks[%d], t), "
 							"sync_get_val(tracks[%d], t));\n", name.c_str(),
 							index_type.first,
 							index_type.first+1);
 					break;
 				case shader::UniformType::Vec3:
-					fprintf(f.get(), "\tglUniform3f(glGetUniformLocation(current_program, \"%s\"), "
+					out += format("\tglUniform3f(glGetUniformLocation(current_program, \"%s\"), "
 							"sync_get_val(tracks[%d], t), "
 							"sync_get_val(tracks[%d], t), "
 							"sync_get_val(tracks[%d], t));\n", name.c_str(),
@@ -235,7 +238,7 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 							index_type.first+2);
 					break;
 				case shader::UniformType::Vec4:
-					fprintf(f.get(), "\tglUniform4f(glGetUniformLocation(current_program, \"%s\"), "
+					out += format("\tglUniform4f(glGetUniformLocation(current_program, \"%s\"), "
 							"sync_get_val(tracks[%d], t), "
 							"sync_get_val(tracks[%d], t), "
 							"sync_get_val(tracks[%d], t), "
@@ -248,6 +251,8 @@ Expected<IAutomation::ExportResult, std::string> Rocket::writeExport(std::string
 				}
 		}
 	}
+
+	return Expected<std::string, std::string>(out);
 #endif
 }
 

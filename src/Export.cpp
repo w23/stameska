@@ -38,9 +38,10 @@ static Expected<void, std::string> writeFile(const std::string &filename, const 
 	return Expected<void, std::string>();
 }
 
-static Expected<void, std::string> writeShaderSource(FILE *main, const std::string &name, const std::string &src, const ExportSettings &settings) {
+static Expected<void, std::string> writeShaderSource(FILE *main, const std::string &origin_filename, const std::string &name, const std::string &src, const ExportSettings &settings) {
 	if (!settings.shader_path.empty()) {
-		const std::string filename = settings.shader_path + name + settings.shader_suffix;
+		const std::string filename = settings.shader_path + origin_filename;
+		MSG("shader %s -> %s", name.c_str(), filename.c_str());
 		return writeFile(filename, src.data(), src.size());
 	} else {
 		fprintf(main, "static const char %s[] =\n", name.c_str());
@@ -141,9 +142,10 @@ Expected<void, std::string> exportC(Resources &res, const ExportSettings &settin
 		if (!shader)
 			return Unexpected(format("Cannot open shader '%s'", s.c_str()));
 
-		if (!shader->poll(1))
-			return Unexpected(format("Cannot read shader '%s'", s.c_str()));
+		// if (!shader->poll(1))
+		// 	return Unexpected(format("Cannot read shader '%s'", s.c_str()));
 
+		MSG("%s: uniforms: %d", s.c_str(), (int)shader->flatSource().uniforms().size());
 		const auto result = shader::appendUniforms(global_uniforms, shader->flatSource().uniforms());
 		if (!result)
 			return Unexpected("Error merging uniforms from vertex: " + result.error());
@@ -165,7 +167,7 @@ Expected<void, std::string> exportC(Resources &res, const ExportSettings &settin
 		if (!shader_source)
 			return Unexpected(format("Cannot preporcess shader '%s': %s", s.c_str(), shader_source.error().c_str()));
 
-		if (auto result = writeShaderSource(f.get(), vname, shader_source.value(), settings)) {}
+		if (auto result = writeShaderSource(f.get(), s, vname, shader_source.value(), settings)) {}
 		else
 			return Unexpected(format("Cannot write shader '%s': %s", vname.c_str(), result.error().c_str()));
 	}

@@ -4,6 +4,7 @@
 #include "AutomationBasic.h"
 #include "GuiScope.h"
 #include "Variables.h"
+#include "Export.h"
 
 #include "OpenGL.h"
 
@@ -82,6 +83,19 @@ void RootNode::paint(ATimeUs ts, float dt) {
 
 		if (ImGui::Begin("NodeTree")) {
 			visitChildren(nodeTreeFunc);
+
+			// FIXME export module?
+			if (ImGui::Button("Export")) {
+				ExportSettings settings;
+				settings.shader_path = "export/";
+				settings.c_source = "export/intro.c";
+				
+				const auto exported = exportC(video_.getResources(), settings, video_.getPipelineDesc(), *automation_.get());
+
+				if (!exported) {
+					MSG("Export failed: %s", exported.error().c_str());
+				}
+			}
 		}
 		ImGui::End();
 

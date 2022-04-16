@@ -38,6 +38,9 @@ private:
 		Chunk(Uniform, const std::string& string) : type(Type::Uniform), string(string) {}
 	};
 
+	bool readSources();
+	bool constructShader();
+
 	int version_ = 0;
 	std::vector<Chunk> chunks_;
 	shader::UniformsMap uniforms_;

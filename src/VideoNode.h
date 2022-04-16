@@ -11,6 +11,8 @@ class VideoEngine;
 class Resources;
 class PolledPipelineDesc;
 
+namespace renderdesc { class Pipeline; }
+
 class VideoNode : public INode {
 public:
     VideoNode(fs::path project_root, std::string_view video_config_filename);
@@ -20,6 +22,9 @@ public:
 
     void resize(int w, int h);
     void paint(float dt, const Timecode& tc, IScope& automation);
+
+    Resources& getResources() { return *resources; }
+    const renderdesc::Pipeline& getPipelineDesc() const;
 
 private:
     int mode_index = 1;
