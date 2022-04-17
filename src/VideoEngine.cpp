@@ -320,7 +320,7 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 				}
 				break;
 			case renderdesc::Command::Op::Disable:
-				switch (cmd.enable.flag) {
+				switch (cmd.disable.flag) {
 					case renderdesc::Command::Flag::DepthTest:
 						glDisable(GL_DEPTH_TEST);
 						break;

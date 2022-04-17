@@ -356,9 +356,23 @@ class Loader {
 						Command::BindTexture(yuniform, index_result.value()));
 				}
 			} else if (op == "clear") {
-				// FIXME read actual values
+				auto colors = yargs.getSequence();
+				if (!colors)
+					return Unexpected("Cannot read clear colors: " + colors.error());
+				const auto& color_seq = colors.value().get();
+				if (color_seq.size() != 4)
+					return Unexpected(format("Clear colors should have 4 components instead of %d", color_seq.size()));
+				
+				float color[4];
+				for (int i = 0; i < 4; ++i) {
+					const auto value = color_seq[i].getFloat();
+					if (!value)
+						return Unexpected(format("Cannot read clear color component %d: %s", i, value.error().c_str()));
+					color[i] = value.value();
+				}
+
 				pipeline_.commands.emplace_back(
-					Command::Clear(0, 0, 0, 0, true));
+					Command::Clear(color[0], color[1], color[2], color[3], true));
 			} else if (op == "enable") {
 				auto flag_result = flagFromValue(yargs);
 				if (!flag_result)
