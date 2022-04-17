@@ -246,10 +246,14 @@ Expected<void, std::string> exportC(Resources &res, const ExportSettings &settin
 
 	fprintf(f.get(), "}\n\n");
 
+	// TODO actual count
+	fprintf(f.get(), "static const GLuint draw_buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};\n\n");
+
 	fprintf(f.get(), "static void videoPaint(float t) {\n");
 
 	const char *pingpong[3] = {"", "+ping", "+pong"};
 	fprintf(f.get(),
+		"\tint current_program;\n"
 		"\tstatic unsigned int frame_seq = 0;\n"
 		"\t++frame_seq;\n"
 		"\tconst int ping = (int)(frame_seq&1), pong = (int)((frame_seq+1)&1);\n");
@@ -281,6 +285,7 @@ Expected<void, std::string> exportC(Resources &res, const ExportSettings &settin
 					const int pi = cmdp.program.index;
 					fprintf(f.get(), "\tcurrent_program = programs[%d];\n", pi);
 					fprintf(f.get(), "\tglUseProgram(current_program);\n");
+					fprintf(f.get(), "\tglUniform1fv(glGetUniformLocation(current_program, \"u\"), AUTOMATION_SIZE, uniforms);\n");
 					fprintf(f.get(), "\tglUniform2f(glGetUniformLocation(current_program, \"R\"), %d, %d);\n", settings.width, settings.height);
 					fprintf(f.get(), "\tglUniform1f(glGetUniformLocation(current_program, \"t\"), t);\n");
 
@@ -321,7 +326,7 @@ Expected<void, std::string> exportC(Resources &res, const ExportSettings &settin
 				}
 				break;
 			case renderdesc::Command::Op::Disable:
-				switch (cmd.enable.flag) {
+				switch (cmd.disable.flag) {
 					case renderdesc::Command::Flag::DepthTest:
 						fprintf(f.get(), "\tglDisable(GL_DEPTH_TEST);\n");
 						break;
