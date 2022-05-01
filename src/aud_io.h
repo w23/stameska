@@ -172,11 +172,11 @@ int audioOpen(int samplerate, int channels, void *userdata, audio_callback_f acb
 	const WAVEFORMATEX wave_fmt =
 	{
 		WAVE_FORMAT_IEEE_FLOAT,
-		channels,
-		samplerate,
-		samplerate * channels * sizeof(float), // bytes per sec
-		sizeof(float) * channels,             // block alignment;
-		sizeof(float) * 8,             // bits per sample
+		(WORD)channels,
+		(DWORD)samplerate,
+		(DWORD)(samplerate * channels * sizeof(float)), // bytes per sec
+		(WORD)(sizeof(float) * channels),             // block alignment;
+		(DWORD)sizeof(float) * 8,             // bits per sample
 		0                                    // extension not needed
 	};
 	waveOutOpen(&audio_.wout, WAVE_MAPPER, &wave_fmt, (DWORD_PTR)waveCallback, (DWORD_PTR)audio_.sem, CALLBACK_FUNCTION);

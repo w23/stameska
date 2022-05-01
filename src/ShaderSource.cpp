@@ -114,7 +114,8 @@ Expected<Source,std::string> Source::load(std::string_view raw_source) {
 	} // for all preprocessor commands
 
 	const auto subchunk_end = raw_source.end();
-	current_chunk += std::string_view(&*subchunk_begin, subchunk_end - subchunk_begin);
+	if (subchunk_begin != subchunk_end)
+		current_chunk += std::string_view(&*subchunk_begin, subchunk_end - subchunk_begin);
 	chunks.emplace_back(Chunk::Type::String, std::move(current_chunk));
 
 	return Source(version, std::move(chunks), std::move(uniforms));

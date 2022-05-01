@@ -20,7 +20,33 @@ public:
 			char info[2048];
 			glGetShaderInfoLog(name, COUNTOF(info), &length, info);
 			glDeleteShader(name);
-			return Unexpected(format("%s\nShader compilation error: %s", c_src, info));
+
+			std::string error_string = info;
+
+			const int context = 3;
+			int mod, line, pos;
+			if (3 == sscanf(info, "%d:%d(%d)", &mod, &line, &pos)) {
+				std::string_view sv(src);
+				for (int i = 1; !sv.empty() && i < line + context; ++i) {
+					size_t line_end = sv.find("\n");
+					int add = 0;
+
+					if (line_end == std::string::npos)
+						line_end = sv.size();
+					else add = 1;
+
+					if (i >= line - context) {
+						error_string += format("\n%d: ", i);
+						error_string.append(sv.begin(), sv.begin() + line_end);
+					}
+
+					sv.remove_prefix(line_end + add);
+				}
+			} else {
+				//error_string = src;
+			}
+
+			return Unexpected(format("Shader compilation error: %s", error_string.c_str()));
 		}
 
 		return Shader(name);

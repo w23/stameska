@@ -173,7 +173,7 @@ static void useProgram(const PolledShaderProgram& program, int w, int h, float r
 		if (internal_uniforms.find(it.first) != internal_uniforms.end())
 			continue;
 
-		const Value v = scope.getValue(it.first, static_cast<int>(it.second.type) + 1);
+		const Value v = scope.getValue(it.first, static_cast<int>(it.second.type));
 		switch (it.second.type) {
 			case shader::UniformType::Float:
 				p.setUniform(it.first.c_str(), v.x);
@@ -213,6 +213,9 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 
 	glViewport(0, 0, preview_width, preview_height);
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	// FIXME
+	glEnable(GL_POINT_SPRITE);
 
 #ifndef ATTO_PLATFORM_RPI
 	if (!canvas_) {
@@ -317,7 +320,7 @@ void VideoEngine::paint(unsigned int frame_seq, int preview_width, int preview_h
 				}
 				break;
 			case renderdesc::Command::Op::Disable:
-				switch (cmd.enable.flag) {
+				switch (cmd.disable.flag) {
 					case renderdesc::Command::Flag::DepthTest:
 						glDisable(GL_DEPTH_TEST);
 						break;

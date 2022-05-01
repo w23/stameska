@@ -6,3 +6,5 @@ audio:
   duration_sec: 60
   bpm: 120
   rows_per_beat: 8
+automation:
+  type: Gui

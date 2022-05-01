@@ -6,14 +6,12 @@ PolledShaderSource::PolledShaderSource(Resources &resources, const std::shared_p
 	: resources_(resources)
 	, file_(file)
 {
+	if (readSources())
+		constructShader();
 }
 
-bool PolledShaderSource::poll(unsigned int poll_seq) {
-	if (!beginUpdate(poll_seq))
-		return false;
-
-	bool need_full_rebuild = false;
-	if (file_.poll(poll_seq)) {
+bool PolledShaderSource::readSources() {
+		//MSG("Loaded %.*s", PRISV(file_->string()));
 		auto load_result = shader::Source::load(file_->string());
 		if (!load_result.hasValue()) {
 			MSG("Cannot load shader source '%.*s': %s", PRISV(file_->string()), load_result.error().c_str());
@@ -40,19 +38,10 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 		version_ = src.version();
 		chunks_ = std::move(chunks);
 		uniforms_ = src.uniforms();
-		need_full_rebuild = true;
-	}
+		return true;
+}
 
-	for (auto &chunk: chunks_) {
-		if (Chunk::Type::Include == chunk.type) {
-			if (chunk.include.poll(poll_seq))
-				need_full_rebuild = true;
-		}
-	}
-
-	if (!need_full_rebuild)
-		return false;
-
+bool PolledShaderSource::constructShader() {
 	std::vector<shader::Source::Chunk> flat_chunks;
 	shader::UniformsMap uniforms = uniforms_;
 	int version = version_;
@@ -85,6 +74,32 @@ bool PolledShaderSource::poll(unsigned int poll_seq) {
 
 	version_ = version;
 	flat_source_ = shader::Source(version, std::move(flat_chunks), std::move(uniforms));
+	return true;
+}
+
+bool PolledShaderSource::poll(unsigned int poll_seq) {
+	if (!beginUpdate(poll_seq))
+		return false;
+
+	bool need_full_rebuild = false;
+	if (file_.poll(poll_seq)) {
+		if (!readSources())
+			return false;
+
+		need_full_rebuild = true;
+	}
+
+	for (auto &chunk: chunks_) {
+		if (Chunk::Type::Include == chunk.type) {
+			if (chunk.include.poll(poll_seq))
+				need_full_rebuild = true;
+		}
+	}
+
+	if (!need_full_rebuild)
+		return false;
+
+	constructShader();
 
 	return endUpdate();
 }

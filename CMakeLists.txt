@@ -65,6 +65,7 @@ set(SOURCES
 	src/RenderDesc.cpp
 	src/Resources.cpp
 	src/Rocket.cpp
+	src/RootNode.cc
 	src/ShaderSource.cpp
 	src/VideoEngine.cpp
 	src/VideoNode.cc
@@ -86,6 +87,7 @@ if (LINUX)
 	target_link_libraries(stameska ALSA::ALSA stdc++fs)
 elseif(WIN32)
 	target_link_libraries(stameska winmm)
+	target_compile_definitions(stameska PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
 	message(FATAL_ERROR "Not ported")
 endif()

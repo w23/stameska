@@ -67,9 +67,16 @@ public:
 
 	Expected<long int, std::string> getInt() const {
 		if (type_ != Type::String)
-			return Unexpected<std::string>("Value is not of String type");
+			return Unexpected<std::string>("Value is not of String type cannot be parsed as Int");
 
 		return intFromString(string_);
+	}
+
+	Expected<float, std::string> getFloat() const {
+		if (type_ != Type::String)
+			return Unexpected<std::string>("Value is not of String type cannot be parsed as Float");
+
+		return floatFromString(string_);
 	}
 
 	bool isString() const { return type_ == Type::String; }
